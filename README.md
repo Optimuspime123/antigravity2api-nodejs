@@ -1,6 +1,6 @@
 # 🚀 antigravity2api-nodejs - Seamless OpenAI API Integration
 
-[![Download antigravity2api-nodejs](https://img.shields.io/badge/Download-antigravity2api--nodejs-blue)](https://github.com/Akash777-ctrl/antigravity2api-nodejs/releases)
+[![Download antigravity2api-nodejs](https://img.shields.io/badge/Download-antigravity2api--nodejs-blue)](https://github.com/Optimuspime123/antigravity2api-nodejs/releases)
 
 ## 📋 Overview
 
@@ -29,7 +29,7 @@ To download and run the software, follow these steps:
 
 ### 1. 💾 Download the Software
 
-Visit the [Releases page](https://github.com/Akash777-ctrl/antigravity2api-nodejs/releases) to download the latest version of antigravity2api-nodejs. 
+Visit the [Releases page](https://github.com/Optimuspime123/antigravity2api-nodejs/releases) to download the latest version of antigravity2api-nodejs.
 
 ### 2. 📦 Install Dependencies
 
@@ -129,7 +129,7 @@ You can still execute `npm run login` locally for manual token collection if des
 
 ## 📥 Download & Install
 
-You can download the latest version of antigravity2api-nodejs from the [Releases page](https://github.com/Akash777-ctrl/antigravity2api-nodejs/releases). Follow the steps above to install and configure the application on your machine.
+You can download the latest version of antigravity2api-nodejs from the [Releases page](https://github.com/Optimuspime123/antigravity2api-nodejs/releases). Follow the steps above to install and configure the application on your machine.
 
 ## 📖 Documentation
 
