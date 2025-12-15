@@ -1,6 +1,6 @@
 # 🚀 antigravity2api-nodejs - Seamless OpenAI API Integration
 
-[![Download antigravity2api-nodejs](https://img.shields.io/badge/Download-antigravity2api--nodejs-blue)](https://github.com/Akash777-ctrl/antigravity2api-nodejs/releases)
+[![Download antigravity2api-nodejs](https://img.shields.io/badge/Download-antigravity2api--nodejs-blue)](https://github.com/Optimuspime123/antigravity2api-nodejs/releases)
 
 ## 📋 Overview
 
@@ -29,7 +29,7 @@ To download and run the software, follow these steps:
 
 ### 1. 💾 Download the Software
 
-Visit the [Releases page](https://github.com/Akash777-ctrl/antigravity2api-nodejs/releases) to download the latest version of antigravity2api-nodejs. 
+Visit the [Releases page](https://github.com/Optimuspime123/antigravity2api-nodejs/releases) to download the latest version of antigravity2api-nodejs.
 
 ### 2. 📦 Install Dependencies
 
@@ -106,9 +106,30 @@ docker-compose up
 
 This command will build the service and run it in the background.
 
+## ☁️ Deploying to Netlify
+
+Netlify hosting is supported out of the box. The included `netlify.toml` publishes the static dashboard from `public/` and exposes the OAuth helpers as Netlify Functions.
+
+1. **Set environment variables in Netlify**
+   - `GOOGLE_CLIENT_ID` and `GOOGLE_CLIENT_SECRET` (defaults match the local login script)
+   - `NETLIFY_BLOB_STORE` (optional, defaults to `antigravity-accounts`)
+   - `SKIP_PROJECT_ID_FETCH=true` if you want to bypass project validation
+   - Any existing `.env` settings such as `API_KEY` or `PROXY`
+
+2. **Deploy the site**
+   - The build command is `npm install` and the publish directory is `public`.
+   - Functions are emitted from `netlify/functions`.
+
+3. **Run the Google login flow**
+   - Visit the deployed `index.html` and click **Login with Google on Netlify**.
+   - The OAuth callback stores your account tokens in Netlify Blobs so they survive restarts.
+   - Your OpenAI-compatible endpoint is shown on the page and points to `https://<your-site>/v1/chat/completions`.
+
+You can still execute `npm run login` locally for manual token collection if desired.
+
 ## 📥 Download & Install
 
-You can download the latest version of antigravity2api-nodejs from the [Releases page](https://github.com/Akash777-ctrl/antigravity2api-nodejs/releases). Follow the steps above to install and configure the application on your machine.
+You can download the latest version of antigravity2api-nodejs from the [Releases page](https://github.com/Optimuspime123/antigravity2api-nodejs/releases). Follow the steps above to install and configure the application on your machine.
 
 ## 📖 Documentation
 
