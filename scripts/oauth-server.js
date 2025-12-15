@@ -103,8 +103,18 @@ async function fetchProjectId(accessToken) {
   return response.data?.cloudaicompanionProject;
 }
 
+function resolvePort(req) {
+  return req.socket?.localPort ?? server.address()?.port;
+}
+
 const server = http.createServer((req, res) => {
-  const port = server.address().port;
+  const port = resolvePort(req);
+  if (!port) {
+    log.error('Unable to determine server port for incoming request');
+    res.writeHead(500, { 'Content-Type': 'text/plain; charset=utf-8' });
+    res.end('Server error: port unavailable');
+    return;
+  }
   const url = new URL(req.url, `http://localhost:${port}`);
   
   if (url.pathname === '/oauth-callback') {
