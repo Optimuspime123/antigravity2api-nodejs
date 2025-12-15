@@ -5,7 +5,7 @@ const API_URL = 'http://localhost:8045/v1/chat/completions';
 const API_KEY = 'sk-text';
 
 async function testImageGeneration(stream = true) {
-  console.log(`测试生图模型 (${stream ? '流式' : '非流式'})...\n`);
+  console.log(`Testing image generation model (${stream ? 'streaming' : 'non-streaming'})...\n`);
   
   const response = await fetch(API_URL, {
     method: 'POST',
@@ -15,7 +15,7 @@ async function testImageGeneration(stream = true) {
     },
     body: JSON.stringify({
       model: 'gemini-2.5-flash-image',
-      messages: [{ role: 'user', content: '画一个二次元美少女' }],
+      messages: [{ role: 'user', content: 'Draw an anime girl' }],
       stream
     })
   });
@@ -49,9 +49,9 @@ async function testImageGeneration(stream = true) {
     fullContent = data.choices[0]?.message?.content || '';
   }
 
-  console.log('响应内容:\n', fullContent.substring(0, 200), '...\n');
-  
-  // 提取markdown中的图片
+  console.log('Response content:\n', fullContent.substring(0, 200), '...\n');
+
+  // Extract images from markdown
   const imageRegex = /!\[.*?\]\((data:image\/(.*?);base64,([^)]+))\)/g;
   let match;
   let imageCount = 0;
@@ -64,13 +64,13 @@ async function testImageGeneration(stream = true) {
     const filepath = path.join('test', filename);
     
     fs.writeFileSync(filepath, Buffer.from(base64Data, 'base64'));
-    console.log(`✓ 图片已保存: ${filepath}`);
+    console.log(`✓ Image saved: ${filepath}`);
   }
-  
+
   if (imageCount === 0) {
-    console.log('✗ 未找到图片');
+    console.log('✗ No images found');
   } else {
-    console.log(`\n✓ 共保存 ${imageCount} 张图片`);
+    console.log(`\n✓ Saved ${imageCount} images`);
   }
 }
 

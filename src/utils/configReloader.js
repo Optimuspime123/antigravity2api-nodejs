@@ -1,7 +1,7 @@
 import config, { getConfigJson } from '../config/config.js';
 
 /**
- * 配置字段映射表：config对象路径 -> config.json路径 / 环境变量
+ * Mapping table: config object paths -> config.json paths / environment variables.
  */
 const CONFIG_MAPPING = [
   { target: 'server.port', source: 'server.port', default: 8045 },
@@ -28,14 +28,14 @@ const ENV_MAPPING = [
 ];
 
 /**
- * 从嵌套路径获取值
+ * Get a value from a nested path.
  */
 function getNestedValue(obj, path) {
   return path.split('.').reduce((acc, key) => acc?.[key], obj);
 }
 
 /**
- * 设置嵌套路径的值
+ * Set a value at a nested path.
  */
 function setNestedValue(obj, path, value) {
   const keys = path.split('.');
@@ -45,19 +45,19 @@ function setNestedValue(obj, path, value) {
 }
 
 /**
- * 重新加载配置到 config 对象
+ * Reload configuration into the config object.
  */
 export function reloadConfig() {
   const jsonConfig = getConfigJson();
   
-  // 更新 JSON 配置
+  // Update JSON configuration
   CONFIG_MAPPING.forEach(({ target, source, default: defaultValue, transform }) => {
     let value = getNestedValue(jsonConfig, source) ?? defaultValue;
     if (transform) value = transform(value);
     setNestedValue(config, target, value);
   });
   
-  // 更新环境变量配置
+  // Update environment variable configuration
   ENV_MAPPING.forEach(({ target, env, default: defaultValue }) => {
     const value = process.env[env] || defaultValue;
     setNestedValue(config, target, value);

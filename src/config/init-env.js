@@ -27,6 +27,6 @@ if (fs.existsSync(envPath)) {
   
   if (updated) {
     fs.writeFileSync(envPath, envContent, 'utf8');
-    console.log('✓ 环境变量已同步到 .env');
+    console.log('✓ Environment variables synchronized to .env');
   }
 }
