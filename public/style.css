@@ -67,6 +67,10 @@ body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-
 
 .login-form { background: var(--card); border-radius: 1.5rem; box-shadow: var(--shadow); max-width: 480px; width: 100%; padding: 3rem; }
 .login-form h2 { text-align: center; margin-bottom: 2.5rem; background: linear-gradient(135deg, var(--primary), var(--primary-dark)); -webkit-background-clip: text; -webkit-text-fill-color: transparent; background-clip: text; font-size: 2rem; font-weight: 700; }
+.netlify-panel { display: flex; gap: 16px; align-items: center; justify-content: space-between; background: linear-gradient(135deg, #0ea5e9 0%, #6366f1 100%); border-radius: 12px; padding: 14px 16px; color: #0b1021; box-shadow: 0 10px 30px rgba(0, 0, 0, 0.25); margin-bottom: 16px; }
+.netlify-panel h3 { margin: 0 0 6px; color: #0b1021; }
+.netlify-panel p { margin: 0 0 8px; color: #0b1021; }
+.netlify-panel .endpoint code { background: rgba(0, 0, 0, 0.1); color: #0b1021; }
 .form-group { margin-bottom: 1.5rem; }
 label { display: block; margin-bottom: 0.75rem; font-weight: 600; color: var(--text); font-size: 0.95rem; }
 input { width: 100%; min-height: 48px; padding: 0.875rem 1rem; border: 2px solid var(--border); border-radius: 0.75rem; font-size: 0.95rem; line-height: 1.5; background: var(--card); color: var(--text); transition: all 0.2s; text-indent: 0.25rem; -webkit-appearance: none; }
