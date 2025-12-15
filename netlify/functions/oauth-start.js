@@ -11,16 +11,12 @@ const SCOPES = [
 ];
 
 const buildOrigin = (event) => {
-  if (process.env.GOOGLE_REDIRECT_ORIGIN) return process.env.GOOGLE_REDIRECT_ORIGIN;
-  if (process.env.SITE_URL) return process.env.SITE_URL;
-  if (process.env.URL) return process.env.URL;
-
   const proto = event.headers['x-forwarded-proto'] || 'https';
   const host = event.headers.host;
   return `${proto}://${host}`;
 };
 
-const getRedirectUri = (event) => `${buildOrigin(event).replace(/\/$/, '')}/.netlify/functions/oauth-callback`;
+const getRedirectUri = (event) => `${buildOrigin(event)}/.netlify/functions/oauth-callback`;
 
 export async function handler(event) {
   const state = crypto.randomUUID();

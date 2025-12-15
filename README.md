@@ -113,7 +113,6 @@ Netlify hosting is supported out of the box. The included `netlify.toml` publish
 1. **Set environment variables in Netlify**
    - `GOOGLE_CLIENT_ID` and `GOOGLE_CLIENT_SECRET` (defaults match the local login script)
    - `NETLIFY_BLOB_STORE` (optional, defaults to `antigravity-accounts`)
-   - `GOOGLE_REDIRECT_ORIGIN` (recommended) — set to your Netlify site URL, e.g. `https://<your-site>.netlify.app`
    - `SKIP_PROJECT_ID_FETCH=true` if you want to bypass project validation
    - Any existing `.env` settings such as `API_KEY` or `PROXY`
 
@@ -122,7 +121,6 @@ Netlify hosting is supported out of the box. The included `netlify.toml` publish
    - Functions are emitted from `netlify/functions`.
 
 3. **Run the Google login flow**
-   - In your Google Cloud console, add `https://<your-site>/.netlify/functions/oauth-callback` as an authorized redirect URI.
    - Visit the deployed `index.html` and click **Login with Google on Netlify**.
    - The OAuth callback stores your account tokens in Netlify Blobs so they survive restarts.
    - Your OpenAI-compatible endpoint is shown on the page and points to `https://<your-site>/v1/chat/completions`.
