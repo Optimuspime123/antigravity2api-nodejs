@@ -9,6 +9,13 @@ const SCOPES = [
     'https://www.googleapis.com/auth/experimentsandconfigs'
 ].join(' ');
 
+document.addEventListener('DOMContentLoaded', () => {
+    const openaiUrlElement = document.getElementById('openaiUrl');
+    if (openaiUrlElement) {
+        openaiUrlElement.textContent = `${window.location.origin}/v1/chat/completions`;
+    }
+});
+
 // Wrapper around fetch to automatically handle 401 responses
 const authFetch = async (url, options = {}) => {
     const response = await fetch(url, options);

@@ -11,6 +11,14 @@
         <!-- Login form -->
         <div id="loginForm" class="login-form">
             <h2>🔐 Token Management System</h2>
+            <div class="netlify-panel">
+                <div>
+                    <h3>Deployable on Netlify</h3>
+                    <p>Run <code>npm run login</code> locally or click below to sign in with Google on a Netlify deployment. Tokens are stored automatically and your OpenAI-compatible URL is shown for instant use.</p>
+                    <p class="endpoint">OpenAI-compatible endpoint: <code id="openaiUrl">Loading...</code></p>
+                </div>
+                <a class="btn btn-success" href="/.netlify/functions/oauth-start">🚀 Login with Google on Netlify</a>
+            </div>
             <form id="login">
                 <div class="form-group">
                     <label>👤 Username</label>
