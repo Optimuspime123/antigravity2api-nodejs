@@ -1,27 +1,27 @@
-# API 使用文档
+# API Usage Guide
 
-本文档介绍如何使用 Antigravity2API 提供的 OpenAI 兼容 API。
+This document explains how to use the Antigravity2API OpenAI-compatible API.
 
-## 基础配置
+## Basic configuration
 
-所有 API 请求需要在 Header 中携带 API Key：
+All API requests must include the API key in the header:
 
 ```
 Authorization: Bearer YOUR_API_KEY
 ```
 
-默认服务地址：`http://localhost:8045`
+Default service address: `http://localhost:8045`
 
-## 获取模型列表
+## List models
 
 ```bash
 curl http://localhost:8045/v1/models \
   -H "Authorization: Bearer sk-text"
 ```
 
-## 聊天补全
+## Chat completions
 
-### 流式响应
+### Streaming response
 
 ```bash
 curl http://localhost:8045/v1/chat/completions \
@@ -29,12 +29,12 @@ curl http://localhost:8045/v1/chat/completions \
   -H "Authorization: Bearer sk-text" \
   -d '{
     "model": "gemini-2.0-flash-exp",
-    "messages": [{"role": "user", "content": "你好"}],
+    "messages": [{"role": "user", "content": "Hello"}],
     "stream": true
   }'
 ```
 
-### 非流式响应
+### Non-streaming response
 
 ```bash
 curl http://localhost:8045/v1/chat/completions \
@@ -42,12 +42,12 @@ curl http://localhost:8045/v1/chat/completions \
   -H "Authorization: Bearer sk-text" \
   -d '{
     "model": "gemini-2.0-flash-exp",
-    "messages": [{"role": "user", "content": "你好"}],
+    "messages": [{"role": "user", "content": "Hello"}],
     "stream": false
   }'
 ```
 
-## 工具调用（Function Calling）
+## Function calling
 
 ```bash
 curl http://localhost:8045/v1/chat/completions \
@@ -55,16 +55,16 @@ curl http://localhost:8045/v1/chat/completions \
   -H "Authorization: Bearer sk-text" \
   -d '{
     "model": "gemini-2.0-flash-exp",
-    "messages": [{"role": "user", "content": "北京天气怎么样"}],
+    "messages": [{"role": "user", "content": "How is the weather in Beijing?"}],
     "tools": [{
       "type": "function",
       "function": {
         "name": "get_weather",
-        "description": "获取天气信息",
+        "description": "Get weather information",
         "parameters": {
           "type": "object",
           "properties": {
-            "location": {"type": "string", "description": "城市名称"}
+            "location": {"type": "string", "description": "City name"}
           },
           "required": ["location"]
         }
@@ -73,9 +73,9 @@ curl http://localhost:8045/v1/chat/completions \
   }'
 ```
 
-## 图片输入（多模态）
+## Image input (multimodal)
 
-支持 Base64 编码的图片输入，兼容 OpenAI 的多模态格式：
+Base64-encoded image input is supported using the OpenAI multimodal format:
 
 ```bash
 curl http://localhost:8045/v1/chat/completions \
@@ -86,7 +86,7 @@ curl http://localhost:8045/v1/chat/completions \
     "messages": [{
       "role": "user",
       "content": [
-        {"type": "text", "text": "这张图片里有什么？"},
+        {"type": "text", "text": "What is in this image?"},
         {
           "type": "image_url",
           "image_url": {
@@ -99,16 +99,16 @@ curl http://localhost:8045/v1/chat/completions \
   }'
 ```
 
-### 支持的图片格式
+### Supported image formats
 
 - JPEG/JPG (`data:image/jpeg;base64,...`)
 - PNG (`data:image/png;base64,...`)
 - GIF (`data:image/gif;base64,...`)
 - WebP (`data:image/webp;base64,...`)
 
-## 图片生成
+## Image generation
 
-支持使用 大/小香蕉 模型生成图片，生成的图片会以 Markdown 格式返回：
+Use the banana models to generate images. Results are returned in Markdown format:
 
 ```bash
 curl http://localhost:8045/v1/chat/completions \
@@ -116,27 +116,27 @@ curl http://localhost:8045/v1/chat/completions \
   -H "Authorization: Bearer sk-text" \
   -d '{
     "model": "gemimi-3.0-pro-image",
-    "messages": [{"role": "user", "content": "画一只可爱的猫"}],
+    "messages": [{"role": "user", "content": "Draw a cute cat"}],
     "stream": false
   }'
 ```
 
-## 请求参数说明
+## Request parameters
 
-| 参数 | 类型 | 必填 | 说明 |
+| Parameter | Type | Required | Description |
 |------|------|------|------|
-| `model` | string | ✅ | 模型名称 |
-| `messages` | array | ✅ | 对话消息列表 |
-| `stream` | boolean | ❌ | 是否流式响应，默认 false |
-| `temperature` | number | ❌ | 温度参数，默认 1 |
-| `top_p` | number | ❌ | Top P 参数，默认 0.85 |
-| `top_k` | number | ❌ | Top K 参数，默认 50 |
-| `max_tokens` | number | ❌ | 最大 token 数，默认 8096 |
-| `tools` | array | ❌ | 工具列表（Function Calling） |
+| `model` | string | ✅ | Model name |
+| `messages` | array | ✅ | List of conversation messages |
+| `stream` | boolean | ❌ | Whether to stream the response (default: false) |
+| `temperature` | number | ❌ | Temperature parameter (default: 1) |
+| `top_p` | number | ❌ | Top P parameter (default: 0.85) |
+| `top_k` | number | ❌ | Top K parameter (default: 50) |
+| `max_tokens` | number | ❌ | Maximum token count (default: 8096) |
+| `tools` | array | ❌ | Function calling tool definitions |
 
-## 响应格式
+## Response format
 
-### 非流式响应
+### Non-streaming response
 
 ```json
 {
@@ -148,7 +148,7 @@ curl http://localhost:8045/v1/chat/completions \
     "index": 0,
     "message": {
       "role": "assistant",
-      "content": "你好！有什么我可以帮助你的吗？"
+      "content": "Hello! How can I help you?"
     },
     "finish_reason": "stop"
   }],
@@ -160,41 +160,41 @@ curl http://localhost:8045/v1/chat/completions \
 }
 ```
 
-### 流式响应
+### Streaming response
 
 ```
-data: {"id":"chatcmpl-xxx","object":"chat.completion.chunk","created":1234567890,"model":"gemini-2.0-flash-exp","choices":[{"index":0,"delta":{"role":"assistant","content":"你"},"finish_reason":null}]}
+data: {"id":"chatcmpl-xxx","object":"chat.completion.chunk","created":1234567890,"model":"gemini-2.0-flash-exp","choices":[{"index":0,"delta":{"role":"assistant","content":"Hel"},"finish_reason":null}]}
 
-data: {"id":"chatcmpl-xxx","object":"chat.completion.chunk","created":1234567890,"model":"gemini-2.0-flash-exp","choices":[{"index":0,"delta":{"content":"好"},"finish_reason":null}]}
+data: {"id":"chatcmpl-xxx","object":"chat.completion.chunk","created":1234567890,"model":"gemini-2.0-flash-exp","choices":[{"index":0,"delta":{"content":"lo"},"finish_reason":null}]}
 
 data: [DONE]
 ```
 
-## 错误处理
+## Error handling
 
-API 返回标准的 HTTP 状态码：
+The API returns standard HTTP status codes:
 
-| 状态码 | 说明 |
+| Status | Description |
 |--------|------|
-| 200 | 请求成功 |
-| 400 | 请求参数错误 |
-| 401 | API Key 无效 |
-| 429 | 请求过于频繁 |
-| 500 | 服务器内部错误 |
+| 200 | Request succeeded |
+| 400 | Invalid request parameters |
+| 401 | API key is invalid |
+| 429 | Too many requests |
+| 500 | Internal server error |
 
-错误响应格式：
+Error response format:
 
 ```json
 {
   "error": {
-    "message": "错误信息",
+    "message": "Error message",
     "type": "invalid_request_error",
     "code": "invalid_api_key"
   }
 }
 ```
 
-## 使用示例
+## Usage examples
 
 ### Python
 
@@ -206,7 +206,7 @@ openai.api_key = "sk-text"
 
 response = openai.ChatCompletion.create(
     model="gemini-2.0-flash-exp",
-    messages=[{"role": "user", "content": "你好"}],
+    messages=[{"role": "user", "content": "Hello"}],
     stream=True
 )
 
@@ -226,7 +226,7 @@ const openai = new OpenAI({
 
 const stream = await openai.chat.completions.create({
   model: 'gemini-2.0-flash-exp',
-  messages: [{ role: 'user', content: '你好' }],
+  messages: [{ role: 'user', content: 'Hello' }],
   stream: true
 });
 
@@ -235,10 +235,10 @@ for await (const chunk of stream) {
 }
 ```
 
-## 注意事项
+## Notes
 
-1. 所有请求必须携带有效的 API Key
-2. 图片输入需要使用 Base64 编码
-3. 流式响应使用 Server-Sent Events (SSE) 格式
-4. 工具调用需要模型支持 Function Calling
-5. 图片生成仅支持特定模型（大/小香蕉）
+1. All requests must include a valid API key.
+2. Image input must use Base64 encoding.
+3. Streaming responses use Server-Sent Events (SSE).
+4. Function calling requires model support for that capability.
+5. Image generation is only supported for the designated banana models.

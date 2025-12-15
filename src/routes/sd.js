@@ -6,7 +6,7 @@ import logger from '../utils/logger.js';
 
 const router = express.Router();
 
-// 静态数据
+// Static data
 const SD_MOCK_DATA = {
   options: {
     sd_model_checkpoint: 'gemini-3-pro-image',
@@ -68,7 +68,7 @@ const SD_MOCK_DATA = {
   }
 };
 
-// 构建图片生成请求体
+// Build the image generation request body
 function buildImageRequestBody(prompt, token) {
   const messages = [{ role: 'user', content: prompt }];
   const requestBody = generateRequestBody(messages, 'gemini-3-pro-image', {}, null, token);
@@ -80,7 +80,7 @@ function buildImageRequestBody(prompt, token) {
   return requestBody;
 }
 
-// GET 路由
+// GET routes
 router.get('/sd-models', async (req, res) => {
   try {
     const models = await getAvailableModels();
@@ -96,7 +96,7 @@ router.get('/sd-models', async (req, res) => {
       }));
     res.json(imageModels);
   } catch (error) {
-    logger.error('获取SD模型列表失败:', error.message);
+    logger.error('Failed to fetch SD model list:', error.message);
     res.status(500).json({ error: error.message });
   }
 });
@@ -117,7 +117,7 @@ router.get('/progress', (req, res) => res.json(SD_MOCK_DATA.progress));
 router.get('/cmd-flags', (req, res) => res.json({}));
 router.get('/memory', (req, res) => res.json({ ram: { free: 8589934592, used: 8589934592, total: 17179869184 }, cuda: { system: { free: 0, used: 0, total: 0 } } }));
 
-// POST 路由
+// POST routes
 router.post('/img2img', async (req, res) => {
   const { prompt, init_images } = req.body;
   
@@ -128,10 +128,10 @@ router.post('/img2img', async (req, res) => {
     
     const token = await tokenManager.getToken();
     if (!token) {
-      throw new Error('没有可用的token');
+      throw new Error('No available token');
     }
-    
-    // 构建包含图片的消息
+
+    // Build messages that include images
     const content = [{ type: 'text', text: prompt }];
     if (init_images && init_images.length > 0) {
       init_images.forEach(img => {
@@ -151,7 +151,7 @@ router.post('/img2img', async (req, res) => {
     const images = await generateImageForSD(requestBody, token);
     
     if (images.length === 0) {
-      throw new Error('未生成图片');
+      throw new Error('No images were generated');
     }
     
     res.json({
@@ -160,7 +160,7 @@ router.post('/img2img', async (req, res) => {
       info: JSON.stringify({ prompt })
     });
   } catch (error) {
-    logger.error('SD图生图失败:', error.message);
+    logger.error('SD img2img failed:', error.message);
     res.status(500).json({ error: error.message });
   }
 });
@@ -175,14 +175,14 @@ router.post('/txt2img', async (req, res) => {
     
     const token = await tokenManager.getToken();
     if (!token) {
-      throw new Error('没有可用的token');
+      throw new Error('No available token');
     }
     
     const requestBody = buildImageRequestBody(prompt, token);
     const images = await generateImageForSD(requestBody, token);
     
     if (images.length === 0) {
-      throw new Error('未生成图片');
+      throw new Error('No images were generated');
     }
     
     res.json({
@@ -191,7 +191,7 @@ router.post('/txt2img', async (req, res) => {
       info: JSON.stringify({ prompt, seed: seed || -1 })
     });
   } catch (error) {
-    logger.error('SD生图失败:', error.message);
+    logger.error('SD txt2img failed:', error.message);
     res.status(500).json({ error: error.message });
   }
 });

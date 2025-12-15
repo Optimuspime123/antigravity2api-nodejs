@@ -5,7 +5,7 @@ import { generateToolCallId } from '../utils/idGenerator.js';
 import AntigravityRequester from '../AntigravityRequester.js';
 import { saveBase64Image } from '../utils/imageStorage.js';
 
-// 请求客户端：优先使用 AntigravityRequester，失败则降级到 axios
+// Request client: prefer AntigravityRequester, fall back to axios on failure
 let requester = null;
 let useAxios = false;
 
@@ -15,12 +15,12 @@ if (config.useNativeAxios === true) {
   try {
     requester = new AntigravityRequester();
   } catch (error) {
-    console.warn('AntigravityRequester 初始化失败，降级使用 axios:', error.message);
+    console.warn('AntigravityRequester failed to initialize, falling back to axios:', error.message);
     useAxios = true;
   }
 }
 
-// ==================== 辅助函数 ====================
+// ==================== Helpers ====================
 
 function buildHeaders(token) {
   return {
@@ -58,7 +58,7 @@ function buildRequesterConfig(headers, body = null) {
   return reqConfig;
 }
 
-// 统一错误处理
+// Unified error handling
 async function handleApiError(error, token) {
   const status = error.response?.status || error.status || 'Unknown';
   let errorBody = error.message;
@@ -77,16 +77,16 @@ async function handleApiError(error, token) {
   
   if (status === 403) {
     if (JSON.stringify(errorBody).includes("The caller does not")){
-      throw new Error(`超出模型最大上下文。错误详情: ${errorBody}`);
+      throw new Error(`Exceeded the model context window. Details: ${errorBody}`);
     }
     tokenManager.disableCurrentToken(token);
-    throw new Error(`该账号没有使用权限，已自动禁用。错误详情: ${errorBody}`);
+    throw new Error(`This account lacks permission and has been disabled. Details: ${errorBody}`);
   }
-  
-  throw new Error(`API请求失败 (${status}): ${errorBody}`);
+
+  throw new Error(`API request failed (${status}): ${errorBody}`);
 }
 
-// 转换 functionCall 为 OpenAI 格式
+// Convert functionCall to OpenAI format
 function convertToToolCall(functionCall) {
   return {
     id: functionCall.id || generateToolCallId(),
@@ -98,7 +98,7 @@ function convertToToolCall(functionCall) {
   };
 }
 
-// 解析并发送流式响应片段（会修改 state 并触发 callback）
+// Parse and emit streaming response chunks (mutates state and triggers callback)
 function parseAndEmitStreamChunk(line, state, callback) {
   if (!line.startsWith('data: ')) return;
   
@@ -110,27 +110,27 @@ function parseAndEmitStreamChunk(line, state, callback) {
     if (parts) {
       for (const part of parts) {
         if (part.thought === true) {
-          // 思维链内容
+          // Chain-of-thought content
           if (!state.thinkingStarted) {
             callback({ type: 'thinking', content: '<think>\n' });
             state.thinkingStarted = true;
           }
           callback({ type: 'thinking', content: part.text || '' });
         } else if (part.text !== undefined) {
-          // 普通文本内容
+          // Regular text content
           if (state.thinkingStarted) {
             callback({ type: 'thinking', content: '\n</think>\n' });
             state.thinkingStarted = false;
           }
           callback({ type: 'text', content: part.text });
         } else if (part.functionCall) {
-          // 工具调用
+          // Tool call
           state.toolCalls.push(convertToToolCall(part.functionCall));
         }
       }
     }
-    
-    // 响应结束时发送工具调用和使用统计
+
+    // At end of response, emit tool calls and usage statistics
     if (data.response?.candidates?.[0]?.finishReason) {
       if (state.thinkingStarted) {
         callback({ type: 'thinking', content: '\n</think>\n' });
@@ -140,10 +140,10 @@ function parseAndEmitStreamChunk(line, state, callback) {
         callback({ type: 'tool_calls', tool_calls: state.toolCalls });
         state.toolCalls = [];
       }
-      // 提取 token 使用统计
+      // Extract token usage stats
       const usage = data.response?.usageMetadata;
       if (usage) {
-        callback({ 
+        callback({
           type: 'usage', 
           usage: {
             prompt_tokens: usage.promptTokenCount || 0,
@@ -154,22 +154,22 @@ function parseAndEmitStreamChunk(line, state, callback) {
       }
     }
   } catch (e) {
-    // 忽略 JSON 解析错误
+    // Ignore JSON parse errors
   }
 }
 
-// ==================== 导出函数 ====================
+// ==================== Exported functions ====================
 
 export async function generateAssistantResponse(requestBody, token, callback) {
   
   const headers = buildHeaders(token);
   const state = { thinkingStarted: false, toolCalls: [] };
-  let buffer = ''; // 缓冲区：处理跨 chunk 的不完整行
+  let buffer = ''; // Buffer to handle incomplete lines across chunks
   
   const processChunk = (chunk) => {
     buffer += chunk;
     const lines = buffer.split('\n');
-    buffer = lines.pop(); // 保留最后一行（可能不完整）
+    buffer = lines.pop(); // keep the last (possibly incomplete) line
     lines.forEach(line => parseAndEmitStreamChunk(line, state, callback));
   };
   
@@ -207,7 +207,7 @@ export async function generateAssistantResponse(requestBody, token, callback) {
 
 export async function getAvailableModels() {
   const token = await tokenManager.getToken();
-  if (!token) throw new Error('没有可用的token，请运行 npm run login 获取token');
+  if (!token) throw new Error('No available token; please run npm run login to obtain one');
   
   const headers = buildHeaders(token);
   
@@ -298,7 +298,7 @@ export async function generateAssistantResponseNoStream(requestBody, token) {
     await handleApiError(error, token);
   }
   //console.log(JSON.stringify(data));
-  // 解析响应内容
+  // Parse response content
   const parts = data.response?.candidates?.[0]?.content?.parts || [];
   let content = '';
   let thinkingContent = '';
@@ -313,18 +313,18 @@ export async function generateAssistantResponseNoStream(requestBody, token) {
     } else if (part.functionCall) {
       toolCalls.push(convertToToolCall(part.functionCall));
     } else if (part.inlineData) {
-      // 保存图片到本地并获取 URL
+      // Save image to disk and get the URL
       const imageUrl = saveBase64Image(part.inlineData.data, part.inlineData.mimeType);
       imageUrls.push(imageUrl);
     }
   }
   
-  // 拼接思维链标签
+  // Append chain-of-thought tags
   if (thinkingContent) {
     content = `<think>\n${thinkingContent}\n</think>\n${content}`;
   }
   
-  // 提取 token 使用统计
+  // Extract token usage
   const usage = data.response?.usageMetadata;
   const usageData = usage ? {
     prompt_tokens: usage.promptTokenCount || 0,
@@ -332,7 +332,7 @@ export async function generateAssistantResponseNoStream(requestBody, token) {
     total_tokens: usage.totalTokenCount || 0
   } : null;
   
-  // 生图模型：转换为 markdown 格式
+  // Image generation models: convert to Markdown format
   if (imageUrls.length > 0) {
     let markdown = content ? content + '\n\n' : '';
     markdown += imageUrls.map(url => `![image](${url})`).join('\n\n');

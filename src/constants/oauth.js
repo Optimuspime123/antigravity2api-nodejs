@@ -1,6 +1,6 @@
 /**
- * Google OAuth 凭证
- * 统一管理，避免在多个文件中重复定义
+ * Google OAuth credentials.
+ * Centralized to avoid duplication across files.
  */
 export const OAUTH_CONFIG = {
   CLIENT_ID: '1071006060591-tmhssin2h21lcre235vtolojh4g403ep.apps.googleusercontent.com',

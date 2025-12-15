@@ -112,7 +112,7 @@ const server = http.createServer((req, res) => {
     const error = url.searchParams.get('error');
     
     if (code) {
-      log.info('收到授权码，正在交换 Token...');
+      log.info('Authorization code received; exchanging token...');
       exchangeCodeForToken(code, port).then(async (tokenData) => {
         const account = {
           access_token: tokenData.access_token,
@@ -125,34 +125,34 @@ const server = http.createServer((req, res) => {
           const email = await fetchUserEmail(account.access_token);
           if (email) {
             account.email = email;
-            log.info('获取到用户邮箱: ' + email);
+            log.info('Retrieved user email: ' + email);
           }
         } catch (err) {
-          log.warn('获取用户邮箱失败:', err.message);
+          log.warn('Failed to fetch user email:', err.message);
         }
-        
+
         if (config.skipProjectIdFetch) {
           account.projectId = generateProjectId();
           account.enable = true;
-          log.info('已跳过API验证，使用随机生成的projectId: ' + account.projectId);
+          log.info('Skipped API verification; using randomly generated projectId: ' + account.projectId);
         } else {
-          log.info('正在验证账号资格...');
+          log.info('Validating account eligibility...');
           try {
             const projectId = await fetchProjectId(account.access_token);
             if (projectId === undefined) {
-              log.warn('该账号无资格使用（无法获取projectId），已跳过保存');
+              log.warn('Account is not eligible (could not obtain projectId); skipping save');
               res.writeHead(200, { 'Content-Type': 'text/html; charset=utf-8' });
-              res.end('<h1>账号无资格</h1><p>该账号无法获取projectId，未保存。</p>');
+              res.end('<h1>Account not eligible</h1><p>Unable to obtain projectId; token was not saved.</p>');
               setTimeout(() => server.close(), 1000);
               return;
             }
             account.projectId = projectId;
             account.enable = true;
-            log.info('账号验证通过');
+            log.info('Account validated');
           } catch (err) {
-            log.error('验证账号资格失败:', err.message);
+            log.error('Account eligibility validation failed:', err.message);
             res.writeHead(200, { 'Content-Type': 'text/html; charset=utf-8' });
-            res.end('<h1>验证失败</h1><p>无法验证账号资格，请查看控制台。</p>');
+            res.end('<h1>Validation failed</h1><p>Unable to verify account eligibility. Check console output.</p>');
             setTimeout(() => server.close(), 1000);
             return;
           }
@@ -164,7 +164,7 @@ const server = http.createServer((req, res) => {
             accounts = JSON.parse(fs.readFileSync(ACCOUNTS_FILE, 'utf-8'));
           }
         } catch (err) {
-          log.warn('读取 accounts.json 失败，将创建新文件');
+          log.warn('Failed to read accounts.json; a new file will be created');
         }
         
         accounts.push(account);
@@ -176,24 +176,24 @@ const server = http.createServer((req, res) => {
         
         fs.writeFileSync(ACCOUNTS_FILE, JSON.stringify(accounts, null, 2));
         
-        log.info(`Token 已保存到 ${ACCOUNTS_FILE}`);
-        
+        log.info(`Token saved to ${ACCOUNTS_FILE}`);
+
         res.writeHead(200, { 'Content-Type': 'text/html; charset=utf-8' });
-        res.end('<h1>授权成功！</h1><p>Token 已保存，可以关闭此页面。</p>');
+        res.end('<h1>Authorization successful</h1><p>Token saved. You may close this window.</p>');
         
         setTimeout(() => server.close(), 1000);
       }).catch(err => {
-        log.error('Token 交换失败:', err.message);
-        
+        log.error('Token exchange failed:', err.message);
+
         res.writeHead(200, { 'Content-Type': 'text/html; charset=utf-8' });
-        res.end('<h1>Token 获取失败</h1><p>查看控制台错误信息</p>');
-        
+        res.end('<h1>Token retrieval failed</h1><p>See console for error details.</p>');
+
         setTimeout(() => server.close(), 1000);
       });
     } else {
-      log.error('授权失败:', error || '未收到授权码');
+      log.error('Authorization failed:', error || 'No authorization code received');
       res.writeHead(200, { 'Content-Type': 'text/html; charset=utf-8' });
-      res.end('<h1>授权失败</h1>');
+      res.end('<h1>Authorization failed</h1>');
       setTimeout(() => server.close(), 1000);
     }
   } else {
@@ -205,8 +205,8 @@ const server = http.createServer((req, res) => {
 server.listen(0, () => {
   const port = server.address().port;
   const authUrl = generateAuthUrl(port);
-  log.info(`服务器运行在 http://localhost:${port}`);
-  log.info('请在浏览器中打开以下链接进行登录：');
+  log.info(`Server running at http://localhost:${port}`);
+  log.info('Open the following link in your browser to sign in:');
   console.log(`\n${authUrl}\n`);
-  log.info('等待授权回调...');
+  log.info('Waiting for authorization callback...');
 });
