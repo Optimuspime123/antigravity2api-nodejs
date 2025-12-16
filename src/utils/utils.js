@@ -6,25 +6,25 @@ import os from 'os';
 function extractImagesFromContent(content) {
   const result = { text: '', images: [] };
 
-  // 如果content是字符串，直接返回
+  // If content is a string, return it directly
   if (typeof content === 'string') {
     result.text = content;
     return result;
   }
 
-  // 如果content是数组（multimodal格式）
+  // If content is an array (multimodal format)
   if (Array.isArray(content)) {
     for (const item of content) {
       if (item.type === 'text') {
         result.text += item.text;
       } else if (item.type === 'image_url') {
-        // 提取base64图片数据
+        // Extract base64 image data
         const imageUrl = item.image_url?.url || '';
 
-        // 匹配 data:image/{format};base64,{data} 格式
+        // Match data:image/{format};base64,{data}
         const match = imageUrl.match(/^data:image\/(\w+);base64,(.+)$/);
         if (match) {
-          const format = match[1]; // 例如 png, jpeg, jpg
+          const format = match[1]; // e.g., png, jpeg, jpg
           const base64Data = match[2];
           result.images.push({
             inlineData: {
@@ -79,7 +79,7 @@ function handleAssistantMessage(message, antigravityMessages){
   }
 }
 function handleToolCall(message, antigravityMessages){
-  // 从之前的 model 消息中找到对应的 functionCall name
+  // Find the corresponding functionCall name from prior model messages
   let functionName = '';
   for (let i = antigravityMessages.length - 1; i >= 0; i--) {
     if (antigravityMessages[i].role === 'model') {
@@ -105,7 +105,7 @@ function handleToolCall(message, antigravityMessages){
     }
   };
   
-  // 如果上一条消息是 user 且包含 functionResponse，则合并
+  // If the previous message is user with an existing functionResponse, merge them
   if (lastMessage?.role === "user" && lastMessage.parts.some(p => p.functionResponse)) {
     lastMessage.parts.push(functionResponse);
   } else {

@@ -1,11 +1,11 @@
 {
   "name": "antigravity-to-openai",
   "version": "1.0.0",
-  "description": "Antigravity API 转 OpenAI 格式的代理服务",
+  "description": "Proxy service that converts the Antigravity API into the OpenAI format",
   "type": "module",
   "main": "src/server/index.js",
   "scripts": {
-    "start": "node src/server/index.js",
+    "start": "node scripts/start.js",
     "login": "node scripts/oauth-server.js",
     "refresh": "node scripts/refresh-tokens.js",
     "dev": "node --watch src/server/index.js"

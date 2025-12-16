@@ -26,13 +26,13 @@ class TokenManager {
     }
     if (!fs.existsSync(this.filePath)) {
       fs.writeFileSync(this.filePath, '[]', 'utf8');
-      log.info('✓ 已创建账号配置文件');
+      log.info('✓ Created account configuration file');
     }
   }
 
   async initialize() {
     try {
-      log.info('正在初始化token管理器...');
+      log.info('Initializing token manager...');
       const data = fs.readFileSync(this.filePath, 'utf8');
       let tokenArray = JSON.parse(data);
       
@@ -43,14 +43,14 @@ class TokenManager {
       
       this.currentIndex = 0;
       if (this.tokens.length === 0) {
-        log.warn('⚠ 暂无可用账号，请使用以下方式添加：');
-        log.warn('  方式1: 运行 npm run login 命令登录');
-        log.warn('  方式2: 访问前端管理页面添加账号');
+        log.warn('⚠ No available accounts. Add accounts in one of the following ways:');
+        log.warn('  Option 1: Run npm run login');
+        log.warn('  Option 2: Add an account from the admin UI');
       } else {
-        log.info(`成功加载 ${this.tokens.length} 个可用token`);
+        log.info(`Loaded ${this.tokens.length} available token(s)`);
       }
     } catch (error) {
-      log.error('初始化token失败:', error.message);
+      log.error('Failed to initialize token manager:', error.message);
       this.tokens = [];
     }
   }
@@ -83,7 +83,7 @@ class TokenManager {
   }
 
   async refreshToken(token) {
-    log.info('正在刷新token...');
+    log.info('Refreshing token...');
     const body = new URLSearchParams({
       client_id: OAUTH_CONFIG.CLIENT_ID,
       client_secret: OAUTH_CONFIG.CLIENT_SECRET,
@@ -124,7 +124,7 @@ class TokenManager {
       const data = fs.readFileSync(this.filePath, 'utf8');
       const allTokens = JSON.parse(data);
       
-      // 如果指定了要更新的token，直接更新它
+      // If a specific token is provided, update it directly
       if (tokenToUpdate) {
         const index = allTokens.findIndex(t => t.refresh_token === tokenToUpdate.refresh_token);
         if (index !== -1) {
@@ -132,7 +132,7 @@ class TokenManager {
           allTokens[index] = tokenToSave;
         }
       } else {
-        // 否则更新内存中的所有token
+        // Otherwise update every in-memory token
         this.tokens.forEach(memToken => {
           const index = allTokens.findIndex(t => t.refresh_token === memToken.refresh_token);
           if (index !== -1) {
@@ -144,12 +144,12 @@ class TokenManager {
       
       fs.writeFileSync(this.filePath, JSON.stringify(allTokens, null, 2), 'utf8');
     } catch (error) {
-      log.error('保存文件失败:', error.message);
+      log.error('Failed to save file:', error.message);
     }
   }
 
   disableToken(token) {
-    log.warn(`禁用token ...${token.access_token.slice(-8)}`)
+    log.warn(`Disabling token ...${token.access_token.slice(-8)}`)
     token.enable = false;
     this.saveToFile();
     this.tokens = this.tokens.filter(t => t.refresh_token !== token.refresh_token);
@@ -173,12 +173,12 @@ class TokenManager {
           if (config.skipProjectIdFetch) {
             token.projectId = generateProjectId();
             this.saveToFile(token);
-            log.info(`...${token.access_token.slice(-8)}: 使用随机生成的projectId: ${token.projectId}`);
+            log.info(`...${token.access_token.slice(-8)}: Using randomly generated projectId: ${token.projectId}`);
           } else {
             try {
               const projectId = await this.fetchProjectId(token);
               if (projectId === undefined) {
-                log.warn(`...${token.access_token.slice(-8)}: 无资格获取projectId，跳过保存`);
+                log.warn(`...${token.access_token.slice(-8)}: Not eligible for projectId; skipping save`);
                 this.disableToken(token);
                 if (this.tokens.length === 0) return null;
                 continue;
@@ -186,7 +186,7 @@ class TokenManager {
               token.projectId = projectId;
               this.saveToFile(token);
             } catch (error) {
-              log.error(`...${token.access_token.slice(-8)}: 获取projectId失败:`, error.message);
+              log.error(`...${token.access_token.slice(-8)}: Failed to obtain projectId:`, error.message);
               this.currentIndex = (this.currentIndex + 1) % this.tokens.length;
               continue;
             }
@@ -196,11 +196,11 @@ class TokenManager {
         return token;
       } catch (error) {
         if (error.statusCode === 403 || error.statusCode === 400) {
-          log.warn(`...${token.access_token.slice(-8)}: Token 已失效或错误，已自动禁用该账号`);
+          log.warn(`...${token.access_token.slice(-8)}: Token invalid or expired; account disabled automatically`);
           this.disableToken(token);
           if (this.tokens.length === 0) return null;
         } else {
-          log.error(`...${token.access_token.slice(-8)} 刷新失败:`, error.message);
+          log.error(`...${token.access_token.slice(-8)} refresh failed:`, error.message);
           this.currentIndex = (this.currentIndex + 1) % this.tokens.length;
         }
       }
@@ -216,10 +216,10 @@ class TokenManager {
     }
   }
 
-  // API管理方法
+  // API management methods
   async reload() {
     await this.initialize();
-    log.info('Token已热重载');
+    log.info('Tokens hot-reloaded');
   }
 
   addToken(tokenData) {
@@ -247,9 +247,9 @@ class TokenManager {
       fs.writeFileSync(this.filePath, JSON.stringify(allTokens, null, 2), 'utf8');
       
       this.reload();
-      return { success: true, message: 'Token添加成功' };
+      return { success: true, message: 'Token added successfully' };
     } catch (error) {
-      log.error('添加Token失败:', error.message);
+      log.error('Failed to add token:', error.message);
       return { success: false, message: error.message };
     }
   }
@@ -262,16 +262,16 @@ class TokenManager {
       
       const index = allTokens.findIndex(t => t.refresh_token === refreshToken);
       if (index === -1) {
-        return { success: false, message: 'Token不存在' };
+        return { success: false, message: 'Token not found' };
       }
       
       allTokens[index] = { ...allTokens[index], ...updates };
       fs.writeFileSync(this.filePath, JSON.stringify(allTokens, null, 2), 'utf8');
       
       this.reload();
-      return { success: true, message: 'Token更新成功' };
+      return { success: true, message: 'Token updated successfully' };
     } catch (error) {
-      log.error('更新Token失败:', error.message);
+      log.error('Failed to update token:', error.message);
       return { success: false, message: error.message };
     }
   }
@@ -284,15 +284,15 @@ class TokenManager {
       
       const filteredTokens = allTokens.filter(t => t.refresh_token !== refreshToken);
       if (filteredTokens.length === allTokens.length) {
-        return { success: false, message: 'Token不存在' };
+        return { success: false, message: 'Token not found' };
       }
       
       fs.writeFileSync(this.filePath, JSON.stringify(filteredTokens, null, 2), 'utf8');
       
       this.reload();
-      return { success: true, message: 'Token删除成功' };
+      return { success: true, message: 'Token deleted successfully' };
     } catch (error) {
-      log.error('删除Token失败:', error.message);
+      log.error('Failed to delete token:', error.message);
       return { success: false, message: error.message };
     }
   }
@@ -314,7 +314,7 @@ class TokenManager {
         email: token.email || null
       }));
     } catch (error) {
-      log.error('获取Token列表失败:', error.message);
+      log.error('Failed to fetch token list:', error.message);
       return [];
     }
   }

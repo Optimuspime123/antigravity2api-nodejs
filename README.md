@@ -1,10 +1,10 @@
 # 🚀 antigravity2api-nodejs - Seamless OpenAI API Integration
 
-[![Download antigravity2api-nodejs](https://img.shields.io/badge/Download-antigravity2api--nodejs-blue)](https://github.com/Akash777-ctrl/antigravity2api-nodejs/releases)
+[![antigravity2api-nodejs](https://img.shields.io/badge/GitHub-Optimuspime123%2Fantigravity2api--nodejs-blue)](https://github.com/Optimuspime123/antigravity2api-nodejs)
 
 ## 📋 Overview
 
-Antigravity2api-nodejs is a proxy service that converts the Google Antigravity API into a format compatible with OpenAI. This application allows for streaming responses, tool invocation, and manages multiple accounts smoothly.
+Antigravity2api-nodejs is a proxy service that converts the Google Antigravity API into a format compatible with OpenAI. This application allows for streaming responses, tool invocation, and manages multiple accounts smoothly. There are currently no packaged releases—clone the repository directly to get started.
 
 ## 🚀 Features
 
@@ -25,15 +25,18 @@ Antigravity2api-nodejs is a proxy service that converts the Google Antigravity A
 
 ## 🚀 Getting Started
 
-To download and run the software, follow these steps:
+To run the software, follow these steps:
 
-### 1. 💾 Download the Software
+### 1. 💾 Clone the Repository
 
-Visit the [Releases page](https://github.com/Akash777-ctrl/antigravity2api-nodejs/releases) to download the latest version of antigravity2api-nodejs. 
+```bash
+git clone https://github.com/Optimuspime123/antigravity2api-nodejs.git
+cd antigravity2api-nodejs
+```
 
 ### 2. 📦 Install Dependencies
 
-Open your terminal and run the following command to install necessary dependencies:
+Install the required dependencies:
 
 ```bash
 npm install
@@ -41,13 +44,13 @@ npm install
 
 ### 3. ⚙️ Configure Environment Variables
 
-You need to set up environment variables before running the application. Copy the example configuration file and edit it:
+Set up environment variables before running the application:
 
 ```bash
 cp .env.example .env
 ```
 
-Open the `.env` file and configure the necessary parameters:
+Edit the `.env` file and configure the necessary parameters:
 
 ```env
 # Required configuration
@@ -62,19 +65,19 @@ JWT_SECRET=your-jwt-secret-key-change-this-in-production
 # IMAGE_BASE_URL=http://your-domain.com
 ```
 
-### 4. 🔑 Log In to Get Token
+### 4. 🔑 Log In to Get a Token
 
-Run the following command to log in:
+Run the following command to launch the login flow:
 
 ```bash
 npm run login
 ```
 
-A browser will open, directing you to the Google authorization page. After you authorize, the token will save to `data/accounts.json`.
+A browser will open to the Google authorization page. After you authorize, the token will be saved to `data/accounts.json`.
 
 ### 5. 🚀 Start the Service
 
-To launch the application, use this command:
+Start the application:
 
 ```bash
 npm start
@@ -108,11 +111,11 @@ This command will build the service and run it in the background.
 
 ## 📥 Download & Install
 
-You can download the latest version of antigravity2api-nodejs from the [Releases page](https://github.com/Akash777-ctrl/antigravity2api-nodejs/releases). Follow the steps above to install and configure the application on your machine.
+There are currently no published releases. Clone the repository from `https://github.com/Optimuspime123/antigravity2api-nodejs` and follow the steps above to install and configure the application on your machine.
 
 ## 📖 Documentation
 
-For detailed information on features, usage, and further customization, refer to the official documentation linked on the GitHub repository.
+For detailed information on features, usage, and further customization, refer to the official documentation linked on the GitHub repository at [https://github.com/Optimuspime123/antigravity2api-nodejs](https://github.com/Optimuspime123/antigravity2api-nodejs).
 
 ## 🤝 Support
 

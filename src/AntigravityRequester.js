@@ -34,7 +34,7 @@ class antigravityRequester {
         
         const binPath = this.binPath || path.join(__dirname, 'bin');
         const requester_execPath = path.join(binPath, filename);
-        // 设置执行权限（非Windows平台）
+        // Ensure executable permissions (non-Windows platforms)
         if (platform !== 'win32') {
             try {
                 fs.chmodSync(requester_execPath, 0o755);
@@ -52,21 +52,21 @@ class antigravityRequester {
             stdio: ['pipe', 'pipe', 'pipe']
         });
 
-        // 设置 stdin 为非阻塞模式
+        // Configure stdin
         if (this.proc.stdin.setDefaultEncoding) {
             this.proc.stdin.setDefaultEncoding('utf8');
         }
 
-        // 增大 stdout 缓冲区以减少背压
+        // Configure stdout
         if (this.proc.stdout.setEncoding) {
             this.proc.stdout.setEncoding('utf8');
         }
         
-        // 使用 setImmediate 异步处理数据,避免阻塞
+        // Use setImmediate to process data asynchronously and avoid blocking
         this.proc.stdout.on('data', (data) => {
             this.buffer += data.toString();
             
-            // 使用 setImmediate 异步处理,避免阻塞 stdout 读取
+            // Use setImmediate asynchronously to avoid blocking stdout reads
             setImmediate(() => {
                 const lines = this.buffer.split('\n');
                 this.buffer = lines.pop();
@@ -168,7 +168,7 @@ class antigravityRequester {
                 if (canWrite) {
                     resolve();
                 } else {
-                    // 等待 drain 事件
+                    // Wait for the drain event
                     this.proc.stdin.once('drain', resolve);
                     this.proc.stdin.once('error', reject);
                 }

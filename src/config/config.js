@@ -9,22 +9,22 @@ const __dirname = path.dirname(__filename);
 const envPath = path.join(__dirname, '../../.env');
 const configJsonPath = path.join(__dirname, '../../config.json');
 
-// 确保 .env 存在
+// Ensure .env exists
 if (!fs.existsSync(envPath)) {
   const examplePath = path.join(__dirname, '../../.env.example');
   if (fs.existsSync(examplePath)) {
     fs.copyFileSync(examplePath, envPath);
-    log.info('✓ 已从 .env.example 创建 .env 文件');
+    log.info('✓ Created .env from .env.example');
   }
 }
 
-// 加载 config.json
+// Load config.json
 let jsonConfig = {};
 if (fs.existsSync(configJsonPath)) {
   jsonConfig = JSON.parse(fs.readFileSync(configJsonPath, 'utf8'));
 }
 
-// 加载 .env
+// Load .env
 dotenv.config();
 
 const config = {
@@ -63,7 +63,7 @@ const config = {
   skipProjectIdFetch: jsonConfig.other?.skipProjectIdFetch === true
 };
 
-log.info('✓ 配置加载成功');
+log.info('✓ Configuration loaded successfully');
 
 export default config;
 

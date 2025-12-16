@@ -20,7 +20,7 @@ const envPath = path.join(__dirname, '../../.env');
 
 const router = express.Router();
 
-// 登录接口
+// Login endpoint
 router.post('/login', (req, res) => {
   const { username, password } = req.body;
   
@@ -28,11 +28,11 @@ router.post('/login', (req, res) => {
     const token = generateToken({ username, role: 'admin' });
     res.json({ success: true, token });
   } else {
-    res.status(401).json({ success: false, message: '用户名或密码错误' });
+    res.status(401).json({ success: false, message: 'Invalid username or password' });
   }
 });
 
-// Token管理API - 需要JWT认证
+// Token management API - requires JWT authentication
 router.get('/tokens', authMiddleware, (req, res) => {
   const tokens = tokenManager.getTokenList();
   res.json({ success: true, data: tokens });
@@ -41,7 +41,7 @@ router.get('/tokens', authMiddleware, (req, res) => {
 router.post('/tokens', authMiddleware, (req, res) => {
   const { access_token, refresh_token, expires_in, timestamp, enable, projectId, email } = req.body;
   if (!access_token || !refresh_token) {
-    return res.status(400).json({ success: false, message: 'access_token和refresh_token必填' });
+    return res.status(400).json({ success: false, message: 'access_token and refresh_token are required' });
   }
   const tokenData = { access_token, refresh_token, expires_in };
   if (timestamp) tokenData.timestamp = timestamp;
@@ -69,9 +69,9 @@ router.delete('/tokens/:refreshToken', authMiddleware, (req, res) => {
 router.post('/tokens/reload', authMiddleware, async (req, res) => {
   try {
     await tokenManager.reload();
-    res.json({ success: true, message: 'Token已热重载' });
+    res.json({ success: true, message: 'Tokens hot-reloaded' });
   } catch (error) {
-    logger.error('热重载失败:', error.message);
+    logger.error('Hot reload failed:', error.message);
     res.status(500).json({ success: false, message: error.message });
   }
 });
@@ -79,7 +79,7 @@ router.post('/tokens/reload', authMiddleware, async (req, res) => {
 router.post('/oauth/exchange', authMiddleware, async (req, res) => {
   const { code, port } = req.body;
   if (!code || !port) {
-    return res.status(400).json({ success: false, message: 'code和port必填' });
+    return res.status(400).json({ success: false, message: 'code and port are required' });
   }
   
   try {
@@ -100,7 +100,7 @@ router.post('/oauth/exchange', authMiddleware, async (req, res) => {
     const tokenData = await response.json();
     
     if (!tokenData.access_token) {
-      return res.status(400).json({ success: false, message: 'Token交换失败' });
+      return res.status(400).json({ success: false, message: 'Token exchange failed' });
     }
     
     const account = {
@@ -123,49 +123,49 @@ router.post('/oauth/exchange', authMiddleware, async (req, res) => {
       const userInfo = await emailResponse.json();
       if (userInfo.email) {
         account.email = userInfo.email;
-        logger.info('获取到用户邮箱: ' + userInfo.email);
+        logger.info('Retrieved user email: ' + userInfo.email);
       }
     } catch (err) {
-      logger.warn('获取用户邮箱失败:', err.message);
+      logger.warn('Failed to fetch user email:', err.message);
     }
     
     if (config.skipProjectIdFetch) {
       account.projectId = generateProjectId();
-      logger.info('使用随机生成的projectId: ' + account.projectId);
+      logger.info('Using randomly generated projectId: ' + account.projectId);
     } else {
       try {
         const projectId = await tokenManager.fetchProjectId(account);
         if (projectId === undefined) {
-          return res.status(400).json({ success: false, message: '该账号无资格使用（无法获取projectId）' });
+          return res.status(400).json({ success: false, message: 'Account not eligible (projectId unavailable)' });
         }
         account.projectId = projectId;
-        logger.info('账号验证通过，projectId: ' + projectId);
+        logger.info('Account verified. projectId: ' + projectId);
       } catch (error) {
-        logger.error('验证账号资格失败:', error.message);
-        return res.status(500).json({ success: false, message: '验证账号资格失败: ' + error.message });
+        logger.error('Failed to verify account eligibility:', error.message);
+        return res.status(500).json({ success: false, message: 'Account eligibility verification failed: ' + error.message });
       }
     }
     
     res.json({ success: true, data: account });
   } catch (error) {
-    logger.error('Token交换失败:', error.message);
+    logger.error('Token exchange failed:', error.message);
     res.status(500).json({ success: false, message: error.message });
   }
 });
 
-// 获取配置
+// Get configuration
 router.get('/config', authMiddleware, (req, res) => {
   try {
     const envData = parseEnvFile(envPath);
     const jsonData = getConfigJson();
     res.json({ success: true, data: { env: envData, json: jsonData } });
   } catch (error) {
-    logger.error('读取配置失败:', error.message);
+    logger.error('Failed to read configuration:', error.message);
     res.status(500).json({ success: false, message: error.message });
   }
 });
 
-// 更新配置
+// Update configuration
 router.put('/config', authMiddleware, (req, res) => {
   try {
     const { env: envUpdates, json: jsonUpdates } = req.body;
@@ -183,15 +183,15 @@ router.put('/config', authMiddleware, (req, res) => {
     dotenv.config({ override: true });
     reloadConfig();
     
-    logger.info('配置已更新并热重载');
-    res.json({ success: true, message: '配置已保存并生效（端口/HOST修改需重启）' });
+    logger.info('Configuration updated and hot-reloaded');
+    res.json({ success: true, message: 'Configuration saved and applied (restart required after port/HOST changes)' });
   } catch (error) {
-    logger.error('更新配置失败:', error.message);
+    logger.error('Failed to update configuration:', error.message);
     res.status(500).json({ success: false, message: error.message });
   }
 });
 
-// 获取指定Token的模型额度
+// Get quota for a specific token
 router.get('/tokens/:refreshToken/quotas', authMiddleware, async (req, res) => {
   try {
     const { refreshToken } = req.params;
@@ -200,31 +200,31 @@ router.get('/tokens/:refreshToken/quotas', authMiddleware, async (req, res) => {
     let tokenData = tokens.find(t => t.refresh_token === refreshToken);
     
     if (!tokenData) {
-      return res.status(404).json({ success: false, message: 'Token不存在' });
+      return res.status(404).json({ success: false, message: 'Token not found' });
     }
     
-    // 检查token是否过期，如果过期则刷新
+    // Refresh token when expired
     if (tokenManager.isExpired(tokenData)) {
       try {
         tokenData = await tokenManager.refreshToken(tokenData);
       } catch (error) {
-        logger.error('刷新token失败:', error.message);
-        return res.status(401).json({ success: false, message: 'Token已过期且刷新失败' });
+        logger.error('Failed to refresh token:', error.message);
+        return res.status(401).json({ success: false, message: 'Token expired and refresh failed' });
       }
     }
     
-    // 先从缓存获取（除非强制刷新）
+    // Use cache unless forced to refresh
     let quotaData = forceRefresh ? null : quotaManager.getQuota(refreshToken);
     
     if (!quotaData) {
-      // 缓存未命中或强制刷新，从API获取
+      // Cache miss or forced refresh: fetch from API
       const token = { access_token: tokenData.access_token, refresh_token: refreshToken };
       const quotas = await getModelsWithQuotas(token);
       quotaManager.updateQuota(refreshToken, quotas);
       quotaData = { lastUpdated: Date.now(), models: quotas };
     }
     
-    // 转换时间为北京时间
+    // Convert times to Beijing time
     const modelsWithBeijingTime = {};
     Object.entries(quotaData.models).forEach(([modelId, quota]) => {
       modelsWithBeijingTime[modelId] = {
@@ -242,7 +242,7 @@ router.get('/tokens/:refreshToken/quotas', authMiddleware, async (req, res) => {
       } 
     });
   } catch (error) {
-    logger.error('获取额度失败:', error.message);
+    logger.error('Failed to retrieve quota:', error.message);
     res.status(500).json({ success: false, message: error.message });
   }
 });

@@ -1,7 +1,7 @@
 import fs from 'fs';
 
 /**
- * 解析 .env 文件内容为对象
+ * Parse .env file contents into an object
  */
 export function parseEnvFile(filePath) {
   const envData = {};
@@ -21,7 +21,7 @@ export function parseEnvFile(filePath) {
 }
 
 /**
- * 更新 .env 文件中的键值对
+ * Update key-value pairs in a .env file
  */
 export function updateEnvFile(filePath, updates) {
   let content = fs.readFileSync(filePath, 'utf8');

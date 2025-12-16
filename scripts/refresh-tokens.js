@@ -39,12 +39,12 @@ async function refreshToken(refreshToken) {
 
 async function refreshAllTokens() {
   if (!fs.existsSync(ACCOUNTS_FILE)) {
-    log.error(`文件不存在: ${ACCOUNTS_FILE}`);
+    log.error(`File does not exist: ${ACCOUNTS_FILE}`);
     process.exit(1);
   }
 
   const accounts = JSON.parse(fs.readFileSync(ACCOUNTS_FILE, 'utf-8'));
-  log.info(`找到 ${accounts.length} 个账号`);
+  log.info(`Found ${accounts.length} accounts`);
 
   let successCount = 0;
   let failCount = 0;
@@ -53,35 +53,35 @@ async function refreshAllTokens() {
     const account = accounts[i];
     
     if (account.enable === false) {
-      log.warn(`账号 ${i + 1}: 已禁用，跳过`);
+      log.warn(`Account ${i + 1}: Disabled, skipping`);
       continue;
     }
 
     try {
-      log.info(`刷新账号 ${i + 1}...`);
+      log.info(`Refreshing account ${i + 1}...`);
       const tokenData = await refreshToken(account.refresh_token);
       account.access_token = tokenData.access_token;
       account.expires_in = tokenData.expires_in;
       account.timestamp = Date.now();
       
       successCount++;
-      log.info(`账号 ${i + 1}: 刷新成功`);
+      log.info(`Account ${i + 1}: Refresh succeeded`);
     } catch (error) {
       failCount++;
-      log.error(`账号 ${i + 1}: 刷新失败 - ${error.message}`);
+      log.error(`Account ${i + 1}: Refresh failed - ${error.message}`);
       
       if (error.message.includes('invalid_grant') || error.message.includes('400')) {
         account.enable = false;
-        log.warn(`账号 ${i + 1}: Token 已失效或错误，已自动禁用该账号`);
+        log.warn(`Account ${i + 1}: Token invalid or incorrect; account disabled automatically`);
       }
     }
   }
 
   fs.writeFileSync(ACCOUNTS_FILE, JSON.stringify(accounts, null, 2));
-  log.info(`刷新完成: 成功 ${successCount} 个, 失败 ${failCount} 个`);
+  log.info(`Refresh complete: ${successCount} succeeded, ${failCount} failed`);
 }
 
 refreshAllTokens().catch(err => {
-  log.error('刷新失败:', err.message);
+  log.error('Refresh failed:', err.message);
   process.exit(1);
 });
