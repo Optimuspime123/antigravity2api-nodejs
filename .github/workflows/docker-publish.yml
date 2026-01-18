@@ -93,7 +93,7 @@ jobs:
           platforms: ${{ matrix.platform }}
           push: true
           tags: ${{ steps.tags.outputs.tags }}
-          # 关键：让 buildx 能访问本地文件
+          # Key: allow buildx to access local files
           outputs: type=image,push=true
           cache-from: type=gha,scope=${{ matrix.arch }}
           cache-to: type=gha,mode=max,scope=${{ matrix.arch }}

@@ -10,11 +10,11 @@ async function testRequest() {
       type: 'function',
       function: {
         name: 'get_weather',
-        description: '获取天气信息',
+        description: 'Get weather information',
         parameters: {
           type: 'object',
           properties: {
-            location: { type: 'string', description: '城市名称' }
+            location: { type: 'string', description: 'City name' }
           },
           required: ['location']
         }
@@ -22,7 +22,7 @@ async function testRequest() {
     }];
     
     const requestBody = await generateRequestBody(
-      [{ role: 'user', content: '你是谁？' }],
+      [{ role: 'user', content: 'Who are you?' }],
       'gemini-3-pro-high',
       {},
       []

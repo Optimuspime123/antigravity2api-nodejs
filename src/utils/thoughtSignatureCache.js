@@ -1,22 +1,22 @@
-// 签名缓存（文件存储版本）：
-// - 按 model 维度缓存"最近 N 个"签名（环形队列）
-// - 签名和思考内容绑定存储：{ signature, content }
-// - 自动先进先出：超过容量自动挤掉最旧的
-// - 存储在 data/signature-cache/ 目录下
+// Signature cache (file-backed):
+// - Cache the "latest N signatures" per model (ring buffer)
+// - Store signature with reasoning content: { signature, content }
+// - FIFO eviction when exceeding capacity
+// - Stored under data/signature-cache/
 
 import fs from 'fs';
 import path from 'path';
 import config from '../config/config.js';
 import log from './logger.js';
 
-// 缓存目录路径
+// Cache directory path
 const CACHE_DIR = path.join(process.cwd(), 'data', 'signature-cache');
 
-// 上限：每个模型保留的签名数量
+// Limit: number of signatures per model
 const MAX_SIGNATURES_PER_MODEL = 3;
 
 /**
- * 确保缓存目录存在
+ * Ensure cache directory exists
  */
 function ensureCacheDir() {
   if (!fs.existsSync(CACHE_DIR)) {
@@ -25,33 +25,33 @@ function ensureCacheDir() {
 }
 
 /**
- * 生成模型的缓存文件名（处理特殊字符）
- * @param {string} model - 模型名称
- * @returns {string} 安全的文件名
+ * Build cache filename for model (sanitize special chars)
+ * @param {string} model - model name
+ * @returns {string} safe file name
  */
 function makeModelKey(model) {
   if (!model) return null;
   const raw = String(model);
-  // 生图模型会带分辨率后缀（例如 `-4K` / `-2K`），但实际请求时会被剥离为基础模型名。
-  // 为避免缓存 miss，这里统一按"基础模型名"缓存。
+  // Image models may include resolution suffixes (e.g. `-4K` / `-2K`) which
+  // are stripped in actual requests. Cache by the base model to avoid misses.
   const baseModel = raw.replace(/-(?:1k|2k|4k|8k)$/i, '');
-  // 将不安全的文件名字符替换为下划线
+  // Replace unsafe filename characters with underscores
   return baseModel.replace(/[<>:"/\\|?*]/g, '_');
 }
 
 /**
- * 获取模型缓存文件路径
- * @param {string} modelKey - 模型 key
- * @returns {string} 文件路径
+ * Get cache file path for a model
+ * @param {string} modelKey - model key
+ * @returns {string} file path
  */
 function getCacheFilePath(modelKey) {
   return path.join(CACHE_DIR, `${modelKey}.json`);
 }
 
 /**
- * 从文件读取模型的签名缓存
- * @param {string} modelKey - 模型 key
- * @returns {Array} 签名数组 [{ signature, content }, ...]
+ * Read model signature cache from file
+ * @param {string} modelKey - model key
+ * @returns {Array} signatures array [{ signature, content }, ...]
  */
 function readModelCache(modelKey) {
   if (!modelKey) return [];
@@ -63,15 +63,15 @@ function readModelCache(modelKey) {
     const data = JSON.parse(fs.readFileSync(filePath, 'utf8'));
     return Array.isArray(data.signatures) ? data.signatures : [];
   } catch (e) {
-    log.warn(`读取签名缓存失败 (${modelKey}):`, e?.message || e);
+    log.warn(`Failed to read signature cache (${modelKey}):`, e?.message || e);
     return [];
   }
 }
 
 /**
- * 将签名缓存写入文件
- * @param {string} modelKey - 模型 key
- * @param {Array} signatures - 签名数组
+ * Write signature cache to file
+ * @param {string} modelKey - model key
+ * @param {Array} signatures - signatures array
  */
 function writeModelCache(modelKey, signatures) {
   if (!modelKey) return;
@@ -86,13 +86,13 @@ function writeModelCache(modelKey, signatures) {
     };
     fs.writeFileSync(filePath, JSON.stringify(data, null, 2), 'utf8');
   } catch (e) {
-    log.warn(`写入签名缓存失败 (${modelKey}):`, e?.message || e);
+    log.warn(`Failed to write signature cache (${modelKey}):`, e?.message || e);
   }
 }
 
 /**
- * 获取最新的签名条目
- * @param {string} modelKey - 模型 key
+ * Get latest signature entry
+ * @param {string} modelKey - model key
  * @returns {{ signature: string, content: string } | null}
  */
 function getLatestEntry(modelKey) {
@@ -105,24 +105,24 @@ function getLatestEntry(modelKey) {
 }
 
 /**
- * 添加新签名条目（FIFO 环形队列）
- * @param {string} modelKey - 模型 key
- * @param {Object} entry - 签名条目 { signature, content }
+ * Add a new signature entry (FIFO ring buffer)
+ * @param {string} modelKey - model key
+ * @param {Object} entry - signature entry { signature, content }
  */
 function pushEntry(modelKey, entry) {
   if (!modelKey || !entry || !entry.signature) return;
   
   const signatures = readModelCache(modelKey);
   
-  // 去重：避免同一个签名重复入队
+  // De-dupe: avoid enqueuing the same signature twice
   if (signatures.length > 0 && signatures[signatures.length - 1]?.signature === entry.signature) {
     return;
   }
   
-  // 添加新条目
+  // Add new entry
   signatures.push(entry);
   
-  // 超过容量时移除最旧的
+  // Remove oldest entries when exceeding capacity
   while (signatures.length > MAX_SIGNATURES_PER_MODEL) {
     signatures.shift();
   }
@@ -131,68 +131,68 @@ function pushEntry(modelKey, entry) {
 }
 
 /**
- * 判断是否应该缓存签名
- * @param {Object} options - 选项
- * @param {boolean} options.hasTools - 是否使用了工具
- * @param {boolean} options.isImageModel - 是否是图像模型
+ * Determine whether to cache signature
+ * @param {Object} options - options
+ * @param {boolean} options.hasTools - whether tools were used
+ * @param {boolean} options.isImageModel - whether image model
  * @returns {boolean}
  */
 export function shouldCacheSignature({ hasTools = false, isImageModel = false } = {}) {
-  // 全部缓存签名开启时，任何时候都缓存
+  // Cache everything when enabled
   if (config.cacheAllSignatures) return true;
   
-  // 工具签名开启且使用了工具
+  // Cache tool signatures when tools were used
   if (config.cacheToolSignatures && hasTools) return true;
   
-  // 图像签名开启且是图像模型
+  // Cache image signatures for image models
   if (config.cacheImageSignatures && isImageModel) return true;
   
   return false;
 }
 
 /**
- * 判断是否是图像模型
- * @param {string} model - 模型名称
+ * Determine if the model is an image model
+ * @param {string} model - model name
  * @returns {boolean}
  */
 export function isImageModel(model) {
   if (!model) return false;
   const lowerModel = model.toLowerCase();
-  // 图像模型通常包含 'image' 关键字
+  // Image models usually include 'image'
   return lowerModel.includes('image');
 }
 
 /**
- * 处理思考内容（根据 cacheThinking 配置）
- * @param {string} content - 原始思考内容
- * @returns {string} 处理后的内容
+ * Process reasoning content (based on cacheThinking setting)
+ * @param {string} content - raw reasoning content
+ * @returns {string} processed content
  */
 function processThinkingContent(content) {
   if (!config.cacheThinking) {
-    return ' '; // 不缓存思考内容时用空格替代
+    return ' '; // Use space when not caching reasoning content
   }
   return content || ' ';
 }
 
 /**
- * 设置签名和内容（通用接口）
- * @param {string} sessionId - 会话 ID（保留兼容，不参与缓存 key）
- * @param {string} model - 模型名称
- * @param {string} signature - 签名
- * @param {string} content - 思考内容（可选）
- * @param {Object} options - 选项
- * @param {boolean} options.hasTools - 是否使用了工具
- * @param {boolean} options.isImageModel - 是否是图像模型
+ * Set signature and content (generic interface)
+ * @param {string} sessionId - session ID (kept for compatibility, not used in cache key)
+ * @param {string} model - model name
+ * @param {string} signature - signature
+ * @param {string} content - reasoning content (optional)
+ * @param {Object} options - options
+ * @param {boolean} options.hasTools - whether tools were used
+ * @param {boolean} options.isImageModel - whether image model
  */
 export function setSignature(sessionId, model, signature, content = ' ', options = {}) {
   if (!signature || !model) return;
   
-  // 判断是否应该缓存
+  // Decide whether to cache
   const isImage = options.isImageModel ?? isImageModel(model);
   const hasTools = options.hasTools ?? false;
   
   if (!shouldCacheSignature({ hasTools, isImageModel: isImage })) {
-    return; // 不符合缓存条件
+    return; // Does not meet caching criteria
   }
   
   const processedContent = processThinkingContent(content);
@@ -200,11 +200,11 @@ export function setSignature(sessionId, model, signature, content = ' ', options
 }
 
 /**
- * 获取签名和内容
- * @param {string} sessionId - 会话 ID
- * @param {string} model - 模型名称
- * @param {Object} options - 选项
- * @param {boolean} options.hasTools - 是否使用了工具
+ * Get signature and content
+ * @param {string} sessionId - session ID
+ * @param {string} model - model name
+ * @param {Object} options - options
+ * @param {boolean} options.hasTools - whether tools were used
  * @returns {{ signature: string, content: string } | null}
  */
 export function getSignature(sessionId, model, options = {}) {
@@ -213,32 +213,32 @@ export function getSignature(sessionId, model, options = {}) {
   const entry = getLatestEntry(makeModelKey(model));
   if (!entry) return null;
   
-  // 根据 cacheThinking 配置处理返回的内容
+  // Return content based on cacheThinking config
   return {
     signature: entry.signature,
     content: config.cacheThinking ? entry.content : ' '
   };
 }
 
-// ========== 兼容旧 API ==========
+// ========== Backward-compatible API ==========
 
 /**
- * 设置思维链签名和内容（兼容旧 API）
- * @param {string} sessionId - 会话 ID
- * @param {string} model - 模型名称
- * @param {string} signature - 签名
- * @param {string} content - 思考内容
- * @param {Object} options - 选项
+ * Set reasoning signature and content (backward compatible)
+ * @param {string} sessionId - session ID
+ * @param {string} model - model name
+ * @param {string} signature - signature
+ * @param {string} content - reasoning content
+ * @param {Object} options - options
  */
 export function setReasoningSignature(sessionId, model, signature, content = ' ', options = {}) {
   setSignature(sessionId, model, signature, content, options);
 }
 
 /**
- * 获取思维链签名和内容（兼容旧 API）
- * @param {string} sessionId - 会话 ID
- * @param {string} model - 模型名称
- * @param {Object} options - 选项
+ * Get reasoning signature and content (backward compatible)
+ * @param {string} sessionId - session ID
+ * @param {string} model - model name
+ * @param {Object} options - options
  * @returns {{ signature: string, content: string } | null}
  */
 export function getReasoningSignature(sessionId, model, options = {}) {
@@ -246,23 +246,23 @@ export function getReasoningSignature(sessionId, model, options = {}) {
 }
 
 /**
- * 设置工具签名和内容（兼容旧 API，实际上现在统一存储）
- * @param {string} sessionId - 会话 ID
- * @param {string} model - 模型名称
- * @param {string} signature - 签名
- * @param {string} content - 思考内容
- * @param {Object} options - 选项
+ * Set tool signature and content (backward compatible; now unified storage)
+ * @param {string} sessionId - session ID
+ * @param {string} model - model name
+ * @param {string} signature - signature
+ * @param {string} content - reasoning content
+ * @param {Object} options - options
  */
 export function setToolSignature(sessionId, model, signature, content = ' ', options = {}) {
-  // 工具签名默认 hasTools = true
+  // Tool signatures default to hasTools = true
   setSignature(sessionId, model, signature, content, { ...options, hasTools: true });
 }
 
 /**
- * 获取工具签名和内容（兼容旧 API）
- * @param {string} sessionId - 会话 ID
- * @param {string} model - 模型名称
- * @param {Object} options - 选项
+ * Get tool signature and content (backward compatible)
+ * @param {string} sessionId - session ID
+ * @param {string} model - model name
+ * @param {Object} options - options
  * @returns {{ signature: string, content: string } | null}
  */
 export function getToolSignature(sessionId, model, options = {}) {
@@ -270,7 +270,7 @@ export function getToolSignature(sessionId, model, options = {}) {
 }
 
 /**
- * 清理所有签名缓存（删除缓存目录下的所有文件）
+ * Clear all signature caches (delete all cache files)
  */
 export function clearThoughtSignatureCaches() {
   try {
@@ -282,11 +282,11 @@ export function clearThoughtSignatureCaches() {
         }
       }
     }
-    log.info('签名缓存已清除');
+    log.info('Signature cache cleared');
   } catch (e) {
-    log.warn('清除签名缓存失败:', e?.message || e);
+    log.warn('Failed to clear signature cache:', e?.message || e);
   }
 }
 
-// 初始化时确保目录存在
+// Ensure directory exists on init
 ensureCacheDir();

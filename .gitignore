@@ -1,21 +1,21 @@
 # Node.js
 node_modules/
 
-# 账户信息
+# Account information
 # accounts.json
 
-# 日志
+# log
 *.log
 logs/
 
-# 环境变量
+# environment variables
 .env
 .env.local
 
-# 配置文件（用户自定义）
+# Configuration files (user-defined)
 config.json
 
-# 系统文件
+# System files
 .DS_Store
 Thumbs.db
 
@@ -24,9 +24,9 @@ test/*.png
 test/*.jpeg
 public/images
 
-# 编译输出
+# Compile output
 dist/
 
-# 参考文件
+# Reference documents
 gcli2api/
 plans/geminicli-implementation-plan.md

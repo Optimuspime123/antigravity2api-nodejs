@@ -18,7 +18,7 @@ const envPath = getEnvPath();
 
 const router = express.Router();
 
-// 禁用缓存中间件，确保管理后台数据实时性
+// Disable cache middleware to keep admin data real-time
 router.use((req, res, next) => {
   res.set('Cache-Control', 'no-store, no-cache, must-revalidate, proxy-revalidate');
   res.set('Pragma', 'no-cache');
@@ -26,20 +26,20 @@ router.use((req, res, next) => {
   next();
 });
 
-// Cookie 配置
+// Cookie configuration
 const COOKIE_OPTIONS = {
   httpOnly: true,
-  // secure: process.env.NODE_ENV === 'production', // 移除静态配置，改为动态判断
+  // secure: process.env.NODE_ENV === 'production', // Removed static config; use dynamic check
   sameSite: 'strict',
-  maxAge: 24 * 60 * 60 * 1000 // 24小时
+  maxAge: 24 * 60 * 60 * 1000 // 24 hours
 };
 
-// 从 Cookie 或 Header 获取 JWT Token 的中间件
+// Middleware to get JWT token from cookie or header
 const cookieAuthMiddleware = (req, res, next) => {
-  // 优先从 Cookie 获取
+  // Prefer cookie
   let token = req.cookies?.authToken;
 
-  // 如果 Cookie 中没有，尝试从 Header 获取（兼容旧版本）
+  // If missing in cookie, try header (legacy compatibility)
   if (!token) {
     const authHeader = req.headers.authorization;
     token = authHeader?.startsWith('Bearer ') ? authHeader.slice(7) : null;
@@ -54,7 +54,7 @@ const cookieAuthMiddleware = (req, res, next) => {
     req.user = decoded;
     next();
   } catch (error) {
-    // 清除无效的 Cookie
+    // Clear invalid cookie
     res.clearCookie('authToken', {
       ...COOKIE_OPTIONS,
       secure: req.secure || process.env.NODE_ENV === 'production'
@@ -63,25 +63,25 @@ const cookieAuthMiddleware = (req, res, next) => {
   }
 };
 
-// 登录速率限制 - 防止暴力破解
+// Login rate limiting - prevent brute force
 const loginAttempts = new Map(); // IP -> { count, lastAttempt, blockedUntil }
 const MAX_LOGIN_ATTEMPTS = 5;
-const BLOCK_DURATION = 5 * 60 * 1000; // 5分钟
-const ATTEMPT_WINDOW = 15 * 60 * 1000; // 15分钟窗口
-const LOGIN_CLEANUP_INTERVAL = 10 * 60 * 1000; // 10分钟清理一次
+const BLOCK_DURATION = 5 * 60 * 1000; // 5 minutes
+const ATTEMPT_WINDOW = 15 * 60 * 1000; // 15-minute window
+const LOGIN_CLEANUP_INTERVAL = 10 * 60 * 1000; // cleanup every 10 minutes
 
-// 定期清理过期的登录尝试记录（防止内存泄漏）
+// Periodically clean expired login attempts (avoid memory leaks)
 const loginCleanupTimer = setInterval(() => {
   const now = Date.now();
   for (const [ip, attempt] of loginAttempts.entries()) {
-    // 如果最后尝试时间超过窗口期，且没有被封禁（或封禁已过期），删除记录
+    // Remove record if last attempt is outside window and not blocked (or block expired)
     if (now - attempt.lastAttempt > ATTEMPT_WINDOW &&
       (!attempt.blockedUntil || now > attempt.blockedUntil)) {
       loginAttempts.delete(ip);
     }
   }
 }, LOGIN_CLEANUP_INTERVAL);
-loginCleanupTimer.unref(); // 不阻止进程退出
+loginCleanupTimer.unref(); // Do not block process exit
 
 function getClientIP(req) {
   return req.headers['x-forwarded-for']?.split(',')[0]?.trim() ||
@@ -97,17 +97,17 @@ function checkLoginRateLimit(ip) {
 
   if (!attempt) return { allowed: true };
 
-  // 检查是否被封禁
+  // Check if blocked
   if (attempt.blockedUntil && now < attempt.blockedUntil) {
     const remainingSeconds = Math.ceil((attempt.blockedUntil - now) / 1000);
     return {
       allowed: false,
-      message: `登录尝试过多，请 ${remainingSeconds} 秒后重试`,
+      message: `Too many login attempts. Try again in ${remainingSeconds} seconds.`,
       remainingSeconds
     };
   }
 
-  // 清理过期的尝试记录
+  // Clean expired attempt record
   if (now - attempt.lastAttempt > ATTEMPT_WINDOW) {
     loginAttempts.delete(ip);
     return { allowed: true };
@@ -120,30 +120,30 @@ function recordLoginAttempt(ip, success) {
   const now = Date.now();
 
   if (success) {
-    // 登录成功，清除记录
+    // Login success: clear record
     loginAttempts.delete(ip);
     return;
   }
 
-  // 登录失败，记录尝试
+  // Login failed: record attempt
   const attempt = loginAttempts.get(ip) || { count: 0, lastAttempt: now };
   attempt.count++;
   attempt.lastAttempt = now;
 
-  // 超过最大尝试次数，封禁
+  // Block after max attempts
   if (attempt.count >= MAX_LOGIN_ATTEMPTS) {
     attempt.blockedUntil = now + BLOCK_DURATION;
-    logger.warn(`IP ${ip} 因登录失败次数过多被暂时封禁`);
+    logger.warn(`IP ${ip} temporarily blocked due to repeated login failures`);
   }
 
   loginAttempts.set(ip, attempt);
 }
 
-// 登录接口
+// Login endpoint
 router.post('/login', (req, res) => {
   const clientIP = getClientIP(req);
 
-  // 检查速率限制
+  // Check rate limit
   const rateCheck = checkLoginRateLimit(clientIP);
   if (!rateCheck.allowed) {
     return res.status(429).json({
@@ -155,58 +155,58 @@ router.post('/login', (req, res) => {
 
   const { username, password } = req.body;
 
-  // 验证输入
+  // Validate input
   if (!username || !password || typeof username !== 'string' || typeof password !== 'string') {
-    return res.status(400).json({ success: false, message: '用户名和密码必填' });
+    return res.status(400).json({ success: false, message: 'Username and password are required' });
   }
 
-  // 限制输入长度防止 DoS
+  // Limit input length to prevent DoS
   if (username.length > 100 || password.length > 100) {
-    return res.status(400).json({ success: false, message: '输入过长' });
+    return res.status(400).json({ success: false, message: 'Input too long' });
   }
 
   if (username === config.admin.username && password === config.admin.password) {
     recordLoginAttempt(clientIP, true);
     const token = generateToken({ username, role: 'admin' });
 
-    // 设置 HttpOnly Cookie
-    // 动态设置 secure: 如果通过 https 访问 (req.secure) 或在生产环境，则启用 secure
+    // Set HttpOnly cookie
+    // Set secure dynamically: enable if HTTPS (req.secure) or in production
     res.cookie('authToken', token, {
       ...COOKIE_OPTIONS,
       secure: req.secure || process.env.NODE_ENV === 'production'
     });
 
-    // 同时返回 token（兼容旧版本前端）
-    logger.info(`管理员登录成功 IP: ${clientIP}`);
+    // Return token as well (legacy frontend compatibility)
+    logger.info(`Admin login succeeded IP: ${clientIP}`);
     res.json({ success: true, token });
   } else {
     recordLoginAttempt(clientIP, false);
-    logger.warn(`管理员登录失败 IP: ${clientIP}`);
-    res.status(401).json({ success: false, message: '用户名或密码错误' });
+    logger.warn(`Admin login failed IP: ${clientIP}`);
+    res.status(401).json({ success: false, message: 'Invalid username or password' });
   }
 });
 
-// 登出接口
+// Logout endpoint
 router.post('/logout', (req, res) => {
   res.clearCookie('authToken', {
     ...COOKIE_OPTIONS,
     secure: req.secure || process.env.NODE_ENV === 'production'
   });
-  res.json({ success: true, message: '已登出' });
+  res.json({ success: true, message: 'Logged out' });
 });
 
-// 验证密码（用于敏感操作）
+// Verify password (for sensitive operations)
 function verifyPassword(password) {
   return password === config.admin.password;
 }
 
-// Token管理API - 需要JWT认证（使用 Cookie 优先）
+// Token management API - requires JWT auth (prefer cookie)
 router.get('/tokens', cookieAuthMiddleware, async (req, res) => {
   try {
     const tokens = await tokenManager.getTokenList();
     res.json({ success: true, data: tokens });
   } catch (error) {
-    logger.error('获取Token列表失败:', error.message);
+    logger.error('Failed to fetch token list:', error.message);
     res.status(500).json({ success: false, message: error.message });
   }
 });
@@ -214,7 +214,7 @@ router.get('/tokens', cookieAuthMiddleware, async (req, res) => {
 router.post('/tokens', cookieAuthMiddleware, async (req, res) => {
   const { access_token, refresh_token, expires_in, timestamp, enable, projectId, email } = req.body;
   if (!access_token || !refresh_token) {
-    return res.status(400).json({ success: false, message: 'access_token和refresh_token必填' });
+    return res.status(400).json({ success: false, message: 'access_token and refresh_token are required' });
   }
   const tokenData = { access_token, refresh_token, expires_in };
   if (timestamp) tokenData.timestamp = timestamp;
@@ -224,10 +224,10 @@ router.post('/tokens', cookieAuthMiddleware, async (req, res) => {
 
   try {
     const result = await tokenManager.addToken(tokenData);
-    logger.info(`添加新Token: ${access_token.substring(0, 8)}...`);
+    logger.info(`Adding new token: ${access_token.substring(0, 8)}...`);
     res.json(result);
   } catch (error) {
-    logger.error('添加Token失败:', error.message);
+    logger.error('Failed to add token:', error.message);
     res.status(500).json({ success: false, message: error.message });
   }
 });
