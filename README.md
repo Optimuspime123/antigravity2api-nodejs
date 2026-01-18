@@ -1,163 +1,163 @@
-# Antigravity to OpenAI API 代理服务
+# Antigravity to OpenAI API Proxy Service
 
-将 Google Antigravity API 转换为 OpenAI 兼容格式的代理服务，支持流式响应、工具调用和多账号管理。
+This project converts the Google Antigravity API into an OpenAI-compatible proxy service. It supports streaming responses, tool calls, and multi-account management.
 
-## 功能特性
+## Features
 
-- ✅ OpenAI API 兼容格式
-- ✅ 流式和非流式响应
-- ✅ 结构化 JSON 输出支持（response_format）
-- ✅ 工具调用（Function Calling）支持
-- ✅ 多账号自动轮换（支持多种轮询策略）
-- ✅ Token 自动刷新
-- ✅ API Key 认证
-- ✅ 思维链（Thinking）输出，兼容 OpenAI reasoning_effort 参数和 DeepSeek reasoning_content 格式
-- ✅ 图片输入支持（Base64 编码）
-- ✅ 图片生成支持（gemini-3-pro-image 模型）
-- ✅ Pro 账号随机 ProjectId 支持
-- ✅ 模型额度查看（实时显示剩余额度和重置时间）
-- ✅ SD WebUI API 兼容（支持 txt2img/img2img）
-- ✅ 心跳机制（防止 Cloudflare 超时断连）
-- ✅ 模型列表缓存（减少 API 请求）
-- ✅ 资格校验自动回退（无资格时自动生成随机 ProjectId）
-- ✅ 真 System 消息合并（开头连续多条 system 与 SystemInstruction 合并）
-- ✅ 隐私模式（自动隐藏敏感信息）
-- ✅ 内存优化（从 8+ 进程减少为 2 个进程，内存占用从 100MB+ 降为 50MB+）
-- ✅ 对象池复用（减少 50%+ 临时对象创建，降低 GC 频率）
-- ✅ 签名透传控制（可配置是否将 thoughtSignature 透传到客户端）
-- ✅ 预编译二进制文件（支持 Windows/Linux/Android，无需 Node.js 环境）
-- ✅ 多 API 格式支持（OpenAI、Gemini、Claude 三种格式）
-- ✅ 转换器代码复用（公共模块提取，减少重复代码）
-- ✅ 动态内存阈值（根据用户配置自动计算各级别阈值）
+- ✅ OpenAI API compatible format
+- ✅ Streaming and non-streaming responses
+- ✅ Structured JSON output support (`response_format`)
+- ✅ Tool calling (Function Calling) support
+- ✅ Multi-account automatic rotation (multiple strategies)
+- ✅ Automatic Token refresh
+- ✅ API Key authentication
+- ✅ Thinking output compatible with OpenAI `reasoning_effort` and DeepSeek `reasoning_content`
+- ✅ Image input support (Base64)
+- ✅ Image generation support (`gemini-3-pro-image`)
+- ✅ Random ProjectId for Pro accounts
+- ✅ Model quota display (real-time remaining quota and reset time)
+- ✅ SD WebUI API compatibility (txt2img/img2img)
+- ✅ Heartbeat mechanism (prevents Cloudflare timeout disconnects)
+- ✅ Model list caching (reduces API calls)
+- ✅ Eligibility check fallback (auto-generate random ProjectId when ineligible)
+- ✅ True system message merge (initial consecutive `system` messages merged into SystemInstruction)
+- ✅ Privacy mode (auto-hide sensitive info)
+- ✅ Memory optimization (reduce 8+ processes to 2; memory from 100MB+ to 50MB+)
+- ✅ Object pool reuse (50%+ fewer temporary objects; lower GC frequency)
+- ✅ Signature passthrough control (configurable thoughtSignature passthrough)
+- ✅ Prebuilt binaries (Windows/Linux/Android; no Node.js required)
+- ✅ Multiple API formats (OpenAI, Gemini, Claude)
+- ✅ Converter reuse (shared modules, less duplication)
+- ✅ Dynamic memory thresholds (calculated from user config)
 
-## 环境要求
+## Requirements
 
 - Node.js >= 18.0.0
 
-## 快速开始
+## Quick Start
 
-### 方式一：一键部署脚本（推荐）
+### Option 1: One-Click Setup Script (Recommended)
 
-**Windows (cmd.exe)**：
+**Windows (cmd.exe):**
 ```bash
 curl -O https://raw.githubusercontent.com/liuw1535/antigravity2api-nodejs/main/setup.bat && setup.bat
 ```
 
-**Windows (PowerShell)**：
+**Windows (PowerShell):**
 ```powershell
 IwR -Uri https://raw.githubusercontent.com/liuw1535/antigravity2api-nodejs/main/setup.bat -OutFile setup.bat; .\setup.bat
 ```
 
-**Linux/macOS**：
+**Linux/macOS:**
 ```bash
 wget https://raw.githubusercontent.com/liuw1535/antigravity2api-nodejs/main/setup.sh && chmod +x setup.sh && ./setup.sh
 ```
 
-或使用 curl：
+Or use curl:
 ```bash
 curl -O https://raw.githubusercontent.com/liuw1535/antigravity2api-nodejs/main/setup.sh && chmod +x setup.sh && ./setup.sh
 ```
 
-脚本会自动完成以下操作：
-1. 克隆项目仓库
-2. 安装依赖
-3. 复制配置文件
-4. 配置管理员凭据（交互式输入）
-5. 启动服务
+The script will automatically:
+1. Clone the repository
+2. Install dependencies
+3. Copy configuration files
+4. Configure admin credentials (interactive)
+5. Start the service
 
-### 快速启动（已部署）
+### Quick Start (Already Deployed)
 
-如果已经部署成功，可以使用启动脚本快速启动服务：
+If you already deployed the project, use the start script:
 
-**Windows**：
+**Windows:**
 ```bash
 start.bat
 ```
 
-**Linux/macOS**：
+**Linux/macOS:**
 ```bash
 chmod +x start.sh
 ./start.sh
 ```
 
-### 更新项目
+### Updating
 
-使用更新脚本可以安全地更新到最新版本（自动保存本地修改）：
+Use the update script to safely update to the latest version (it automatically stashes local changes):
 
-**Windows**：
+**Windows:**
 ```bash
 update.bat
 ```
 
-**Linux/macOS**：
+**Linux/macOS:**
 ```bash
 chmod +x update.sh
 ./update.sh
 ```
 
-更新完成后，可以选择：
-- 恢复本地修改：`git stash pop`
-- 删除本地修改：`git stash drop`
+After the update:
+- Restore local changes: `git stash pop`
+- Discard local changes: `git stash drop`
 
-### 方式二：手动部署
+### Option 2: Manual Setup
 
-#### 1. 安装依赖
+#### 1. Install dependencies
 
 ```bash
 npm install
 ```
 
-#### 2. 配置环境变量
+#### 2. Configure environment variables
 
-首次启动时，如果 `.env` 和 `config.json` 不存在，系统会自动创建默认配置文件。
+On first startup, if `.env` and `config.json` do not exist, defaults are created automatically.
 
-你也可以手动复制示例文件：
+You can also copy the example files manually:
 
 ```bash
 cp .env.example .env
 cp config.json.example config.json
 ```
 
-编辑 `.env` 文件配置必要参数：
+Edit `.env` with required parameters:
 
 ```env
-# 必填配置（留空则自动生成随机凭据）
+# Required (leave blank to auto-generate random credentials)
 API_KEY=sk-text
 ADMIN_USERNAME=admin
 ADMIN_PASSWORD=admin123
 JWT_SECRET=your-jwt-secret-key-change-this-in-production
 
-# 可选配置
+# Optional
 # PROXY=http://127.0.0.1:7890
-# SYSTEM_INSTRUCTION=你是聊天机器人
+# SYSTEM_INSTRUCTION=You are a chatbot
 # IMAGE_BASE_URL=http://your-domain.com
 ```
 
-#### 3. 登录获取 Token
+#### 3. Log in to obtain Tokens
 
 ```bash
 npm run login
 ```
 
-浏览器会自动打开 Google 授权页面，授权后 Token 会保存到 `data/accounts.json`。
+Your browser will open the Google authorization page. After authorization, tokens are saved to `data/accounts.json`.
 
-#### 4. 启动服务
+#### 4. Start the service
 
 ```bash
 npm start
 ```
 
-服务将在 `http://localhost:8045` 启动。
+The service starts at `http://localhost:8045`.
 
-## 二进制文件部署（推荐）
+## Binary Deployment (Recommended)
 
-无需安装 Node.js，直接下载预编译的二进制文件即可运行。
+No Node.js installation required. Download and run the prebuilt binaries.
 
-### 下载二进制文件
+### Download binaries
 
-从 [GitHub Releases](https://github.com/ZhaoShanGeng/antigravity2api-nodejs/releases) 下载对应平台的二进制文件：
+Download the binary for your platform from [GitHub Releases](https://github.com/ZhaoShanGeng/antigravity2api-nodejs/releases):
 
-| 平台 | 文件名 |
+| Platform | Filename |
 |------|--------|
 | Windows x64 | `antigravity2api-win-x64.exe` |
 | Linux x64 | `antigravity2api-linux-x64` |
@@ -165,15 +165,15 @@ npm start
 | macOS x64 | `antigravity2api-macos-x64` |
 | macOS ARM64 | `antigravity2api-macos-arm64` |
 
-### 准备配置文件
+### Prepare configuration files
 
-将以下文件放在二进制文件同目录下：
+Place the following in the same directory as the binary:
 
 ```
-├── antigravity2api-win-x64.exe  # 二进制文件
-├── .env                          # 环境变量配置（可选，首次启动自动创建）
-├── config.json.example           # 配置示例文件（必需）
-├── public/                       # 静态文件目录（必需）
+├── antigravity2api-win-x64.exe  # Binary
+├── .env                          # Environment config (optional; created on first run)
+├── config.json.example           # Config template (required)
+├── public/                       # Static files (required)
 │   ├── index.html
 │   ├── style.css
 │   ├── assets/
@@ -186,13 +186,13 @@ npm start
 │       ├── tokens.js
 │       ├── ui.js
 │       └── utils.js
-└── data/                         # 数据目录（自动创建）
+└── data/                         # Data directory (auto-created)
     └── accounts.json
 ```
 
-### 配置环境变量
+### Configure environment variables
 
-创建 `.env` 文件：
+Create a `.env` file:
 
 ```env
 API_KEY=sk-your-api-key
@@ -203,35 +203,35 @@ JWT_SECRET=your-jwt-secret-key-change-this-in-production
 # PROXY=http://127.0.0.1:7890
 ```
 
-### 运行
+### Run
 
-**Windows**：
+**Windows:**
 ```bash
-# 直接双击运行，或在命令行执行
+# Double-click the binary or run from the command line
 antigravity2api-win-x64.exe
 ```
 
-**Linux/macOS**：
+**Linux/macOS:**
 ```bash
-# 添加执行权限
+# Add execute permission
 chmod +x antigravity2api-linux-x64
 
-# 运行
+# Run
 ./antigravity2api-linux-x64
 ```
 
-### 二进制部署说明
+### Binary deployment notes
 
-- **无需 Node.js**：二进制文件已包含 Node.js 运行时
-- **自动配置**：首次启动时自动从 `config.json.example` 创建 `config.json`
-- **配置文件**：`config.json.example` 必须与二进制文件在同一目录
-- **静态文件**：`public/` 目录必须与二进制文件在同一目录
-- **数据持久化**：`data/` 目录会自动创建，用于存储 Token 数据
-- **跨平台**：支持 Windows、Linux、macOS（x64 和 ARM64）
+- **No Node.js required**: binaries include the Node.js runtime
+- **Auto config**: on first start, `config.json` is created from `config.json.example`
+- **Config files**: `config.json.example` must be in the same directory as the binary
+- **Static files**: `public/` must be in the same directory as the binary
+- **Data persistence**: `data/` is created automatically for token storage
+- **Cross-platform**: Windows/Linux/macOS (x64 and ARM64)
 
-### 作为系统服务运行（Linux）
+### Run as a system service (Linux)
 
-创建 systemd 服务文件 `/etc/systemd/system/antigravity2api.service`：
+Create a systemd service file at `/etc/systemd/system/antigravity2api.service`:
 
 ```ini
 [Unit]
@@ -250,7 +250,7 @@ RestartSec=10
 WantedBy=multi-user.target
 ```
 
-启动服务：
+Start the service:
 
 ```bash
 sudo systemctl daemon-reload
@@ -258,57 +258,57 @@ sudo systemctl enable antigravity2api
 sudo systemctl start antigravity2api
 ```
 
-## Docker 部署
+## Docker Deployment
 
-### 使用 Docker Compose（推荐）
+### Docker Compose (Recommended)
 
-1. **一键构建**
+1. **One-click build**
 
 ```bash
 npm run docker:build
 ```
 
-该命令会自动：
-- 从 `.env.example` 创建 `.env`（如果不存在）
-- 从 `config.json.example` 创建 `config.json`（如果不存在）
-- 创建必要的目录（`data/`、`public/images/`）
-- 执行 `docker-compose build` 构建镜像
+This command will:
+- Create `.env` from `.env.example` if it does not exist
+- Create `config.json` from `config.json.example` if it does not exist
+- Create required directories (`data/`, `public/images/`)
+- Run `docker-compose build`
 
-2. **启动服务**
+2. **Start service**
 
 ```bash
 docker compose up -d
 ```
 
-3. **查看日志**
+3. **View logs**
 
 ```bash
 docker compose logs -f
 ```
 
-4. **停止服务**
+4. **Stop service**
 
 ```bash
 docker compose down
 ```
 
-### 手动构建
+### Manual build
 
-如果需要手动构建，请先准备配置文件：
+If you prefer manual build, prepare configuration first:
 
 ```bash
-# 复制配置文件
+# Copy config files
 cp .env.example .env
 cp config.json.example config.json
 
-# 创建必要目录
+# Create required directories
 mkdir -p data public/images
 
-# 构建镜像
+# Build image
 docker build -t antigravity2api .
 ```
 
-2. **运行容器**
+2. **Run container**
 
 ```bash
 docker run -d \
@@ -326,166 +326,166 @@ docker run -d \
   antigravity2api
 ```
 
-3. **查看日志**
+3. **View logs**
 
 ```bash
 docker logs -f antigravity2api
 ```
 
-### Docker 部署说明
+### Docker deployment notes
 
-- 数据持久化：`data/` 目录挂载到容器，保存 Token 数据
-- 图片存储：`public/images/` 目录挂载到容器，保存生成的图片
-- 配置文件：`.env` 和 `config.json` 挂载到容器，支持热更新
-- 端口映射：默认映射 8045 端口，可根据需要修改
-- 自动重启：容器异常退出会自动重启
+- Data persistence: mount `data/` to store tokens
+- Image storage: mount `public/images/` to store generated images
+- Config files: mount `.env` and `config.json` for hot reloads
+- Port mapping: defaults to port 8045
+- Auto-restart: container will restart after unexpected exit
 
-## Zeabur 部署
+## Zeabur Deployment
 
-### 使用预构建镜像部署
+### Deploy with prebuilt image
 
-1. **创建服务**
+1. **Create a service**
 
-在 Zeabur 控制台创建新服务，使用以下镜像：
+Create a new service in the Zeabur console using the following image:
 
 ```
 ghcr.io/liuw1535/antigravity2api-nodejs
 ```
 
-2. **配置环境变量**
+2. **Configure environment variables**
 
-在服务设置中添加以下环境变量：
+Add these variables in the service settings:
 
-| 环境变量 | 说明 | 示例值 |
+| Environment variable | Description | Example |
 |--------|------|--------|
-| `API_KEY` | API 认证密钥 | `sk-your-api-key` |
-| `ADMIN_USERNAME` | 管理员用户名 | `admin` |
-| `ADMIN_PASSWORD` | 管理员密码 | `your-secure-password` |
-| `JWT_SECRET` | JWT 密钥 | `your-jwt-secret-key` |
-| `IMAGE_BASE_URL` | 图片服务基础 URL | `https://your-domain.zeabur.app` |
+| `API_KEY` | API authentication key | `sk-your-api-key` |
+| `ADMIN_USERNAME` | Admin username | `admin` |
+| `ADMIN_PASSWORD` | Admin password | `your-secure-password` |
+| `JWT_SECRET` | JWT secret | `your-jwt-secret-key` |
+| `IMAGE_BASE_URL` | Base URL for images | `https://your-domain.zeabur.app` |
 
-可选环境变量：
-- `PROXY`：代理地址
-- `SYSTEM_INSTRUCTION`：系统提示词
+Optional variables:
+- `PROXY`: proxy URL
+- `SYSTEM_INSTRUCTION`: system prompt
 
-3. **配置持久化存储**
+3. **Configure persistent storage**
 
-在服务的「Volumes」设置中添加以下挂载点：
+Add these volume mounts in the **Volumes** settings:
 
-| 挂载路径 | 说明 |
+| Mount path | Description |
 |---------|------|
-| `/app/data` | Token 数据存储 |
-| `/app/public/images` | 生成的图片存储 |
+| `/app/data` | Token storage |
+| `/app/public/images` | Generated images |
 
-⚠️ **重要提示**：
-- 只挂载 `/app/data` 和 `/app/public/images` 这两个目录
-- 不要挂载其他目录（如 `/app/.env`、`/app/config.json` 等），否则会导致必要配置文件被清空，项目无法启动
+⚠️ **Important:**
+- Only mount `/app/data` and `/app/public/images`
+- Do not mount other paths (e.g., `/app/.env`, `/app/config.json`), or required config files will be cleared and the app will fail to start
 
-4. **绑定域名**
+4. **Bind a domain**
 
-在服务的「Networking」设置中绑定域名，然后将该域名设置到 `IMAGE_BASE_URL` 环境变量中。
+Bind a domain in **Networking**, then set it in `IMAGE_BASE_URL`.
 
-5. **启动服务**
+5. **Start the service**
 
-保存配置后，Zeabur 会自动拉取镜像并启动服务。访问绑定的域名即可使用。
+After saving, Zeabur will pull the image and start the service. Access it via the bound domain.
 
-### Zeabur 部署说明
+### Zeabur deployment notes
 
-- 使用预构建的 Docker 镜像，无需手动构建
-- 通过环境变量配置所有必要参数
-- 持久化存储确保 Token 和图片数据不丢失
+- Uses prebuilt Docker images; no manual build required
+- Configure all required parameters via environment variables
+- Persistent storage keeps token and image data safe
 
-## Web 管理界面
+## Web Admin UI
 
-服务启动后，访问 `http://localhost:8045` 即可打开 Web 管理界面。
+After startup, open `http://localhost:8045` to access the admin UI.
 
-### 功能特性
+### Features
 
-- 🔐 **安全登录**：JWT Token 认证，保护管理接口
-- 📊 **实时统计**：显示总 Token 数、启用/禁用状态统计
-- ➕ **多种添加方式**：
-  - OAuth 授权登录（推荐）：自动完成 Google 授权流程
-  - 手动填入：直接输入 Access Token 和 Refresh Token
-- 🎯 **Token 管理**：
-  - 查看所有 Token 的详细信息（Access Token 后缀、Project ID、过期时间）
-  - 📊 查看模型额度：按类型分组显示（Claude/Gemini/其他），实时查看剩余额度和重置时间
-  - 一键启用/禁用 Token
-  - 删除无效 Token
-  - 实时刷新 Token 列表
-- ⚙️ **配置管理**：
-  - 在线编辑服务器配置（端口、监听地址）
-  - 调整默认参数（温度、Top P/K、最大 Token 数）
-  - 修改安全配置（API 密钥、请求大小限制）
-  - 配置代理、系统提示词等可选项
-  - 热重载配置（部分配置需重启生效）
+- 🔐 **Secure login**: JWT Token authentication protects admin endpoints
+- 📊 **Real-time stats**: total token count and enabled/disabled status
+- ➕ **Multiple ways to add tokens**:
+  - OAuth login (recommended): completes Google OAuth flow automatically
+  - Manual entry: input Access Token and Refresh Token directly
+- 🎯 **Token management**:
+  - View full Token details (Access Token suffix, Project ID, expiry)
+  - 📊 View model quota: grouped by type (Claude/Gemini/Other) with remaining quota and reset time
+  - One-click enable/disable
+  - Delete invalid Tokens
+  - Refresh Token list in real time
+- ⚙️ **Configuration management**:
+  - Edit server config online (port, listen address)
+  - Tune defaults (temperature, Top P/K, max tokens)
+  - Update security settings (API key, request size limit)
+  - Configure optional settings such as proxy and system prompts
+  - Hot reload (some settings require restart)
 
-### 使用流程
+### Workflow
 
-1. **登录系统**
-   - 使用 `.env` 中配置的 `ADMIN_USERNAME` 和 `ADMIN_PASSWORD` 登录
-   - 登录成功后会自动保存 JWT Token 到浏览器
+1. **Log in**
+   - Use `ADMIN_USERNAME` and `ADMIN_PASSWORD` from `.env`
+   - JWT is stored in the browser after login
 
-2. **添加 Token**
-   - **OAuth 方式**（推荐）：
-     1. 点击「OAuth登录」按钮
-     2. 在弹窗中点击「打开授权页面」
-     3. 在新窗口完成 Google 授权
-     4. 复制浏览器地址栏的完整回调 URL
-     5. 粘贴到输入框并提交
-   - **手动方式**：
-     1. 点击「手动填入」按钮
-     2. 填写 Access Token、Refresh Token 和过期时间
-     3. 提交保存
+2. **Add Token**
+   - **OAuth method** (recommended):
+     1. Click **OAuth Login**
+     2. Click **Open Authorization Page** in the modal
+     3. Complete Google authorization in a new window
+     4. Copy the full callback URL from the browser
+     5. Paste into the input and submit
+   - **Manual method**:
+     1. Click **Manual Entry**
+     2. Fill Access Token, Refresh Token, and expiry
+     3. Submit
 
-3. **管理 Token**
-   - 查看 Token 卡片显示的状态和信息
-   - 点击「📊 查看额度」按钮查看该账号的模型额度信息
-     - 自动按模型类型分组（Claude/Gemini/其他）
-     - 显示剩余额度百分比和进度条
-     - 显示额度重置时间（北京时间）
-     - 支持「立即刷新」强制更新额度数据
-   - 使用「启用/禁用」按钮控制 Token 状态
-   - 使用「删除」按钮移除无效 Token
-   - 点击「刷新」按钮更新列表
+3. **Manage Tokens**
+   - Review token cards for status and details
+   - Click **📊 View Quota** to see model quotas for that account
+     - Auto-grouped by model type (Claude/Gemini/Other)
+     - Shows remaining quota percentage and progress bars
+     - Shows quota reset time (Beijing time)
+     - Supports **Refresh Now** to force refresh
+   - Use **Enable/Disable** to control token status
+   - Use **Delete** to remove invalid tokens
+   - Click **Refresh** to update the list
 
-4. **隐私模式**
-   - 默认开启，自动隐藏 Token、Project ID 等敏感信息
-   - 点击「显示敏感信息」切换显示/隐藏状态
-   - 支持逐个查看或批量显示
+4. **Privacy mode**
+   - Enabled by default, automatically hides Token/Project ID and other sensitive info
+   - Click **Show sensitive info** to toggle visibility
+   - Supports per-item and bulk display
 
-5. **配置轮询策略**
-   - 支持三种轮询策略：
-     - `round_robin`：均衡负载，每次请求切换 Token
-     - `quota_exhausted`：额度耗尽才切换
-     - `request_count`：自定义请求次数后切换
-   - 可在「设置」页面配置
+5. **Configure rotation strategy**
+   - Supported strategies:
+     - `round_robin`: balance load by switching tokens per request
+     - `quota_exhausted`: switch only when quota runs out
+     - `request_count`: switch after a custom number of requests
+   - Configure in the **Settings** page
 
-6. **修改配置**
-   - 切换到「设置」标签页
-   - 修改需要调整的配置项
-   - 点击「保存配置」按钮应用更改
-   - 注意：端口和监听地址修改需要重启服务
-   - 支持的设置项：
-     - 编辑 Token 信息（Access Token、Refresh Token）
-     - 思考预算（1024-32000）
-     - 图片访问地址
-     - 轮询策略
-     - 内存阈值
-     - 心跳间隔
-     - 字体大小
+6. **Update config**
+   - Switch to the **Settings** tab
+   - Update desired settings
+   - Click **Save Configuration** to apply
+   - Note: port/host changes require a restart
+   - Supported settings:
+     - Token info (Access Token, Refresh Token)
+     - Thinking budget (1024–32000)
+     - Image base URL
+     - Rotation strategy
+     - Memory threshold
+     - Heartbeat interval
+     - Font size
 
-### 界面预览
+### UI Preview
 
-- **Token 管理页面**：卡片式展示所有 Token，支持快速操作
-- **设置页面**：分类展示所有配置项，支持在线编辑
-- **响应式设计**：支持桌面和移动设备访问
-- **字体优化**：采用 MiSans + Ubuntu Mono 字体，增强可读性
+- **Token management page**: card-based layout with quick actions
+- **Settings page**: categorized configuration sections with inline edits
+- **Responsive design**: works on desktop and mobile
+- **Font optimization**: MiSans + Ubuntu Mono for readability
 
-## API 使用
+## API Usage
 
-服务提供 OpenAI 兼容的 API 接口，详细使用说明请查看 [API.md](API.md)。
+The service provides OpenAI-compatible APIs. See [API.md](API.md) for details.
 
-### 快速测试
+### Quick test
 
 ```bash
 curl http://localhost:8045/v1/chat/completions \
@@ -493,13 +493,13 @@ curl http://localhost:8045/v1/chat/completions \
   -H "Authorization: Bearer sk-text" \
   -d '{
     "model": "gemini-2.0-flash-exp",
-    "messages": [{"role": "user", "content": "你好"}]
+    "messages": [{"role": "user", "content": "Hello"}]
   }'
 ```
 
-## 多账号管理
+## Multi-account management
 
-`data/accounts.json` 支持多个账号，服务会自动轮换使用：
+`data/accounts.json` supports multiple accounts, and the service rotates them automatically:
 
 ```json
 [
@@ -520,196 +520,196 @@ curl http://localhost:8045/v1/chat/completions \
 ]
 ```
 
-- `enable: false` 可禁用某个账号
-- Token 过期会自动刷新
-- 刷新失败（403）会自动禁用并切换下一个账号
+- `enable: false` disables an account
+- Expired tokens are refreshed automatically
+- Refresh failures (403) disable the token and switch to the next account
 
-## 配置说明
+## Configuration
 
-项目配置分为两部分：
+The project configuration has two parts:
 
-### 1. config.json（基础配置）
+### 1. config.json (base config)
 
-基础配置文件，包含服务器、API 和默认参数设置。
+This file includes server, API, and default parameter settings.
 
-首次启动时，如果 `config.json` 不存在，系统会自动从 `config.json.example` 复制一份默认配置。
+On first startup, if `config.json` does not exist, a default copy is created from `config.json.example`.
 
-配置示例：
+Example:
 
 ```json
 {
   "server": {
-    "port": 8045,              // 服务端口
-    "host": "0.0.0.0",         // 监听地址
-    "maxRequestSize": "500mb", // 最大请求体大小
-    "heartbeatInterval": 15000,// 心跳间隔（毫秒），防止 Cloudflare 超时
-    "memoryThreshold": 100     // 内存阈值（MB），超过时触发 GC
+    "port": 8045,              // Service port
+    "host": "0.0.0.0",         // Listen address
+    "maxRequestSize": "500mb", // Max request size
+    "heartbeatInterval": 15000,// Heartbeat interval (ms) to avoid Cloudflare timeouts
+    "memoryThreshold": 100     // Memory threshold (MB) before GC
   },
   "rotation": {
-    "strategy": "round_robin", // 轮询策略：round_robin/quota_exhausted/request_count
-    "requestCount": 50         // request_count 策略下每个 Token 的请求次数
+    "strategy": "round_robin", // Rotation: round_robin/quota_exhausted/request_count
+    "requestCount": 50         // Requests per token in request_count mode
   },
   "defaults": {
-    "temperature": 1,          // 默认温度参数
-    "topP": 1,                 // 默认 top_p
-    "topK": 50,                // 默认 top_k
-    "maxTokens": 32000,        // 默认最大 token 数
-    "thinkingBudget": 1024     // 默认思考预算（仅对思考模型生效，范围 1024-32000）
+    "temperature": 1,          // Default temperature
+    "topP": 1,                 // Default top_p
+    "topK": 50,                // Default top_k
+    "maxTokens": 32000,        // Default max tokens
+    "thinkingBudget": 1024     // Default thinking budget (1024–32000)
   },
   "cache": {
-    "modelListTTL": 3600000    // 模型列表缓存时间（毫秒），默认 1 小时
+    "modelListTTL": 3600000    // Model list cache TTL (ms), default 1 hour
   },
   "other": {
-    "timeout": 300000,         // 请求超时时间（毫秒）
-    "skipProjectIdFetch": false,// 跳过 ProjectId 获取，直接随机生成（仅 Pro 账号有效）
-    "useNativeAxios": false,   // 使用原生 axios 而非 AntigravityRequester
-    "useContextSystemPrompt": false, // 是否将请求中的 system 消息合并到 SystemInstruction
-    "passSignatureToClient": false   // 是否将 thoughtSignature 透传到客户端
+    "timeout": 300000,         // Request timeout (ms)
+    "skipProjectIdFetch": false,// Skip ProjectId fetch for Pro accounts
+    "useNativeAxios": false,   // Use native axios instead of AntigravityRequester
+    "useContextSystemPrompt": false, // Merge request system messages into SystemInstruction
+    "passSignatureToClient": false   // Pass thoughtSignature to clients
   }
 }
 ```
 
-### 轮询策略说明
+### Rotation strategies
 
-| 策略 | 说明 |
+| Strategy | Description |
 |------|------|
-| `round_robin` | 均衡负载：每次请求后切换到下一个 Token |
-| `quota_exhausted` | 额度耗尽才切换：持续使用当前 Token 直到额度用完（高性能优化） |
-| `request_count` | 自定义次数：每个 Token 使用指定次数后切换（默认策略） |
+| `round_robin` | Balance load: switch to the next token after each request |
+| `quota_exhausted` | Switch only when quota is exhausted (high-performance optimization) |
+| `request_count` | Switch after a custom number of requests per token (default) |
 
-### 2. .env（敏感配置）
+### 2. .env (sensitive config)
 
-环境变量配置文件，包含敏感信息和可选配置：
+Environment variables contain secrets and optional settings:
 
-| 环境变量 | 说明 | 必填 |
+| Environment variable | Description | Required |
 |--------|------|------|
-| `API_KEY` | API 认证密钥 | ✅ |
-| `ADMIN_USERNAME` | 管理员用户名 | ✅ |
-| `ADMIN_PASSWORD` | 管理员密码 | ✅ |
-| `JWT_SECRET` | JWT 密钥 | ✅ |
-| `PROXY` | 代理地址（如：http://127.0.0.1:7890），也支持系统代理环境变量 
-|`HTTP_PROXY`/`HTTPS_PROXY` | ❌ |
-| `SYSTEM_INSTRUCTION` | 系统提示词 | ❌ |
-| `IMAGE_BASE_URL` | 图片服务基础 URL | ❌ |
+| `API_KEY` | API authentication key | ✅ |
+| `ADMIN_USERNAME` | Admin username | ✅ |
+| `ADMIN_PASSWORD` | Admin password | ✅ |
+| `JWT_SECRET` | JWT secret | ✅ |
+| `PROXY` | Proxy URL (e.g., http://127.0.0.1:7890), also supports system proxy env vars | ❌ |
+| `HTTP_PROXY`/`HTTPS_PROXY` | System proxy env vars | ❌ |
+| `SYSTEM_INSTRUCTION` | System prompt | ❌ |
+| `IMAGE_BASE_URL` | Image base URL | ❌ |
 
-完整配置示例请参考 `.env.example` 文件。
+See `.env.example` for a full example.
 
-## 开发命令
+## Development Commands
 
 ```bash
-# 启动服务
+# Start service
 npm start
 
-# 开发模式（自动重启）
+# Dev mode (auto-restart)
 npm run dev
 
-# 登录获取 Token
+# Login to get Tokens
 npm run login
 
-# 构建 Docker 镜像
+# Build Docker image
 npm run docker:build
 ```
 
-## 项目结构
+## Project Structure
 
 ```
 .
 ├── data/
-│   ├── accounts.json       # Token 存储（自动生成）
-│   └── quotas.json         # 额度缓存（自动生成）
+│   ├── accounts.json       # Token storage (auto-generated)
+│   └── quotas.json         # Quota cache (auto-generated)
 ├── public/
-│   ├── assets/             # 静态资源
-│   ├── images/             # 生成的图片存储目录
-│   ├── index.html          # Web 管理界面
-│   ├── js/                 # 前端逻辑
+│   ├── assets/             # Static assets
+│   ├── images/             # Generated image storage
+│   ├── index.html          # Web admin UI
+│   ├── js/                 # Front-end logic
 │   │   ├── auth.js
 │   │   ├── config.js
-│   │   ├── logs.js         # 日志管理
+│   │   ├── logs.js         # Log management
 │   │   ├── main.js
 │   │   ├── quota.js
 │   │   ├── tokens.js
 │   │   ├── ui.js
 │   │   └── utils.js
-│   └── style.css           # 界面样式
+│   └── style.css           # UI styles
 ├── scripts/
-│   ├── build-docker.js     # Docker 构建脚本
-│   ├── build.js            # 项目构建脚本
-│   ├── oauth-server.js     # OAuth 登录服务
-│   └── refresh-tokens.js   # Token 刷新脚本
+│   ├── build-docker.js     # Docker build script
+│   ├── build.js            # Build script
+│   ├── oauth-server.js     # OAuth login service
+│   └── refresh-tokens.js   # Token refresh script
 ├── src/
 │   ├── api/
-│   │   ├── client.js       # API 调用逻辑（含模型列表缓存）
-│   │   └── stream_parser.js # 流式响应解析（对象池优化）
+│   │   ├── client.js       # API calls (with model list cache)
+│   │   └── stream_parser.js # Stream response parser (object pool optimization)
 │   ├── auth/
-│   │   ├── jwt.js          # JWT 认证
-│   │   ├── token_manager.js # Token 管理（含轮询策略）
-│   │   ├── token_store.js  # Token 文件存储（异步读写）
-│   │   └── quota_manager.js # 额度缓存管理
+│   │   ├── jwt.js          # JWT auth
+│   │   ├── token_manager.js # Token management (rotation strategies)
+│   │   ├── token_store.js  # Token file storage (async read/write)
+│   │   └── quota_manager.js # Quota cache management
 │   ├── bin/
-│   │   ├── antigravity_requester_android_arm64   # Android ARM64 TLS 请求器
-│   │   ├── antigravity_requester_linux_amd64     # Linux AMD64 TLS 请求器
-│   │   └── antigravity_requester_windows_amd64.exe # Windows AMD64 TLS 请求器
+│   │   ├── antigravity_requester_android_arm64   # Android ARM64 TLS requester
+│   │   ├── antigravity_requester_linux_amd64     # Linux AMD64 TLS requester
+│   │   └── antigravity_requester_windows_amd64.exe # Windows AMD64 TLS requester
 │   ├── config/
-│   │   ├── config.js       # 配置加载
-│   │   └── init-env.js     # 环境变量初始化
+│   │   ├── config.js       # Config loading
+│   │   └── init-env.js     # Environment initialization
 │   ├── constants/
-│   │   ├── index.js        # 应用常量定义
-│   │   └── oauth.js        # OAuth 常量
+│   │   ├── index.js        # App constants
+│   │   └── oauth.js        # OAuth constants
 │   ├── routes/
-│   │   ├── admin.js        # 管理接口路由
-│   │   ├── claude.js       # Claude 路由
-│   │   ├── gemini.js       # Gemini 路由
-│   │   ├── openai.js       # OpenAI 路由
-│   │   └── sd.js           # SD WebUI 兼容接口
+│   │   ├── admin.js        # Admin routes
+│   │   ├── claude.js       # Claude routes
+│   │   ├── gemini.js       # Gemini routes
+│   │   ├── openai.js       # OpenAI routes
+│   │   └── sd.js           # SD WebUI routes
 │   ├── server/
-│   │   ├── handlers/       # 请求处理器
+│   │   ├── handlers/       # Request handlers
 │   │   │   ├── claude.js
 │   │   │   ├── gemini.js
 │   │   │   └── openai.js
-│   │   ├── index.js        # 主服务器（含内存管理和心跳）
-│   │   └── stream.js       # 流式响应处理
+│   │   ├── index.js        # Main server (memory management + heartbeat)
+│   │   └── stream.js       # Streaming response handling
 │   ├── utils/
-│   │   ├── configReloader.js # 配置热重载
-│   │   ├── converters/     # 格式转换器
+│   │   ├── configReloader.js # Config hot reload
+│   │   ├── converters/     # Format converters
 │   │   │   ├── claude.js
 │   │   │   ├── common.js
 │   │   │   ├── gemini.js
 │   │   │   └── openai.js
-│   │   ├── deepMerge.js    # 深度合并工具
-│   │   ├── envParser.js    # 环境变量解析
-│   │   ├── errors.js       # 统一错误处理
-│   │   ├── httpClient.js   # HTTP 客户端
-│   │   ├── idGenerator.js  # ID 生成器
-│   │   ├── imageStorage.js # 图片存储
-│   │   ├── ipBlockManager.js # IP 封禁管理
-│   │   ├── logger.js       # 日志模块
-│   │   ├── memoryManager.js # 智能内存管理
-│   │   ├── parameterNormalizer.js # 统一参数处理
-│   │   ├── paths.js        # 路径工具（支持 pkg 打包）
-│   │   ├── thoughtSignatureCache.js # 签名缓存
-│   │   ├── toolConverter.js # 工具定义转换
-│   │   ├── toolNameCache.js # 工具名称缓存
-│   │   └── utils.js        # 工具函数（重导出）
-│   └── AntigravityRequester.js # TLS 指纹请求器封装
+│   │   ├── deepMerge.js    # Deep merge utility
+│   │   ├── envParser.js    # Env parser
+│   │   ├── errors.js       # Unified error handling
+│   │   ├── httpClient.js   # HTTP client
+│   │   ├── idGenerator.js  # ID generator
+│   │   ├── imageStorage.js # Image storage
+│   │   ├── ipBlockManager.js # IP block management
+│   │   ├── logger.js       # Logger
+│   │   ├── memoryManager.js # Smart memory management
+│   │   ├── parameterNormalizer.js # Parameter normalization
+│   │   ├── paths.js        # Path utilities (pkg aware)
+│   │   ├── thoughtSignatureCache.js # Signature cache
+│   │   ├── toolConverter.js # Tool definition conversion
+│   │   ├── toolNameCache.js # Tool name cache
+│   │   └── utils.js        # Utility exports
+│   └── AntigravityRequester.js # TLS fingerprint requester wrapper
 ├── test/
-│   ├── test-request.js     # 请求测试
-│   ├── test-image-generation.js # 图片生成测试
-│   ├── test-token-rotation.js # Token 轮换测试
-│   └── test-transform.js   # 转换测试
-├── .env                    # 环境变量配置（敏感信息，自动生成）
-├── .env.example            # 环境变量配置示例
-├── config.json             # 基础配置文件（自动生成）
-├── config.json.example     # 基础配置示例
-├── Dockerfile              # Docker 构建文件
-├── docker-compose.yml      # Docker Compose 配置
-└── package.json            # 项目配置
+│   ├── test-request.js     # Request tests
+│   ├── test-image-generation.js # Image generation tests
+│   ├── test-token-rotation.js # Token rotation tests
+│   └── test-transform.js   # Transform tests
+├── .env                    # Environment config (auto-generated; sensitive)
+├── .env.example            # Environment example
+├── config.json             # Base config (auto-generated)
+├── config.json.example     # Base config example
+├── Dockerfile              # Docker build file
+├── docker-compose.yml      # Docker Compose config
+└── package.json            # Project config
 ```
 
-## Pro 账号随机 ProjectId
+## Random ProjectId for Pro accounts
 
-对于 Pro 订阅账号，可以跳过 API 验证直接使用随机生成的 ProjectId：
+For Pro subscriptions, you can skip API verification and use a random ProjectId:
 
-1. 在 `config.json` 文件中设置：
+1. In `config.json`:
 ```json
 {
   "other": {
@@ -718,49 +718,49 @@ npm run docker:build
 }
 ```
 
-2. 运行 `npm run login` 登录时会自动使用随机生成的 ProjectId
+2. Running `npm run login` will automatically use a random ProjectId
 
-3. 已有账号也会在使用时自动生成随机 ProjectId
+3. Existing accounts will also use a random ProjectId when needed
 
-注意：此功能仅适用于 Pro 订阅账号。官方已修复免费账号使用随机 ProjectId 的漏洞。
+Note: This only applies to Pro subscriptions. The free-account loophole for random ProjectId has been fixed.
 
-## 资格校验自动回退
+## Eligibility check fallback
 
-当 OAuth 登录或添加 Token 时，系统会自动检测账号的订阅资格：
+When logging in with OAuth or adding a Token, the system checks eligibility automatically:
 
-1. **有资格的账号**：正常使用 API 返回的 ProjectId
-2. **无资格的账号**：自动生成随机 ProjectId，避免添加失败
+1. **Eligible account**: uses ProjectId returned from the API
+2. **Ineligible account**: auto-generates a random ProjectId to avoid failure
 
-这一机制确保了：
-- 无论账号是否有 Pro 订阅，都能成功添加 Token
-- 自动降级处理，无需手动干预
-- 不会因为资格校验失败而阻止登录流程
+This ensures:
+- Tokens can be added regardless of Pro subscription
+- Automatic downgrade without manual intervention
+- Login flows are not blocked by eligibility checks
 
-## 真 System 消息合并
+## True system message merge
 
-本服务支持将开头连续的多条 system 消息与全局 SystemInstruction 合并：
+The service merges consecutive `system` messages at the start of a request into the global SystemInstruction:
 
 ```
-请求消息：
-[system] 你是助手
-[system] 请使用中文回答
-[user] 你好
+Request messages:
+[system] You are an assistant
+[system] Please reply in Chinese
+[user] Hello
 
-合并后：
-SystemInstruction = 全局配置的系统提示词 + "\n\n" + "你是助手\n\n请使用中文回答"
-messages = [{role: user, content: 你好}]
+After merge:
+SystemInstruction = global system prompt + "\n\n" + "You are an assistant\n\nPlease reply in Chinese"
+messages = [{role: user, content: Hello}]
 ```
 
-这一设计：
-- 兼容 OpenAI 的多 system 消息格式
-- 充分利用 Antigravity 的 SystemInstruction 功能
-- 确保系统提示词的完整性和优先级
+Benefits:
+- Compatible with OpenAI multi-system message format
+- Fully leverages Antigravity SystemInstruction
+- Preserves system prompt order and priority
 
-## 多 API 格式支持
+## Multiple API formats
 
-本服务支持三种 API 格式，每种格式都有完整的参数支持：
+This service supports three API formats, each with full parameter coverage:
 
-### OpenAI 格式 (`/v1/chat/completions`)
+### OpenAI format (`/v1/chat/completions`)
 
 ```json
 {
@@ -775,17 +775,17 @@ messages = [{role: user, content: 你好}]
 }
 ```
 
-| 参数 | 说明 | 默认值 |
+| Parameter | Description | Default |
 |------|------|--------|
-| `max_tokens` | 最大输出 token 数 | 32000 |
-| `temperature` | 温度 (0.0-1.0) | 1 |
-| `top_p` | Top-P 采样 | 1 |
-| `top_k` | Top-K 采样 | 50 |
-| `thinking_budget` | 思考预算 (1024-32000) | 1024 |
-| `reasoning_effort` | 思考强度 (`low`/`medium`/`high`) | - |
-| `response_format` | 支持响应格式 (`{ "type": "json_object" }`，仅 Gemini 模型支持) | - |
+| `max_tokens` | Max output tokens | 32000 |
+| `temperature` | Temperature (0.0–1.0) | 1 |
+| `top_p` | Top-P sampling | 1 |
+| `top_k` | Top-K sampling | 50 |
+| `thinking_budget` | Thinking budget (1024–32000) | 1024 |
+| `reasoning_effort` | Reasoning strength (`low`/`medium`/`high`) | - |
+| `response_format` | Output format (`{ "type": "json_object" }`, Gemini only) | - |
 
-### Claude 格式 (`/v1/messages`)
+### Claude format (`/v1/messages`)
 
 ```json
 {
@@ -802,197 +802,48 @@ messages = [{role: user, content: 你好}]
 }
 ```
 
-| 参数 | 说明 | 默认值 |
+| Parameter | Description | Default |
 |------|------|--------|
-| `max_tokens` | 最大输出 token 数 | 32000 |
-| `temperature` | 温度 (0.0-1.0) | 1 |
-| `top_p` | Top-P 采样 | 1 |
-| `top_k` | Top-K 采样 | 50 |
-| `thinking.type` | 思考开关 (`enabled`/`disabled`) | - |
-| `thinking.budget_tokens` | 思考预算 (1024-32000) | 1024 |
+| `max_tokens` | Max output tokens | 32000 |
+| `temperature` | Temperature | 1 |
+| `top_p` | Top-P sampling | 1 |
+| `top_k` | Top-K sampling | 50 |
+| `thinking` | Thinking mode settings | - |
 
-### Gemini 格式 (`/v1beta/models/:model:generateContent`)
+### Gemini format (`/v1beta/models/{model}:generateContent`)
 
 ```json
 {
-  "contents": [...],
+  "contents": [
+    {
+      "role": "user",
+      "parts": [{ "text": "Hello" }]
+    }
+  ],
   "generationConfig": {
-    "maxOutputTokens": 16000,
     "temperature": 0.7,
     "topP": 0.9,
     "topK": 40,
-    "thinkingConfig": {
-      "includeThoughts": true,
-      "thinkingBudget": 10000
-    }
+    "maxOutputTokens": 16000
   }
 }
 ```
 
-| 参数 | 说明 | 默认值 |
+| Parameter | Description | Default |
 |------|------|--------|
-| `maxOutputTokens` | 最大输出 token 数 | 32000 |
-| `temperature` | 温度 (0.0-1.0) | 1 |
-| `topP` | Top-P 采样 | 1 |
-| `topK` | Top-K 采样 | 50 |
-| `thinkingConfig.includeThoughts` | 是否包含思考内容 | true |
-| `thinkingConfig.thinkingBudget` | 思考预算 (1024-32000) | 1024 |
+| `generationConfig.maxOutputTokens` | Max output tokens | 8192 |
+| `generationConfig.temperature` | Temperature | 1 |
+| `generationConfig.topP` | Top-P sampling | 1 |
+| `generationConfig.topK` | Top-K sampling | 50 |
 
-### 统一参数处理
+## Streaming responses
 
-所有三种格式的参数都会被统一规范化处理，确保一致的行为：
+Streaming uses Server-Sent Events (SSE) with heartbeat to prevent timeouts. The service supports streaming in OpenAI, Gemini, and Claude formats.
 
-1. **参数优先级**：请求参数 > 配置文件默认值
-2. **思考预算优先级**：`thinking_budget`/`budget_tokens`/`thinkingBudget` > `reasoning_effort` > 配置文件默认值
-3. **禁用思考**：设置 `thinking_budget=0` 或 `thinking.type="disabled"` 或 `thinkingConfig.includeThoughts=false`
+## SD WebUI compatibility
 
-### DeepSeek 思考格式兼容
-
-本服务自动适配 DeepSeek 的 `reasoning_content` 格式，将思维链内容单独输出，避免与正常内容混淆：
-
-```json
-{
-  "choices": [{
-    "message": {
-      "content": "最终答案",
-      "reasoning_content": "这是思考过程..."
-    }
-  }]
-}
-```
-
-### reasoning_effort 映射
-
-| 值 | 思考 Token 预算 |
-|---|----------------|
-| `low` | 1024 |
-| `medium` | 16000 |
-| `high` | 32000 |
-
-## 内存优化
-
-本服务经过深度内存优化：
-
-### 优化效果
-
-| 指标 | 优化前 | 优化后 |
-|------|--------|--------|
-| 进程数 | 8+ | 2 |
-| 内存占用 | 100MB+ | 50MB+ |
-| GC 频率 | 高 | 低 |
-
-### 优化手段
-
-1. **对象池复用**：流式响应对象通过对象池复用，减少 50%+ 临时对象创建
-2. **预编译常量**：正则表达式、格式字符串等预编译，避免重复创建
-3. **LineBuffer 优化**：高效的流式行分割，避免频繁字符串操作
-4. **自动内存清理**：堆内存超过阈值时自动触发 GC
-5. **进程精简**：移除不必要的子进程，统一在主进程处理
-
-### 动态内存阈值
-
-内存压力阈值根据用户配置的 `memoryThreshold`（MB）动态计算：
-
-| 压力级别 | 阈值比例 | 默认值（100MB 配置） | 行为 |
-|---------|---------|---------------------|------|
-| LOW | 30% | 30MB | 正常运行 |
-| MEDIUM | 60% | 60MB | 轻度清理 |
-| HIGH | 100% | 100MB | 积极清理 + GC |
-| CRITICAL | >100% | >100MB | 紧急清理 + 强制 GC |
-
-### 配置
-
-```json
-{
-  "server": {
-    "memoryThreshold": 100
-  }
-}
-```
-
-- `memoryThreshold`：高压力阈值（MB），其他级别按比例自动计算
-
-## 心跳机制
-
-为防止 Cloudflare 等 CDN 因长时间无响应而断开连接，本服务实现了 SSE 心跳机制：
-
-- 在流式响应期间，定期发送心跳包（`: heartbeat\n\n`）
-- 默认间隔 15 秒，可配置
-- 心跳包符合 SSE 规范，客户端会自动忽略
-
-### 配置
-
-```json
-{
-  "server": {
-    "heartbeatInterval": 15000
-  }
-}
-```
-
-- `heartbeatInterval`：心跳间隔（毫秒），设为 0 禁用心跳
-
-## 代码架构
-
-### 转换器模块
-
-项目支持三种 API 格式（OpenAI、Gemini、Claude），转换器代码经过优化，提取了公共模块：
-
-```
-src/utils/converters/
-├── common.js      # 公共函数（签名处理、消息构建、请求体构建等）
-├── openai.js      # OpenAI 格式转换器
-├── claude.js      # Claude 格式转换器
-└── gemini.js      # Gemini 格式转换器
-```
-
-#### 公共函数
-
-| 函数 | 说明 |
-|------|------|
-| `getSignatureContext()` | 获取思维签名和工具签名 |
-| `pushUserMessage()` | 添加用户消息到消息数组 |
-| `findFunctionNameById()` | 根据工具调用 ID 查找函数名 |
-| `pushFunctionResponse()` | 添加函数响应到消息数组 |
-| `createThoughtPart()` | 创建带签名的思维 part |
-| `createFunctionCallPart()` | 创建带签名的函数调用 part |
-| `processToolName()` | 处理工具名称映射 |
-| `pushModelMessage()` | 添加模型消息到消息数组 |
-| `buildRequestBody()` | 构建 Antigravity 请求体 |
-| `mergeSystemInstruction()` | 合并系统指令 |
-
-### 参数规范化模块
-
-```
-src/utils/parameterNormalizer.js  # 统一参数处理
-```
-
-将 OpenAI、Claude、Gemini 三种格式的参数统一转换为内部格式：
-
-| 函数 | 说明 |
-|------|------|
-| `normalizeOpenAIParameters()` | 规范化 OpenAI 格式参数 |
-| `normalizeClaudeParameters()` | 规范化 Claude 格式参数 |
-| `normalizeGeminiParameters()` | 规范化 Gemini 格式参数 |
-| `toGenerationConfig()` | 转换为上游 API 格式 |
-
-### 工具转换模块
-
-```
-src/utils/toolConverter.js  # 统一的工具定义转换
-```
-
-支持将 OpenAI、Claude、Gemini 三种格式的工具定义转换为 Antigravity 格式。
-
-## 注意事项
-
-1. 首次启动时会自动创建 `.env` 和 `config.json`（如果不存在）
-2. 如果未配置凭据，系统会自动生成随机凭据并在启动时显示
-3. 运行 `npm run login` 获取 Token
-4. `.env`、`config.json` 和 `data/accounts.json` 包含敏感信息，请勿泄露
-5. 支持多账号轮换，提高可用性
-6. Token 会自动刷新，无需手动维护
+The service exposes SD WebUI compatible endpoints and supports txt2img and img2img generation. See [API.md](API.md) for details.
 
 ## License
 
-MIT
+See [LICENSE](LICENSE).

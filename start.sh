@@ -1,17 +1,15 @@
 #!/bin/bash
 
+set -e
+
 echo "========================================"
-echo "Antigravity2API 启动脚本"
+echo "Antigravity2API Start Script"
 echo "========================================"
 echo
 
-echo "[1/2] 安装依赖..."
+echo "[1/2] Installing dependencies..."
 npm install
-if [ $? -ne 0 ]; then
-    echo "安装依赖失败"
-    exit 1
-fi
 
 echo
-echo "[2/2] 启动服务..."
+echo "[2/2] Starting service..."
 npm start
