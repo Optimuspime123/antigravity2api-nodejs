@@ -1,10 +1,10 @@
 <!DOCTYPE html>
-<html lang="zh-CN">
+<html lang="en">
 
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>Token 管理</title>
+    <title>Token Management</title>
     <!-- 防止页面闪烁：在渲染前根据Tab状态设置初始显示 -->
     <script>
         (function () {
@@ -223,30 +223,30 @@
 </head>
 
 <body>
-    <!-- 验证登录状态时的加载指示器 -->
+    <!-- Loading indicator during login verification -->
     <div id="authLoading">
         <div class="spinner"></div>
-        <div class="loading-text">正在验证登录状态...</div>
+        <div class="loading-text">Verifying login status...</div>
     </div>
 
     <div class="container">
-        <!-- 登录表单 -->
+        <!-- Login form -->
         <div id="loginForm" class="login-form">
-            <h2>Token 管理</h2>
+            <h2>Token Management</h2>
             <form id="login">
                 <div class="form-group">
-                    <label>👤 用户名</label>
+                    <label>👤 Username</label>
                     <input type="text" id="username" required autocomplete="username">
                 </div>
                 <div class="form-group">
-                    <label>🔑 密码</label>
+                    <label>🔑 Password</label>
                     <input type="password" id="password" required autocomplete="current-password">
                 </div>
-                <button type="submit">登录</button>
+                <button type="submit">Login</button>
             </form>
         </div>
 
-        <!-- 主内容 -->
+        <!-- Main content -->
         <div id="mainContent" class="main-content hidden">
             <div class="header">
             <div class="tabs">
@@ -255,125 +255,125 @@
                 <button class="tab" data-tab="geminicli" onclick="switchTab('geminicli')"><span
                         class="tab-icon">💎</span><span class="tab-text">CLI</span></button>
                 <button class="tab" data-tab="settings" onclick="switchTab('settings')"><span
-                        class="tab-icon">⚙️</span><span class="tab-text">设置</span></button>
+                        class="tab-icon">⚙️</span><span class="tab-text">Settings</span></button>
                 <button class="tab" data-tab="logs" onclick="switchTab('logs')"><span
-                        class="tab-icon">📋</span><span class="tab-text">日志</span></button>
+                        class="tab-icon">📋</span><span class="tab-text">Logs</span></button>
             </div>
                 <div class="header-right">
-                    <button onclick="logout()">🚪 退出</button>
+                    <button onclick="logout()">🚪 Logout</button>
                 </div>
             </div>
             <div class="content">
-                <!-- Token管理页面 -->
+                <!-- Token management page -->
                 <div id="tokensPage">
-                    <!-- 统计卡片 + 操作按钮 -->
+                    <!-- Stats cards + action buttons -->
                     <div class="top-bar">
                         <div class="stats-inline">
                             <div class="stat-item clickable active" onclick="filterTokens('all')">
                                 <span class="stat-num" id="totalTokens">0</span>
-                                <span class="stat-text">总数</span>
+                                <span class="stat-text">Total</span>
                             </div>
                             <div class="stat-item success clickable" onclick="filterTokens('enabled')">
                                 <span class="stat-num" id="enabledTokens">0</span>
-                                <span class="stat-text">启用</span>
+                                <span class="stat-text">Enabled</span>
                             </div>
                             <div class="stat-item danger clickable" onclick="filterTokens('disabled')">
                                 <span class="stat-num" id="disabledTokens">0</span>
-                                <span class="stat-text">禁用</span>
+                                <span class="stat-text">Disabled</span>
                             </div>
                             <button type="button" class="action-toggle-btn" id="actionToggleBtn"
-                                onclick="toggleActionBar()" title="收起操作按钮">▾</button>
+                                onclick="toggleActionBar()" title="Collapse action buttons">▾</button>
                         </div>
                         <div class="action-btns" id="actionBar">
                             <button type="button" onclick="showOAuthModal()" class="btn btn-success btn-sm">🔐
                                 OAuth</button>
                             <button type="button" onclick="toggleSensitiveInfo()" class="btn btn-secondary btn-sm"
-                                id="toggleSensitiveBtn" title="点击显示敏感信息">🙈 隐藏</button>
+                                id="toggleSensitiveBtn" title="Click to show sensitive info">🙈 Hide</button>
                             <button type="button" onclick="refreshAllQuotas()" class="btn btn-info btn-sm"
-                                id="refreshQuotasBtn">📊 刷新额度</button>
+                                id="refreshQuotasBtn">📊 Refresh Quota</button>
                             <button type="button" onclick="batchFetchProjectIds()" class="btn btn-info btn-sm"
-                                title="批量获取所有启用Token的Project ID">🔍 批量获取</button>
-                            <button type="button" onclick="loadTokens()" class="btn btn-warning btn-sm">🔄 重载</button>
+                                title="Batch fetch Project IDs for all enabled tokens">🔍 Batch Fetch</button>
+                            <button type="button" onclick="loadTokens()" class="btn btn-warning btn-sm">🔄 Reload</button>
                             <button type="button" onclick="exportTokens()" class="btn btn-sm"
-                                style="background: var(--primary);" title="导出Token">📤 导出</button>
+                                style="background: var(--primary);" title="Export tokens">📤 Export</button>
                             <button type="button" onclick="importTokens()" class="btn btn-sm"
-                                style="background: var(--primary);" title="添加/导入Token">📥 导入</button>
+                                style="background: var(--primary);" title="Add/Import tokens">📥 Import</button>
                         </div>
                     </div>
 
-                    <!-- Token网格 -->
+                    <!-- Token grid -->
                     <div id="tokenList" class="token-grid">
                         <div class="empty-state">
                             <div class="empty-state-icon">📦</div>
-                            <div class="empty-state-text">暂无Token</div>
-                            <div class="empty-state-hint">点击上方OAuth按钮添加Token</div>
+                            <div class="empty-state-text">No Tokens</div>
+                            <div class="empty-state-hint">Click the OAuth button above to add tokens</div>
                         </div>
                     </div>
                 </div>
 
-                <!-- Gemini CLI 页面 -->
+                <!-- Gemini CLI page -->
                 <div id="geminicliPage" class="hidden">
-                    <!-- 统计卡片 + 操作按钮 -->
+                    <!-- Stats cards + action buttons -->
                     <div class="top-bar">
                         <div class="stats-inline">
                             <div class="stat-item clickable active" onclick="filterGeminiCliTokens('all')">
                                 <span class="stat-num" id="geminicliTotalTokens">0</span>
-                                <span class="stat-text">总数</span>
+                                <span class="stat-text">Total</span>
                             </div>
                             <div class="stat-item success clickable" onclick="filterGeminiCliTokens('enabled')">
                                 <span class="stat-num" id="geminicliEnabledTokens">0</span>
-                                <span class="stat-text">启用</span>
+                                <span class="stat-text">Enabled</span>
                             </div>
                             <div class="stat-item danger clickable" onclick="filterGeminiCliTokens('disabled')">
                                 <span class="stat-num" id="geminicliDisabledTokens">0</span>
-                                <span class="stat-text">禁用</span>
+                                <span class="stat-text">Disabled</span>
                             </div>
                         </div>
                         <div class="action-btns">
                             <button type="button" onclick="showGeminiCliOAuthModal()" class="btn btn-success btn-sm">🔐
                                 OAuth</button>
                             <button type="button" onclick="toggleSensitiveInfo()" class="btn btn-secondary btn-sm"
-                                title="点击显示敏感信息">🙈 隐藏</button>
-                            <button type="button" onclick="reloadGeminiCliTokens()" class="btn btn-warning btn-sm">🔄 重载</button>
+                                title="Click to show sensitive info">🙈 Hide</button>
+                            <button type="button" onclick="reloadGeminiCliTokens()" class="btn btn-warning btn-sm">🔄 Reload</button>
                             <button type="button" onclick="exportGeminiCliTokens()" class="btn btn-sm"
-                                style="background: var(--primary);" title="导出Token">📤 导出</button>
+                                style="background: var(--primary);" title="Export tokens">📤 Export</button>
                             <button type="button" onclick="importGeminiCliTokens()" class="btn btn-sm"
-                                style="background: var(--primary);" title="添加/导入Token">📥 导入</button>
+                                style="background: var(--primary);" title="Add/Import tokens">📥 Import</button>
                         </div>
                     </div>
 
-                    <!-- Token网格 -->
+                    <!-- Token grid -->
                     <div id="geminicliTokenList" class="token-grid">
                         <div class="empty-state">
                             <div class="empty-state-icon">📦</div>
-                            <div class="empty-state-text">暂无Gemini CLI Token</div>
-                            <div class="empty-state-hint">点击上方OAuth按钮添加Token</div>
+                            <div class="empty-state-text">No Gemini CLI Tokens</div>
+                            <div class="empty-state-hint">Click the OAuth button above to add tokens</div>
                         </div>
                     </div>
                 </div>
 
-                <!-- 日志页面 -->
+                <!-- Logs page -->
                 <div id="logsPage" class="hidden">
                     <div class="logs-top-bar">
                         <div class="logs-top-row">
                             <div id="logStats" class="log-stats">
-                                <!-- 日志统计将由 JS 渲染 -->
+                                <!-- Log stats will be rendered by JS -->
                             </div>
                         </div>
                         <div class="logs-second-row">
                             <div class="log-search">
-                                <input type="text" id="logSearchInput" placeholder="搜索日志..."
+                                <input type="text" id="logSearchInput" placeholder="Search logs..."
                                     oninput="searchLogs(this.value)">
                             </div>
                             <div class="log-action-btns">
                                 <button id="autoRefreshBtn" class="btn btn-sm btn-secondary"
-                                    onclick="toggleAutoRefresh()" title="每3秒自动刷新日志">🔄 自动刷新</button>
+                                    onclick="toggleAutoRefresh()" title="Auto refresh logs every 3 seconds">🔄 Auto Refresh</button>
                                 <button class="btn btn-sm btn-info" onclick="loadLogs(); loadLogStats();"
-                                    title="手动刷新日志">↻ 刷新</button>
+                                    title="Manually refresh logs">↻ Refresh</button>
                                 <button class="btn btn-sm" style="background: var(--primary);" onclick="exportLogs()"
-                                    title="导出日志为文本文件">📤 导出</button>
-                                <button class="btn btn-sm btn-danger" onclick="clearLogs()" title="清空所有日志">🗑️
-                                    清空</button>
+                                    title="Export logs to text file">📤 Export</button>
+                                <button class="btn btn-sm btn-danger" onclick="clearLogs()" title="Clear all logs">🗑️
+                                    Clear</button>
                             </div>
                         </div>
                     </div>
@@ -381,83 +381,83 @@
                         <div id="logList" class="log-list">
                             <div class="log-empty">
                                 <div class="log-empty-icon">📋</div>
-                                <div class="log-empty-text">加载中...</div>
+                                <div class="log-empty-text">Loading...</div>
                             </div>
                         </div>
                     </div>
                     <button id="loadMoreLogsBtn" class="btn btn-secondary load-more-btn" onclick="loadMoreLogs()"
-                        style="display: none;">加载更多</button>
+                        style="display: none;">Load More</button>
                 </div>
 
-                <!-- 设置页面 -->
+                <!-- Settings page -->
                 <div id="settingsPage" class="hidden">
                     <form id="configForm" class="config-form">
                         <div class="settings-layout">
                             <aside class="settings-nav">
                                 <div class="settings-search">
-                                    <input type="text" id="settingsSearch" placeholder="搜索设置..."
+                                    <input type="text" id="settingsSearch" placeholder="Search settings..."
                                         oninput="filterSettings(this.value)">
                                 </div>
                                 <select class="settings-section-select" id="settingsSectionSelect"
                                     onchange="setActiveSettingSection(this.value, true)">
-                                    <option value="section-server">🖥️ 服务器</option>
-                                    <option value="section-model">🎛️ 模型参数</option>
-                                    <option value="section-rotation">🔄 轮询与性能</option>
+                                    <option value="section-server">🖥️ Server</option>
+                                    <option value="section-model">🎛️ Model Parameters</option>
+                                    <option value="section-rotation">🔄 Rotation & Performance</option>
                                 </select>
                                 <div class="settings-nav-list">
                                     <button type="button" class="settings-nav-item" data-target="section-server"
-                                        onclick="setActiveSettingSection('section-server', true)">🖥️ 服务器</button>
+                                        onclick="setActiveSettingSection('section-server', true)">🖥️ Server</button>
                                     <button type="button" class="settings-nav-item" data-target="section-model"
-                                        onclick="setActiveSettingSection('section-model', true)">🎛️ 模型参数</button>
+                                        onclick="setActiveSettingSection('section-model', true)">🎛️ Model Parameters</button>
                                     <button type="button" class="settings-nav-item" data-target="section-rotation"
-                                        onclick="setActiveSettingSection('section-rotation', true)">🔄 轮询与性能</button>
+                                        onclick="setActiveSettingSection('section-rotation', true)">🔄 Rotation & Performance</button>
                                 </div>
                             </aside>
                             <div class="settings-content">
                                 <div class="config-grid">
-                                    <!-- 服务器配置 -->
+                                    <!-- Server configuration -->
                                     <div class="config-section" id="section-server">
-                                        <h4>🖥️ 服务器</h4>
+                                        <h4>🖥️ Server</h4>
                                         <div class="form-row-inline">
                                             <div class="form-group compact">
-                                                <label>端口</label>
+                                                <label>Port</label>
                                                 <input type="number" name="PORT" placeholder="8045">
                                             </div>
                                             <div class="form-group compact">
-                                                <label>监听地址</label>
+                                                <label>Listen Address</label>
                                                 <input type="text" name="HOST" placeholder="0.0.0.0">
                                             </div>
                                         </div>
                                         <div class="form-group compact">
-                                            <label>API 环境 <span class="help-tip"
-                                                    data-tooltip="选择使用 sandbox 或 production 环境的 API 接口">?</span></label>
+                                            <label>API Environment <span class="help-tip"
+                                                    data-tooltip="Choose to use sandbox or production API interfaces">?</span></label>
                                             <select name="API_USE" id="apiUseSelect">
-                                                <option value="sandbox">Sandbox (测试)</option>
-                                                <option value="production">Production (生产)</option>
+                                                <option value="sandbox">Sandbox (Test)</option>
+                                                <option value="production">Production (Prod)</option>
                                             </select>
                                         </div>
                                         <div class="form-row-inline">
                                             <div class="form-group compact">
-                                                <label>最大请求大小</label>
+                                                <label>Max Request Size</label>
                                                 <input type="text" name="MAX_REQUEST_SIZE" placeholder="500mb">
                                             </div>
                                             <div class="form-group compact">
-                                                <label>API密钥</label>
-                                                <input type="password" name="API_KEY" placeholder="留空则不验证">
+                                                <label>API Key</label>
+                                                <input type="password" name="API_KEY" placeholder="Leave empty to skip verification">
                                             </div>
                                         </div>
                                         <div class="form-row-inline switch-row">
                                             <div class="form-group compact switch-group">
-                                                <label>跳过验证 <span class="help-tip"
-                                                        data-tooltip="跳过ProjectId获取，直接随机生成（仅Pro账号）">?</span></label>
+                                                <label>Skip Validation <span class="help-tip"
+                                                        data-tooltip="Skip ProjectId fetching, generate randomly (Pro accounts only)">?</span></label>
                                                 <label class="switch">
                                                     <input type="checkbox" name="SKIP_PROJECT_ID_FETCH">
                                                     <span class="slider"></span>
                                                 </label>
                                             </div>
                                             <div class="form-group compact switch-group">
-                                                <label>原生Axios <span class="help-tip"
-                                                        data-tooltip="使用原生axios而非TLS指纹请求器">?</span></label>
+                                                <label>Native Axios <span class="help-tip"
+                                                        data-tooltip="Use native axios instead of TLS fingerprint requester">?</span></label>
                                                 <label class="switch">
                                                     <input type="checkbox" name="USE_NATIVE_AXIOS">
                                                     <span class="slider"></span>
@@ -465,22 +465,22 @@
                                             </div>
                                         </div>
                                         <div class="form-group compact">
-                                            <label>图片访问链接</label>
+                                            <label>Image Access URL</label>
                                             <input type="text" name="IMAGE_BASE_URL"
                                                 placeholder="https://your-domain.zeabur.app">
                                         </div>
                                         <div class="form-group compact">
-                                            <label>代理地址</label>
+                                            <label>Proxy Address</label>
                                             <input type="text" name="PROXY" placeholder="http://127.0.0.1:7890">
                                         </div>
                                     </div>
 
-                                    <!-- 模型默认参数 -->
+                                    <!-- Default model parameters -->
                                     <div class="config-section" id="section-model">
-                                        <h4>🎛️ 模型参数</h4>
+                                        <h4>🎛️ Model Parameters</h4>
                                         <div class="form-row-inline">
                                             <div class="form-group compact">
-                                                <label>温度</label>
+                                                <label>Temperature</label>
                                                 <input type="number" step="0.1" name="DEFAULT_TEMPERATURE"
                                                     placeholder="1">
                                             </div>
@@ -495,19 +495,19 @@
                                                 <input type="number" name="DEFAULT_TOP_K" placeholder="50">
                                             </div>
                                             <div class="form-group compact">
-                                                <label>最大Token</label>
+                                                <label>Max Tokens</label>
                                                 <input type="number" name="DEFAULT_MAX_TOKENS" placeholder="32000">
                                             </div>
                                         </div>
                                         <div class="form-group compact highlight">
-                                            <label>思考预算 <span class="help-tip"
-                                                    data-tooltip="思考模型的思考token预算，影响推理深度">?</span></label>
+                                            <label>Thinking Budget <span class="help-tip"
+                                                    data-tooltip="Thinking token budget for thinking models, affects reasoning depth">?</span></label>
                                             <input type="number" name="DEFAULT_THINKING_BUDGET" placeholder="16000">
                                         </div>
                                         <div class="form-row-inline switch-row">
                                             <div class="form-group compact switch-group">
-                                                <label>上下文System <span class="help-tip"
-                                                        data-tooltip="开启后，将用户请求的system消息追加到反代提示词后面">?</span></label>
+                                                <label>Context System <span class="help-tip"
+                                                        data-tooltip="When enabled, appends user's system message to the proxy prompt">?</span></label>
                                                 <label class="switch">
                                                     <input type="checkbox" name="USE_CONTEXT_SYSTEM_PROMPT"
                                                         id="useContextSystemPrompt"
@@ -516,8 +516,8 @@
                                                 </label>
                                             </div>
                                             <div class="form-group compact switch-group">
-                                                <label>合并提示词 <span class="help-tip"
-                                                        data-tooltip="开启后，将所有系统提示词合并为单个part（需要先开启上下文System）">?</span></label>
+                                                <label>Merge Prompts <span class="help-tip"
+                                                        data-tooltip="When enabled, merges all system prompts into a single part (requires Context System enabled first)">?</span></label>
                                                 <label class="switch">
                                                     <input type="checkbox" name="MERGE_SYSTEM_PROMPT"
                                                         id="mergeSystemPrompt" checked>
@@ -525,8 +525,8 @@
                                                 </label>
                                             </div>
                                             <div class="form-group compact switch-group">
-                                                <label>假非流 <span class="help-tip"
-                                                        data-tooltip="非流式请求使用流式获取数据，最终返回非流式格式的JSON（更快）">?</span></label>
+                                                <label>Fake Non-Stream <span class="help-tip"
+                                                        data-tooltip="Non-stream requests use streaming to fetch data, finally return JSON in non-stream format (faster)">?</span></label>
                                                 <label class="switch">
                                                     <input type="checkbox" name="FAKE_NON_STREAM" checked>
                                                     <span class="slider"></span>
@@ -535,52 +535,52 @@
                                         </div>
                                         <div class="form-row-inline">
                                             <div class="form-group compact">
-                                                <label>官方提示词位置 <span class="help-tip"
-                                                        data-tooltip="官方提示词相对于反代提示词的位置">?</span></label>
+                                                <label>Official Prompt Position <span class="help-tip"
+                                                        data-tooltip="Position of official prompt relative to proxy prompt">?</span></label>
                                                 <select name="OFFICIAL_PROMPT_POSITION">
-                                                    <option value="before">在反代提示词前面</option>
-                                                    <option value="after">在反代提示词后面</option>
+                                                    <option value="before">Before proxy prompt</option>
+                                                    <option value="after">After proxy prompt</option>
                                                 </select>
                                             </div>
                                         </div>
                                         <div class="form-group compact">
-                                            <label>反代系统提示词 <span class="restore-default"
-                                                    onclick="restoreDefaultSystemInstruction()" title="恢复默认">↻
-                                                    恢复默认</span></label>
+                                            <label>Proxy System Prompt <span class="restore-default"
+                                                    onclick="restoreDefaultSystemInstruction()" title="Restore default">↻
+                                                    Restore Default</span></label>
                                             <textarea name="SYSTEM_INSTRUCTION" rows="3"
-                                                placeholder="反代系统提示词（留空则不使用）"></textarea>
+                                                placeholder="Proxy system prompt (leave empty to not use)"></textarea>
                                         </div>
                                         <div class="form-group compact">
                                             <label>
-                                                官方系统提示词 <span class="help-tip" data-tooltip="反重力官方要求的系统提示词">?</span>
+                                                Official System Prompt <span class="help-tip" data-tooltip="Official system prompt required by Antigravity">?</span>
                                                 <span class="restore-default"
-                                                    onclick="restoreDefaultOfficialSystemPrompt()" title="恢复默认"
-                                                    id="restoreOfficialBtn" style="display:none;">↻ 恢复默认</span>
+                                                    onclick="restoreDefaultOfficialSystemPrompt()" title="Restore default"
+                                                    id="restoreOfficialBtn" style="display:none;">↻ Restore Default</span>
                                             </label>
                                             <div class="textarea-wrapper">
                                                 <textarea name="OFFICIAL_SYSTEM_PROMPT" id="officialSystemPrompt"
-                                                    rows="5" placeholder="官方系统提示词（留空则不使用）" readonly></textarea>
+                                                    rows="5" placeholder="Official system prompt (leave empty to not use)" readonly></textarea>
                                                 <div class="textarea-lock-btn" id="unlockOfficialBtn"
-                                                    onclick="unlockOfficialSystemPrompt()" title="点击解锁修改">🔒</div>
+                                                    onclick="unlockOfficialSystemPrompt()" title="Click to unlock edit">🔒</div>
                                             </div>
                                         </div>
                                     </div>
 
-                                    <!-- 轮询策略与性能优化 -->
+                                    <!-- Rotation strategy and performance optimization -->
                                     <div class="config-section" id="section-rotation">
-                                        <h4>🔄 轮询与性能</h4>
+                                        <h4>🔄 Rotation & Performance</h4>
                                         <div class="form-row-inline switch-row">
                                             <div class="form-group compact switch-group">
-                                                <label>透传签名 <span class="help-tip"
-                                                        data-tooltip="将响应中的thoughtSignature透传到客户端">?</span></label>
+                                                <label>Pass Signature <span class="help-tip"
+                                                        data-tooltip="Pass thoughtSignature in response to client">?</span></label>
                                                 <label class="switch">
                                                     <input type="checkbox" name="PASS_SIGNATURE_TO_CLIENT">
                                                     <span class="slider"></span>
                                                 </label>
                                             </div>
                                             <div class="form-group compact switch-group">
-                                                <label>兜底签名 <span class="help-tip"
-                                                        data-tooltip="没有缓存签名时，使用内置默认签名自动补全">?</span></label>
+                                                <label>Fallback Signature <span class="help-tip"
+                                                        data-tooltip="When no cached signature, use built-in default to auto-complete">?</span></label>
                                                 <label class="switch">
                                                     <input type="checkbox" name="USE_FALLBACK_SIGNATURE">
                                                     <span class="slider"></span>
@@ -589,32 +589,32 @@
                                         </div>
                                         <div class="form-row-inline switch-row">
                                             <div class="form-group compact switch-group">
-                                                <label>缓存所有签名 <span class="help-tip"
-                                                        data-tooltip="开启后缓存所有签名">?</span></label>
+                                                <label>Cache All Signatures <span class="help-tip"
+                                                        data-tooltip="When enabled, cache all signatures">?</span></label>
                                                 <label class="switch">
                                                     <input type="checkbox" name="CACHE_ALL_SIGNATURES">
                                                     <span class="slider"></span>
                                                 </label>
                                             </div>
                                             <div class="form-group compact switch-group">
-                                                <label>工具签名 <span class="help-tip"
-                                                        data-tooltip="使用工具时缓存签名">?</span></label>
+                                                <label>Tool Signatures <span class="help-tip"
+                                                        data-tooltip="Cache signatures when using tools">?</span></label>
                                                 <label class="switch">
                                                     <input type="checkbox" name="CACHE_TOOL_SIGNATURES" checked>
                                                     <span class="slider"></span>
                                                 </label>
                                             </div>
                                             <div class="form-group compact switch-group">
-                                                <label>图像签名 <span class="help-tip"
-                                                        data-tooltip="使用图像模型时缓存签名">?</span></label>
+                                                <label>Image Signatures <span class="help-tip"
+                                                        data-tooltip="Cache signatures when using image models">?</span></label>
                                                 <label class="switch">
                                                     <input type="checkbox" name="CACHE_IMAGE_SIGNATURES" checked>
                                                     <span class="slider"></span>
                                                 </label>
                                             </div>
                                             <div class="form-group compact switch-group">
-                                                <label>缓存思考 <span class="help-tip"
-                                                        data-tooltip="缓存思考内容，随签名一起返回">?</span></label>
+                                                <label>Cache Thinking <span class="help-tip"
+                                                        data-tooltip="Cache thinking content, return with signature">?</span></label>
                                                 <label class="switch">
                                                     <input type="checkbox" name="CACHE_THINKING" checked>
                                                     <span class="slider"></span>
@@ -623,52 +623,52 @@
                                         </div>
                                         <div class="form-row-inline">
                                             <div class="form-group compact">
-                                                <label>策略模式 <span class="help-tip"
-                                                        data-tooltip="均衡负载：每次请求切换Token&#10;额度耗尽：用完额度才切换&#10;自定义次数：指定次数后切换">?</span></label>
+                                                <label>Strategy Mode <span class="help-tip"
+                                                        data-tooltip="Load Balance: Switch token per request&#10;Quota Exhausted: Switch after quota used&#10;Custom Count: Switch after specified count">?</span></label>
                                                 <select name="ROTATION_STRATEGY" id="rotationStrategy"
                                                     onchange="toggleRequestCountInput()">
-                                                    <option value="round_robin">均衡负载</option>
-                                                    <option value="quota_exhausted">额度耗尽切换</option>
-                                                    <option value="request_count">自定义次数</option>
+                                                    <option value="round_robin">Load Balance</option>
+                                                    <option value="quota_exhausted">Quota Exhausted Switch</option>
+                                                    <option value="request_count">Custom Count</option>
                                                 </select>
                                             </div>
                                             <div class="form-group compact" id="requestCountGroup">
-                                                <label>每Token请求次数 <span class="help-tip"
-                                                        data-tooltip="自定义次数模式下，每个Token处理多少次请求后切换">?</span></label>
+                                                <label>Requests per Token <span class="help-tip"
+                                                        data-tooltip="In custom count mode, how many requests per token before switching">?</span></label>
                                                 <input type="number" name="ROTATION_REQUEST_COUNT" min="1"
                                                     placeholder="10">
                                             </div>
                                         </div>
                                         <div class="rotation-status" id="rotationStatus">
-                                            <span class="rotation-label">当前状态:</span>
-                                            <span id="currentRotationInfo">加载中...</span>
+                                            <span class="rotation-label">Current Status:</span>
+                                            <span id="currentRotationInfo">Loading...</span>
                                         </div>
                                         <div class="form-row-inline">
                                             <div class="form-group compact">
-                                                <label>超时(ms)</label>
+                                                <label>Timeout (ms)</label>
                                                 <input type="number" name="TIMEOUT" placeholder="300000">
                                             </div>
                                             <div class="form-group compact">
-                                                <label>429重试次数</label>
+                                                <label>429 Retry Times</label>
                                                 <input type="number" name="RETRY_TIMES" placeholder="0">
                                             </div>
                                         </div>
 
                                         <div class="form-row-inline">
                                             <div class="form-group compact">
-                                                <label>心跳间隔(ms) <span class="help-tip"
-                                                        data-tooltip="SSE心跳间隔，防止CF超时断连">?</span></label>
+                                                <label>Heartbeat Interval (ms) <span class="help-tip"
+                                                        data-tooltip="SSE heartbeat interval, prevents CF timeout disconnect">?</span></label>
                                                 <input type="number" name="HEARTBEAT_INTERVAL" placeholder="15000">
                                             </div>
                                             <div class="form-group compact">
-                                                <label>内存清理间隔(ms) <span class="help-tip"
-                                                        data-tooltip="按固定间隔触发缓存/对象池清理">?</span></label>
+                                                <label>Memory Cleanup Interval (ms) <span class="help-tip"
+                                                        data-tooltip="Trigger cache/object pool cleanup at fixed intervals">?</span></label>
                                                 <input type="number" name="MEMORY_CLEANUP_INTERVAL"
                                                     placeholder="1800000">
                                             </div>
                                         </div>
                                         <div class="form-group compact">
-                                            <label>🔤 界面字体大小 (px)</label>
+                                            <label>🔤 UI Font Size (px)</label>
                                             <div class="font-size-control">
                                                 <input type="range" id="fontSizeRange" min="10" max="24" value="18"
                                                     oninput="changeFontSize(this.value)">
@@ -680,8 +680,8 @@
                                 </div>
                                 <div class="config-actions">
                                     <button type="button" onclick="loadConfig()" class="btn btn-secondary">🔄
-                                        重新加载</button>
-                                    <button type="submit" class="btn btn-success">💾 保存配置</button>
+                                        Reload</button>
+                                    <button type="submit" class="btn btn-success">💾 Save Config</button>
                                 </div>
                             </div>
                         </div>
@@ -691,7 +691,7 @@
         </div>
     </div>
 
-    <!-- 按依赖顺序加载模块 -->
+    <!-- Load modules in dependency order -->
     <script src="js/utils.js" defer></script>
     <script src="js/ui.js" defer></script>
     <script src="js/auth.js" defer></script>

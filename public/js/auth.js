@@ -1,6 +1,6 @@
-// 认证相关：登录、登出、OAuth
+// Authentication related: login, logout, OAuth
 
-// 不再使用 localStorage 存储 token，改用 HttpOnly Cookie
+// No longer use localStorage to store token, use HttpOnly Cookie instead
 let isLoggedIn = false;
 let oauthPort = null;
 
@@ -13,7 +13,7 @@ const SCOPES = [
     'https://www.googleapis.com/auth/experimentsandconfigs'
 ].join(' ');
 
-// 封装fetch，自动处理401，使用 credentials: 'include' 发送 Cookie
+// Wrap fetch, auto-handle 401, use credentials: 'include' to send Cookie
 const authFetch = async (url, options = {}) => {
     const response = await fetch(url, {
         ...options,
@@ -21,7 +21,7 @@ const authFetch = async (url, options = {}) => {
     });
     if (response.status === 401) {
         silentLogout();
-        showToast('登录已过期，请重新登录', 'warning');
+        showToast('Login has expired, please login again', 'warning');
         throw new Error('Unauthorized');
     }
     return response;
@@ -36,7 +36,7 @@ function showMainContent() {
 
 function silentLogout() {
     isLoggedIn = false;
-    // 清除旧版本的 localStorage token（如果存在）
+    // Clear old version localStorage token (if exists)
     localStorage.removeItem('authToken');
     document.documentElement.classList.remove('logged-in');
     document.getElementById('loginForm').classList.remove('hidden');
@@ -44,21 +44,21 @@ function silentLogout() {
 }
 
 async function logout() {
-    const confirmed = await showConfirm('确定要退出登录吗？', '退出确认');
+    const confirmed = await showConfirm('Are you sure you want to logout?', 'Logout Confirmation');
     if (!confirmed) return;
 
     try {
-        // 调用后端登出接口清除 Cookie
+        // Call backend logout API to clear Cookie
         await fetch('/admin/logout', {
             method: 'POST',
             credentials: 'include'
         });
     } catch (e) {
-        // 忽略错误
+        // Ignore errors
     }
 
     silentLogout();
-    showToast('已退出登录', 'info');
+    showToast('Logged out', 'info');
 }
 
 function getOAuthUrl() {
@@ -77,33 +77,33 @@ function openOAuthWindow() {
 function copyOAuthUrl() {
     const url = getOAuthUrl();
     navigator.clipboard.writeText(url).then(() => {
-        showToast('授权链接已复制', 'success');
+        showToast('Authorization link copied', 'success');
     }).catch(() => {
-        showToast('复制失败', 'error');
+        showToast('Copy failed', 'error');
     });
 }
 
 function showOAuthModal() {
-    showToast('点击后请在新窗口完成授权', 'info');
+    showToast('After clicking, please complete authorization in the new window', 'info');
     const modal = document.createElement('div');
     modal.className = 'modal form-modal';
     modal.innerHTML = `
         <div class="modal-content">
-            <div class="modal-title">🔐 OAuth授权登录</div>
+            <div class="modal-title">🔐 OAuth Authorization Login</div>
             <div class="oauth-steps">
-                <p><strong>📝 授权流程：</strong></p>
-                <p>1️⃣ 点击下方按钮打开Google授权页面</p>
-                <p>2️⃣ 完成授权后，复制浏览器地址栏的完整URL</p>
-                <p>3️⃣ 粘贴URL到下方输入框并提交</p>
+                <p><strong>📝 Authorization Process:</strong></p>
+                <p>1️⃣ Click the button below to open Google authorization page</p>
+                <p>2️⃣ After authorization, copy the complete URL from the browser address bar</p>
+                <p>3️⃣ Paste the URL into the input box below and submit</p>
             </div>
             <div style="display: flex; gap: 8px; margin-bottom: 12px;">
-                <button type="button" onclick="openOAuthWindow()" class="btn btn-success" style="flex: 1;">🔐 打开授权页面</button>
-                <button type="button" onclick="copyOAuthUrl()" class="btn btn-info" style="flex: 1;">📋 复制授权链接</button>
+                <button type="button" onclick="openOAuthWindow()" class="btn btn-success" style="flex: 1;">🔐 Open Authorization Page</button>
+                <button type="button" onclick="copyOAuthUrl()" class="btn btn-info" style="flex: 1;">📋 Copy Authorization Link</button>
             </div>
-            <input type="text" id="modalCallbackUrl" placeholder="粘贴完整的回调URL (http://localhost:xxxxx/oauth-callback?code=...)">
+            <input type="text" id="modalCallbackUrl" placeholder="Paste the complete callback URL (http://localhost:xxxxx/oauth-callback?code=...)">
             <div class="modal-actions">
-                <button class="btn btn-secondary" onclick="this.closest('.modal').remove()">取消</button>
-                <button class="btn btn-success" onclick="processOAuthCallbackModal()">✅ 提交</button>
+                <button class="btn btn-secondary" onclick="this.closest('.modal').remove()">Cancel</button>
+                <button class="btn btn-success" onclick="processOAuthCallbackModal()">✅ Submit</button>
             </div>
         </div>
     `;
@@ -115,11 +115,11 @@ async function processOAuthCallbackModal() {
     const modal = document.querySelector('.form-modal');
     const callbackUrl = document.getElementById('modalCallbackUrl').value.trim();
     if (!callbackUrl) {
-        showToast('请输入回调URL', 'warning');
+        showToast('Please enter callback URL', 'warning');
         return;
     }
 
-    showLoading('正在处理授权...');
+    showLoading('Processing authorization...');
 
     try {
         const url = new URL(callbackUrl);
@@ -128,7 +128,7 @@ async function processOAuthCallbackModal() {
 
         if (!code) {
             hideLoading();
-            showToast('URL中未找到授权码', 'error');
+            showToast('Authorization code not found in URL', 'error');
             return;
         }
 
@@ -156,24 +156,24 @@ async function processOAuthCallbackModal() {
             if (addResult.success) {
                 modal.remove();
                 const message = result.fallbackMode
-                    ? 'Token添加成功（该账号无资格，已自动使用随机ProjectId）'
-                    : 'Token添加成功';
+                    ? 'Token added successfully (account not qualified, random ProjectId used automatically)'
+                    : 'Token added successfully';
                 showToast(message, result.fallbackMode ? 'warning' : 'success');
                 loadTokens();
             } else {
-                showToast('添加失败: ' + addResult.message, 'error');
+                showToast('Add failed: ' + addResult.message, 'error');
             }
         } else {
             hideLoading();
-            showToast('交换失败: ' + result.message, 'error');
+            showToast('Exchange failed: ' + result.message, 'error');
         }
     } catch (error) {
         hideLoading();
-        showToast('处理失败: ' + error.message, 'error');
+        showToast('Processing failed: ' + error.message, 'error');
     }
 }
 
-// 检查登录状态（通过尝试访问需要认证的接口）
+// Check login status (by trying to access authenticated interface)
 async function checkLoginStatus() {
     try {
         const response = await fetch('/admin/tokens', {

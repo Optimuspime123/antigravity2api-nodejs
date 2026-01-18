@@ -1,13 +1,13 @@
-// UI组件：Toast、Modal、Loading
+// UI Components: Toast, Modal, Loading
 
-// Toast 管理器 - 限制同时显示的 toast 数量
+// Toast manager - limit the number of toasts displayed simultaneously
 const toastManager = {
     maxToasts: 5,
     activeToasts: [],
 
     add(toast) {
         this.activeToasts.push(toast);
-        // 如果超过最大数量，移除最旧的
+        // If exceeds max count, remove the oldest
         while (this.activeToasts.length > this.maxToasts) {
             const oldest = this.activeToasts.shift();
             if (oldest && oldest.parentNode) {
@@ -35,10 +35,10 @@ const toastManager = {
 
 function showToast(message, type = 'info', title = '') {
     const icons = { success: '✅', error: '❌', warning: '⚠️', info: 'ℹ️' };
-    const titles = { success: '成功', error: '错误', warning: '警告', info: '提示' };
+    const titles = { success: 'Success', error: 'Error', warning: 'Warning', info: 'Info' };
     const toast = document.createElement('div');
     toast.className = `toast ${type}`;
-    // 转义用户输入防止 XSS
+    // Escape user input to prevent XSS
     const safeTitle = escapeHtml(title || titles[type]);
     const safeMessage = escapeHtml(message);
     toast.innerHTML = `
@@ -51,7 +51,7 @@ function showToast(message, type = 'info', title = '') {
     document.body.appendChild(toast);
     toastManager.add(toast);
 
-    // 使用 requestAnimationFrame 优化动画性能
+    // Use requestAnimationFrame to optimize animation performance
     const removeToast = () => {
         toast.style.animation = 'slideOut 0.3s ease';
         setTimeout(() => {
@@ -65,11 +65,11 @@ function showToast(message, type = 'info', title = '') {
     setTimeout(removeToast, 3000);
 }
 
-function showConfirm(message, title = '确认操作') {
+function showConfirm(message, title = 'Confirm Action') {
     return new Promise((resolve) => {
         const modal = document.createElement('div');
         modal.className = 'modal';
-        // 转义用户输入防止 XSS
+        // Escape user input to prevent XSS
         const safeTitle = escapeHtml(title);
         const safeMessage = escapeHtml(message);
         modal.innerHTML = `
@@ -77,8 +77,8 @@ function showConfirm(message, title = '确认操作') {
                 <div class="modal-title">${safeTitle}</div>
                 <div class="modal-message">${safeMessage}</div>
                 <div class="modal-actions">
-                    <button class="btn btn-secondary" id="confirmCancelBtn">取消</button>
-                    <button class="btn btn-danger" id="confirmOkBtn">确定</button>
+                    <button class="btn btn-secondary" id="confirmCancelBtn">Cancel</button>
+                    <button class="btn btn-danger" id="confirmOkBtn">Confirm</button>
                 </div>
             </div>
         `;
@@ -87,7 +87,7 @@ function showConfirm(message, title = '确认操作') {
         const cancelBtn = modal.querySelector('#confirmCancelBtn');
         const okBtn = modal.querySelector('#confirmOkBtn');
 
-        // 清理函数
+        // Cleanup function
         const cleanup = () => {
             cancelBtn.removeEventListener('click', handleCancel);
             okBtn.removeEventListener('click', handleOk);
@@ -118,17 +118,17 @@ function showConfirm(message, title = '确认操作') {
     });
 }
 
-// 存储当前 loading overlay 引用
+// Store current loading overlay reference
 let currentLoadingOverlay = null;
 
-function showLoading(text = '处理中...') {
-    // 如果已有 loading，先移除
+function showLoading(text = 'Processing...') {
+    // If loading already exists, remove it first
     hideLoading();
 
     const overlay = document.createElement('div');
     overlay.className = 'loading-overlay';
     overlay.id = 'loadingOverlay';
-    // 转义用户输入防止 XSS
+    // Escape user input to prevent XSS
     const safeText = escapeHtml(text);
     overlay.innerHTML = `<div class="spinner"></div><div class="loading-text">${safeText}</div>`;
     document.body.appendChild(overlay);
@@ -141,13 +141,13 @@ function hideLoading() {
     }
     currentLoadingOverlay = null;
 
-    // 备用清理：通过 ID 查找
+    // Fallback cleanup: find by ID
     const overlay = document.getElementById('loadingOverlay');
     if (overlay) overlay.remove();
 }
 
 function switchTab(tab, saveState = true) {
-    // 更新html元素的class以防止闪烁
+    // Update html element class to prevent flickering
     document.documentElement.classList.remove('tab-settings', 'tab-logs', 'tab-geminicli');
     if (tab === 'settings') {
         document.documentElement.classList.add('tab-settings');
@@ -157,10 +157,10 @@ function switchTab(tab, saveState = true) {
         document.documentElement.classList.add('tab-geminicli');
     }
 
-    // 移除所有tab的active状态
+    // Remove active state from all tabs
     document.querySelectorAll('.tab').forEach(t => t.classList.remove('active'));
 
-    // 找到对应的tab按钮并激活
+    // Find the corresponding tab button and activate it
     const targetTab = document.querySelector(`.tab[data-tab="${tab}"]`);
     if (targetTab) {
         targetTab.classList.add('active');
@@ -171,7 +171,7 @@ function switchTab(tab, saveState = true) {
     const logsPage = document.getElementById('logsPage');
     const geminicliPage = document.getElementById('geminicliPage');
 
-    // 隐藏所有页面并移除动画类
+    // Hide all pages and remove animation classes
     tokensPage.classList.add('hidden');
     tokensPage.classList.remove('page-enter');
     settingsPage.classList.add('hidden');
@@ -185,34 +185,34 @@ function switchTab(tab, saveState = true) {
         geminicliPage.classList.remove('page-enter');
     }
 
-    // 清理日志页面的自动刷新（如果离开日志页面）
+    // Clean up auto-refresh for logs page (if leaving logs page)
     if (tab !== 'logs' && typeof cleanupLogsPage === 'function') {
         cleanupLogsPage();
     }
 
-    // 显示对应页面并添加入场动画
+    // Show corresponding page and add enter animation
     if (tab === 'tokens') {
         tokensPage.classList.remove('hidden');
-        // 触发重排以重新播放动画
+        // Trigger reflow to replay animation
         void tokensPage.offsetWidth;
         tokensPage.classList.add('page-enter');
-        // 进入 Token 页面时，从后端读取最新 token 列表
+        // When entering Token page, load latest token list from backend
         if (typeof loadTokens === 'function' && isLoggedIn) {
             loadTokens();
         }
     } else if (tab === 'settings') {
         settingsPage.classList.remove('hidden');
-        // 触发重排以重新播放动画
+        // Trigger reflow to replay animation
         void settingsPage.offsetWidth;
         settingsPage.classList.add('page-enter');
         loadConfig();
     } else if (tab === 'logs') {
         if (logsPage) {
             logsPage.classList.remove('hidden');
-            // 触发重排以重新播放动画
+            // Trigger reflow to replay animation
             void logsPage.offsetWidth;
             logsPage.classList.add('page-enter');
-            // 进入日志页面时加载日志
+            // Load logs when entering logs page
             if (typeof initLogsPage === 'function') {
                 initLogsPage();
             }
@@ -220,23 +220,23 @@ function switchTab(tab, saveState = true) {
     } else if (tab === 'geminicli') {
         if (geminicliPage) {
             geminicliPage.classList.remove('hidden');
-            // 触发重排以重新播放动画
+            // Trigger reflow to replay animation
             void geminicliPage.offsetWidth;
             geminicliPage.classList.add('page-enter');
-            // 进入 Gemini CLI 页面时加载 token 列表
+            // Load token list when entering Gemini CLI page
             if (typeof initGeminiCliPage === 'function' && isLoggedIn) {
                 initGeminiCliPage();
             }
         }
     }
 
-    // 保存当前Tab状态到localStorage
+    // Save current tab state to localStorage
     if (saveState) {
         localStorage.setItem('currentTab', tab);
     }
 }
 
-// 恢复Tab状态
+// Restore tab state
 function restoreTabState() {
     const savedTab = localStorage.getItem('currentTab');
     if (savedTab && (savedTab === 'tokens' || savedTab === 'settings' || savedTab === 'logs' || savedTab === 'geminicli')) {
@@ -244,9 +244,9 @@ function restoreTabState() {
     }
 }
 
-// ==================== 通用弹窗/导入工具 ====================
+// ==================== General Modal/Import Tools ====================
 
-// 点击遮罩关闭（返回 cleanup 用于解绑）
+// Click backdrop to close (return cleanup for unbinding)
 function wireModalBackdropClose(modal, onClose) {
     if (!modal) return () => { };
 
@@ -270,7 +270,7 @@ function wireModalBackdropClose(modal, onClose) {
     };
 }
 
-// 绑定 JSON 文件拖拽/点击选择（返回 cleanup 用于解绑）
+// Bind JSON file drag/drop and click selection (return cleanup for unbinding)
 function wireJsonFileDropzone({ dropzone, fileInput, onFile, onError } = {}) {
     const safeOnError = (message) => {
         try {
@@ -286,13 +286,13 @@ function wireJsonFileDropzone({ dropzone, fileInput, onFile, onError } = {}) {
     const handlePickedFile = (file) => {
         if (!file) return;
         if (!isJsonFile(file)) {
-            safeOnError('请选择 JSON 文件');
+            safeOnError('Please select a JSON file');
             return;
         }
         try {
             onFile && onFile(file);
         } catch (err) {
-            safeOnError('处理文件失败: ' + (err?.message || String(err)));
+            safeOnError('Failed to process file: ' + (err?.message || String(err)));
         }
     };
 
