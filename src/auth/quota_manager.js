@@ -220,7 +220,7 @@ class QuotaManager {
       return null;
     }
 
-    return data;
+return data;
   }
 
   /**
@@ -236,7 +236,7 @@ class QuotaManager {
   /**
    * Check whether token has quota for a model group
    * @param {string} tokenId - Token ID
-   * @param {string} modelId - 模型 ID
+   * @param {string} modelId - model ID
    * @returns {boolean} true if quota exists or unknown; false if zero
    */
   hasQuotaForModel(tokenId, modelId) {
@@ -267,7 +267,7 @@ class QuotaManager {
   /**
    * Get minimum quota for a model group
    * @param {string} tokenId - Token ID
-   * @param {string} modelId - 模型 ID
+   * @param {string} modelId - model ID
    * @returns {number} minimum quota for group (0-1), 1 if no data
    */
   getModelGroupQuota(tokenId, modelId) {
@@ -296,8 +296,8 @@ class QuotaManager {
 
   /**
    * Calculate estimated remaining requests
-   * @param {number} remainingFraction - 剩余额度比例 (0-1)
-   * @param {number} requestCount - 已使用的请求次数
+   * @param {number} remainingFraction - remaining quota ratio (0-1)
+   * @param {number} requestCount - requests used
    * @returns {number} estimated remaining requests
    */
   calculateEstimatedRequests(remainingFraction, requestCount = 0) {

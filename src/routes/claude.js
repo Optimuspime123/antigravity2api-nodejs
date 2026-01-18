@@ -1,6 +1,6 @@
 /**
- * Claude API 路由
- * 处理 /v1/messages 端点
+ * Claude API routes
+ * Handles /v1/messages endpoint
  */
 
 import { Router } from 'express';
@@ -10,7 +10,7 @@ const router = Router();
 
 /**
  * POST /v1/messages
- * 处理 Claude 消息请求
+ * Handle Claude message requests
  */
 router.post('/messages', (req, res) => {
   const isStream = req.body.stream === true;
@@ -19,17 +19,17 @@ router.post('/messages', (req, res) => {
 
 /**
  * POST /v1/messages/count_tokens
- * 估算请求的 token 数量
- * Claude Code 在 /init 时会频繁调用此端点
+ * Estimate token usage for the request
+ * Claude Code frequently calls this endpoint at /init
  */
 router.post('/messages/count_tokens', (req, res) => {
   try {
     const { messages, system } = req.body;
 
-    // 简单的 token 估算：大约 4 个字符 = 1 个 token
+    // Simple token estimate: ~4 characters per token
     let totalChars = 0;
 
-    // 计算 system 提示词
+    // Count system prompt tokens
     if (system) {
       if (typeof system === 'string') {
         totalChars += system.length;
@@ -40,7 +40,7 @@ router.post('/messages/count_tokens', (req, res) => {
       }
     }
 
-    // 计算消息内容
+    // Count message content tokens
     if (messages && Array.isArray(messages)) {
       for (const msg of messages) {
         if (typeof msg.content === 'string') {
@@ -55,7 +55,7 @@ router.post('/messages/count_tokens', (req, res) => {
       }
     }
 
-    // 估算 token 数量（中文约 2 字符/token，英文约 4 字符/token，取平均 3）
+    // Estimate tokens (CN ~2 chars/token, EN ~4 chars/token, avg 3)
     const estimatedTokens = Math.ceil(totalChars / 3);
 
     res.json({

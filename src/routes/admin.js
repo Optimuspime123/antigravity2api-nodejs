@@ -1,4 +1,5 @@
 import express from 'express';
+import path from 'path';
 import { generateToken, authMiddleware, verifyToken } from '../auth/jwt.js';
 import tokenManager from '../auth/token_manager.js';
 import geminicliTokenManager from '../auth/geminicli_token_manager.js';
@@ -11,10 +12,12 @@ import { parseEnvFile, updateEnvFile } from '../utils/envParser.js';
 import { reloadConfig } from '../utils/configReloader.js';
 import { deepMerge } from '../utils/deepMerge.js';
 import { getModelsWithQuotas } from '../api/client.js';
-import { getEnvPath } from '../utils/paths.js';
+import { getDataDir, getEnvPath } from '../utils/paths.js';
 import dotenv from 'dotenv';
+import fs from 'fs/promises';
 
 const envPath = getEnvPath();
+const tunnelInfoPath = path.join(getDataDir(), 'cloudflared-url.json');
 
 const router = express.Router();
 
@@ -193,6 +196,22 @@ router.post('/logout', (req, res) => {
     secure: req.secure || process.env.NODE_ENV === 'production'
   });
   res.json({ success: true, message: 'Logged out' });
+});
+
+// Public tunnel URL (if available)
+router.get('/tunnel-url', cookieAuthMiddleware, async (req, res) => {
+  try {
+    const raw = await fs.readFile(tunnelInfoPath, 'utf8');
+    const data = JSON.parse(raw);
+    res.json({ success: true, url: data?.url || null });
+  } catch (error) {
+    if (error.code === 'ENOENT') {
+      res.json({ success: true, url: null });
+      return;
+    }
+    logger.error('Failed to read tunnel URL:', error.message);
+    res.status(500).json({ success: false, message: error.message });
+  }
 });
 
 // Verify password (for sensitive operations)

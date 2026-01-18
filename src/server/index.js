@@ -1,6 +1,6 @@
 /**
- * 服务器主入口
- * Express 应用配置、中间件、路由挂载、服务器启动和关闭
+ * Server entry point
+ * Express app setup, middleware, routing, startup, and shutdown
  */
 
 import express from 'express';
@@ -17,7 +17,7 @@ import { errorHandler } from '../utils/errors.js';
 import { getChunkPoolSize, clearChunkPool } from './stream.js';
 import ipBlockManager from '../utils/ipBlockManager.js';
 
-// 路由模块
+// Route modules
 import adminRouter from '../routes/admin.js';
 import sdRouter from '../routes/sd.js';
 import openaiRouter from '../routes/openai.js';
@@ -29,13 +29,13 @@ const publicDir = getPublicDir();
 
 const app = express();
 
-// 信任反向代理，以便正确获取 HTTPS 协议状态 (req.secure) 和客户端 IP
+// Trust reverse proxy so req.secure and client IP are accurate
 app.set('trust proxy', true);
 
-// 初始化 IP 封禁管理器
+// Initialize IP block manager
 ipBlockManager.init();
 
-// 全局 IP 封禁检查中间件
+// Global IP block check middleware
 app.use((req, res, next) => {
   const ip = req.ip;
   const status = ipBlockManager.check(ip);
@@ -49,10 +49,10 @@ app.use((req, res, next) => {
   next();
 });
 
-// ==================== 内存管理 ====================
+// ==================== Memory management ====================
 memoryManager.start(config.server.memoryCleanupInterval);
 
-// ==================== 基础中间件 ====================
+// ==================== Base middleware ====================
 app.use(cors({
   origin: true,
   credentials: true
@@ -60,17 +60,17 @@ app.use(cors({
 app.use(cookieParser());
 app.use(express.json({ limit: config.security.maxRequestSize }));
 
-// 静态文件服务
+// Static file serving
 app.use('/images', express.static(path.join(publicDir, 'images')));
 app.use(express.static(publicDir));
 
-// 管理路由
+// Admin routes
 app.use('/admin', adminRouter);
 
-// 使用统一错误处理中间件
+// Use shared error handling middleware
 app.use(errorHandler);
 
-// ==================== 请求日志中间件 ====================
+// ==================== Request logging middleware ====================
 app.use((req, res, next) => {
   const ignorePaths = [
     '/images', '/favicon.ico', '/.well-known',
@@ -78,7 +78,7 @@ app.use((req, res, next) => {
     '/sdapi/v1/upscalers', '/sdapi/v1/latent-upscale-modes',
     '/sdapi/v1/sd-vae', '/sdapi/v1/sd-modules'
   ];
-  // 提前获取完整路径，避免在路由处理后 req.path 被修改为相对路径
+  // Capture full path early; req.path may be rewritten to relative after routing
   const fullPath = req.originalUrl.split('?')[0];
   if (!ignorePaths.some(p => fullPath.startsWith(p))) {
     const start = Date.now();
@@ -89,7 +89,7 @@ app.use((req, res, next) => {
   next();
 });
 
-// SD API 路由
+// SD API routes
 app.use('/sdapi/v1', sdRouter);
 
 // ==================== API key validation middleware ====================
@@ -119,23 +119,23 @@ app.use((req, res, next) => {
   next();
 });
 
-// ==================== API 路由 ====================
+// ==================== API routes ====================
 
-// OpenAI 兼容 API
+// OpenAI-compatible API
 app.use('/v1', openaiRouter);
 
-// Gemini 兼容 API
+// Gemini-compatible API
 app.use('/v1beta', geminiRouter);
 
-// Claude 兼容 API（/v1/messages 由 claudeRouter 处理）
+// Claude-compatible API (/v1/messages handled by claudeRouter)
 app.use('/v1', claudeRouter);
 
-// Gemini CLI 兼容 API
+// Gemini CLI-compatible API
 app.use('/cli', cliRouter);
 
-// ==================== 系统端点 ====================
+// ==================== System endpoints ====================
 
-// 内存监控端点
+// Memory monitoring endpoint
 app.get('/v1/memory', (req, res) => {
   const usage = process.memoryUsage();
   res.json({
@@ -149,26 +149,26 @@ app.get('/v1/memory', (req, res) => {
   });
 });
 
-// 健康检查端点
+// Health check endpoint
 app.get('/health', (req, res) => {
   res.json({ status: 'ok', uptime: process.uptime() });
 });
 
-// 404 处理 (未匹配到任何路由)
+// 404 handler (no matching route)
 app.use((req, res, next) => {
-  // 白名单路径：这些路径的 404 不触发 IP 封禁
-  // 包含客户端（如 Claude Code）可能请求但我们未实现的端点
+  // Whitelist paths: 404s here do not trigger IP blocking
+  // Includes endpoints clients (e.g. Claude Code) may call but we don't implement
   const whitelistPaths = [
     '/favicon.ico',
     '/robots.txt',
     '/.well-known',
-    // 管理后台和日志
+    // Admin UI and logs
     '/ws/logs',
-    // Claude API 相关端点
+    // Claude API endpoints
     '/api/event_logging',
     '/v1/complete',
     '/v1/models',
-    // OpenAI API 相关端点
+    // OpenAI API endpoints
     '/v1/files',
     '/v1/fine-tunes',
     '/v1/fine_tuning',
@@ -178,7 +178,7 @@ app.use((req, res, next) => {
     '/v1/uploads',
     '/v1/organization',
     '/v1/usage',
-    // Gemini API 相关端点
+    // Gemini API endpoints
     '/v1beta/models'
   ];
 
@@ -193,11 +193,11 @@ app.use((req, res, next) => {
   res.status(404).json({ error: 'Not Found' });
 });
 
-// ==================== 服务器启动 ====================
+// ==================== Server startup ====================
 const server = app.listen(config.server.port, config.server.host, () => {
   logger.info(`Server started: ${config.server.host}:${config.server.port}`);
 
-  // 初始化 WebSocket 日志服务
+  // Initialize WebSocket log service
   logWsServer.initialize(server);
   logWsServer.updateConfig({
     logMaxSizeMB: config.log?.maxSizeMB,
@@ -220,23 +220,23 @@ server.on('error', (error) => {
   }
 });
 
-// ==================== 优雅关闭 ====================
+// ==================== Graceful shutdown ====================
 const shutdown = () => {
   logger.info('Shutting down server...');
 
-  // 停止内存管理器
+  // Stop memory manager
   memoryManager.stop();
   logger.info('Memory manager stopped');
 
-  // 关闭子进程请求器
+  // Stop child request process
   closeRequester();
   logger.info('Child request process stopped');
 
-  // 清理对象池
+  // Clear object pools
   clearChunkPool();
   logger.info('Object pools cleared');
 
-  // 关闭 WebSocket 日志服务
+  // Stop WebSocket log service
   logWsServer.close();
   logger.info('WebSocket log service stopped');
 
@@ -245,7 +245,7 @@ const shutdown = () => {
     process.exit(0);
   });
 
-  // 5秒超时强制退出
+  // Force exit after 5 seconds
   setTimeout(() => {
     logger.warn('Server shutdown timed out; forcing exit');
     process.exit(0);
@@ -255,10 +255,10 @@ const shutdown = () => {
 process.on('SIGINT', shutdown);
 process.on('SIGTERM', shutdown);
 
-// ==================== 异常处理 ====================
+// ==================== Error handling ====================
 process.on('uncaughtException', (error) => {
   logger.error('Uncaught exception:', error.message);
-  // 不立即退出，让当前请求完成
+  // Do not exit immediately; allow current requests to finish
 });
 
 process.on('unhandledRejection', (reason, promise) => {

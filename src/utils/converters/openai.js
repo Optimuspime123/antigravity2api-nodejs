@@ -1,4 +1,4 @@
-// OpenAI 格式转换工具
+// OpenAI format converter
 import config from '../../config/config.js';
 import { extractSystemInstruction } from '../utils.js';
 import { convertOpenAIToolsToAntigravity } from '../toolConverter.js';
@@ -61,16 +61,16 @@ function handleAssistantMessage(message, antigravityMessages, enableThinking, ac
 
   const parts = [];
   if (enableThinking) {
-    // 优先使用消息自带的思考内容，否则使用缓存的内容（与签名绑定）
+    // Prefer message thinking content; otherwise use cached content bound to the signature.
     let reasoningText = ' ';
     let signature = null;
     
     if (typeof message.reasoning_content === 'string' && message.reasoning_content.length > 0) {
-      // 消息自带思考内容，使用消息自带的签名或缓存签名
+      // Use message thinking content with message signature or cached signature.
       reasoningText = message.reasoning_content;
       signature = message.thoughtSignature || reasoningSignature || toolSignature;
     } else {
-      // 没有思考内容，使用缓存的签名+内容（绑定关系）
+      // No thinking content: use cached signature + content (bound together).
       signature = message.thoughtSignature || reasoningSignature || toolSignature;
       if (signature === reasoningSignature) {
         reasoningText = reasoningContent || ' ';
@@ -79,7 +79,7 @@ function handleAssistantMessage(message, antigravityMessages, enableThinking, ac
       }
     }
     
-    // 只有在有签名时才添加 thought part，避免 API 报错
+    // Only add a thought part when a signature exists to avoid API errors.
     if (signature) {
       parts.push(createThoughtPart(reasoningText, signature));
     }

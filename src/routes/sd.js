@@ -6,7 +6,7 @@ import logger from '../utils/logger.js';
 
 const router = express.Router();
 
-// 静态数据
+// Static data
 const SD_MOCK_DATA = {
   options: {
     sd_model_checkpoint: 'gemini-3-pro-image',
@@ -68,14 +68,14 @@ const SD_MOCK_DATA = {
   }
 };
 
-// 构建图片生成请求体
+// Build image generation request body
 function buildImageRequestBody(prompt, token) {
   const messages = [{ role: 'user', content: prompt }];
   const requestBody = generateRequestBody(messages, 'gemini-3-pro-image', {}, null, token);
   return prepareImageRequest(requestBody);
 }
 
-// GET 路由
+// GET route
 router.get('/sd-models', async (req, res) => {
   try {
     const models = await getAvailableModels();
@@ -112,7 +112,7 @@ router.get('/progress', (req, res) => res.json(SD_MOCK_DATA.progress));
 router.get('/cmd-flags', (req, res) => res.json({}));
 router.get('/memory', (req, res) => res.json({ ram: { free: 8589934592, used: 8589934592, total: 17179869184 }, cuda: { system: { free: 0, used: 0, total: 0 } } }));
 
-// POST 路由
+// POST route
 router.post('/img2img', async (req, res) => {
   const { prompt, init_images } = req.body;
   
@@ -126,7 +126,7 @@ router.post('/img2img', async (req, res) => {
       throw new Error('No available token');
     }
     
-    // 构建包含图片的消息
+    // Build message with image
     const content = [{ type: 'text', text: prompt }];
     if (init_images && init_images.length > 0) {
       init_images.forEach(img => {

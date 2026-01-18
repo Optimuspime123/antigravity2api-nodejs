@@ -248,6 +248,19 @@
 
         <!-- Main content -->
         <div id="mainContent" class="main-content hidden">
+            <div id="tunnelBanner" class="tunnel-banner hidden" role="status" aria-live="polite">
+                <div class="tunnel-banner-content">
+                    <span class="tunnel-icon" aria-hidden="true">🛰️</span>
+                    <div class="tunnel-text">
+                        <div class="tunnel-title">Cloudflared tunnel active</div>
+                        <div class="tunnel-url-row">
+                            <span class="tunnel-label">Public URL</span>
+                            <a id="tunnelUrlLink" href="#" target="_blank" rel="noopener noreferrer"></a>
+                        </div>
+                    </div>
+                </div>
+                <button type="button" id="copyTunnelUrl" class="tunnel-copy">Copy</button>
+            </div>
             <div class="header">
             <div class="tabs">
                 <button class="tab active" data-tab="tokens" onclick="switchTab('tokens')"><span

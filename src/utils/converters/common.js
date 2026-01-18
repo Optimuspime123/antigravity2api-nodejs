@@ -1,4 +1,4 @@
-// 转换器公共模块
+// Shared converter utilities
 import config from '../../config/config.js';
 import { generateRequestId } from '../idGenerator.js';
 import { getSignature, shouldCacheSignature, isImageModel } from '../thoughtSignatureCache.js';
@@ -6,37 +6,37 @@ import { setToolNameMapping } from '../toolNameCache.js';
 import { getThoughtSignatureForModel, getToolSignatureForModel, sanitizeToolName, modelMapping, isEnableThinking, generateGenerationConfig } from '../utils.js';
 
 /**
- * 获取签名上下文
- * @param {string} sessionId - 会话 ID
- * @param {string} actualModelName - 实际模型名称
- * @param {boolean} hasTools - 请求中是否包含工具定义
- * @returns {Object} 包含思维签名、思考内容和工具签名的对象
+ * Get signature context.
+ * @param {string} sessionId - Session ID
+ * @param {string} actualModelName - Actual model name
+ * @param {boolean} hasTools - Whether the request includes tools
+ * @returns {Object} Object containing reasoning signature/content and tool signature/content
  */
 export function getSignatureContext(sessionId, actualModelName, hasTools = false) {
   const isImage = isImageModel(actualModelName);
 
-  // 判断是否应该从缓存获取签名
+  // Determine whether to read signatures from cache
   const shouldGetCached = shouldCacheSignature({ hasTools, isImageModel: isImage });
 
-  // 从缓存获取签名+内容对象（现在返回 { signature, content } 或 null）
+  // Retrieve signature+content from cache (returns { signature, content } or null)
   const cachedEntry = shouldGetCached ? getSignature(sessionId, actualModelName, { hasTools }) : null;
 
-  // 构建返回值：优先使用缓存（包含签名+内容），回退到兜底签名（仅签名，无内容）
+  // Build return value: prefer cache (signature+content), fall back to default signature only.
   let reasoningSignature = null;
   let reasoningContent = ' ';
   let toolSignature = null;
   let toolContent = ' ';
 
   if (cachedEntry) {
-    // 统一缓存：同时用于 reasoning 和 tool
+    // Unified cache: use for both reasoning and tool
     reasoningSignature = cachedEntry.signature;
     reasoningContent = cachedEntry.content || ' ';
     toolSignature = cachedEntry.signature;
     toolContent = cachedEntry.content || ' ';
   } else if (config.useFallbackSignature) {
-    // 兜底签名
+    // Fallback signature
     reasoningSignature = getThoughtSignatureForModel(actualModelName);
-    reasoningContent = config.cacheThinking ? ' ' : ' '; // 兜底签名没有对应内容
+    reasoningContent = config.cacheThinking ? ' ' : ' '; // Fallback signature has no content
 
     if (hasTools) {
       toolSignature = getToolSignatureForModel(actualModelName);
@@ -53,9 +53,9 @@ export function getSignatureContext(sessionId, actualModelName, hasTools = false
 }
 
 /**
- * 添加用户消息到 antigravityMessages
- * @param {Object} extracted - 提取的内容 { text, images }
- * @param {Array} antigravityMessages - 目标消息数组
+ * Add a user message to antigravityMessages.
+ * @param {Object} extracted - Extracted content { text, images }
+ * @param {Array} antigravityMessages - Target message array
  */
 export function pushUserMessage(extracted, antigravityMessages) {
   antigravityMessages.push({
@@ -65,10 +65,10 @@ export function pushUserMessage(extracted, antigravityMessages) {
 }
 
 /**
- * 根据工具调用 ID 查找函数名
- * @param {string} toolCallId - 工具调用 ID
- * @param {Array} antigravityMessages - 消息数组
- * @returns {string} 函数名
+ * Find a function name by tool call ID.
+ * @param {string} toolCallId - Tool call ID
+ * @param {Array} antigravityMessages - Message array
+ * @returns {string} Function name
  */
 export function findFunctionNameById(toolCallId, antigravityMessages) {
   for (let i = antigravityMessages.length - 1; i >= 0; i--) {
@@ -85,11 +85,11 @@ export function findFunctionNameById(toolCallId, antigravityMessages) {
 }
 
 /**
- * 添加函数响应到 antigravityMessages
- * @param {string} toolCallId - 工具调用 ID
- * @param {string} functionName - 函数名
- * @param {string} resultContent - 响应内容
- * @param {Array} antigravityMessages - 目标消息数组
+ * Add a function response to antigravityMessages.
+ * @param {string} toolCallId - Tool call ID
+ * @param {string} functionName - Function name
+ * @param {string} resultContent - Response content
+ * @param {Array} antigravityMessages - Target message array
  */
 export function pushFunctionResponse(toolCallId, functionName, resultContent, antigravityMessages) {
   const lastMessage = antigravityMessages[antigravityMessages.length - 1];
@@ -109,10 +109,10 @@ export function pushFunctionResponse(toolCallId, functionName, resultContent, an
 }
 
 /**
- * 创建带签名的思维 part
- * @param {string} text - 思维文本
- * @param {string} signature - 签名
- * @returns {Object} 思维 part
+ * Create a thought part with a signature.
+ * @param {string} text - Thought text
+ * @param {string} signature - Signature
+ * @returns {Object} Thought part
  */
 export function createThoughtPart(text, signature = null) {
   const part = { text: text || ' ', thought: true };
@@ -121,12 +121,12 @@ export function createThoughtPart(text, signature = null) {
 }
 
 /**
- * 创建带签名的函数调用 part
- * @param {string} id - 调用 ID
- * @param {string} name - 函数名（已清理）
- * @param {Object|string} args - 参数
- * @param {string} signature - 签名（可选）
- * @returns {Object} 函数调用 part
+ * Create a function call part with a signature.
+ * @param {string} id - Call ID
+ * @param {string} name - Function name (sanitized)
+ * @param {Object|string} args - Arguments
+ * @param {string} signature - Signature (optional)
+ * @returns {Object} Function call part
  */
 export function createFunctionCallPart(id, name, args, signature = null) {
   const part = {
@@ -143,11 +143,11 @@ export function createFunctionCallPart(id, name, args, signature = null) {
 }
 
 /**
- * 处理工具名称映射
- * @param {string} originalName - 原始名称
- * @param {string} sessionId - 会话 ID
- * @param {string} actualModelName - 实际模型名称
- * @returns {string} 清理后的安全名称
+ * Handle tool name mappings.
+ * @param {string} originalName - Original name
+ * @param {string} sessionId - Session ID
+ * @param {string} actualModelName - Actual model name
+ * @returns {string} Sanitized safe name
  */
 export function processToolName(originalName, sessionId, actualModelName) {
   const safeName = sanitizeToolName(originalName);
@@ -158,12 +158,12 @@ export function processToolName(originalName, sessionId, actualModelName) {
 }
 
 /**
- * 添加模型消息到 antigravityMessages
- * @param {Object} options - 选项
- * @param {Array} options.parts - 消息 parts
- * @param {Array} options.toolCalls - 工具调用 parts
- * @param {boolean} options.hasContent - 是否有文本内容
- * @param {Array} antigravityMessages - 目标消息数组
+ * Add a model message to antigravityMessages.
+ * @param {Object} options - Options
+ * @param {Array} options.parts - Message parts
+ * @param {Array} options.toolCalls - Tool call parts
+ * @param {boolean} options.hasContent - Whether there is text content
+ * @param {Array} antigravityMessages - Target message array
  */
 export function pushModelMessage({ parts, toolCalls, hasContent }, antigravityMessages) {
   const lastMessage = antigravityMessages[antigravityMessages.length - 1];
@@ -179,16 +179,16 @@ export function pushModelMessage({ parts, toolCalls, hasContent }, antigravityMe
 }
 
 /**
- * 构建基础请求体
- * @param {Object} options - 选项
- * @param {Array} options.contents - 消息内容
- * @param {Array} options.tools - 工具列表
- * @param {Object} options.generationConfig - 生成配置
- * @param {string} options.sessionId - 会话 ID
- * @param {string} options.systemInstruction - 系统指令
- * @param {Object} token - Token 对象
- * @param {string} actualModelName - 实际模型名称
- * @returns {Object} 请求体
+ * Build the base request body.
+ * @param {Object} options - Options
+ * @param {Array} options.contents - Message contents
+ * @param {Array} options.tools - Tool list
+ * @param {Object} options.generationConfig - Generation config
+ * @param {string} options.sessionId - Session ID
+ * @param {string} options.systemInstruction - System instruction
+ * @param {Object} token - Token object
+ * @param {string} actualModelName - Actual model name
+ * @returns {Object} Request body
  */
 export function buildRequestBody({ contents, tools, generationConfig, sessionId, systemInstruction }, token, actualModelName) {
   const hasTools = tools && tools.length > 0;
@@ -206,13 +206,13 @@ export function buildRequestBody({ contents, tools, generationConfig, sessionId,
     requestType: 'agent'
   };
 
-  // 只在有工具时才添加 tools 和 toolConfig 字段
+  // Only add tools and toolConfig when tools are present
   if (hasTools) {
     requestBody.request.tools = tools;
     requestBody.request.toolConfig = { functionCallingConfig: { mode: 'VALIDATED' } };
   }
 
-  // 构建系统提示词
+  // Build system instruction
   const systemInstructionObj = buildSystemInstruction(systemInstruction);
   if (systemInstructionObj) {
     requestBody.request.systemInstruction = systemInstructionObj;
@@ -222,16 +222,16 @@ export function buildRequestBody({ contents, tools, generationConfig, sessionId,
 }
 
 /**
- * 清理 system instruction part，移除 Gemini API 不支持的字段
- * @param {Object} part - 原始 part 对象
- * @returns {Object} 清理后的 part 对象（仅保留 text、inlineData 等 Gemini 支持的字段）
+ * Clean a system instruction part by removing fields unsupported by the Gemini API.
+ * @param {Object} part - Original part object
+ * @returns {Object} Cleaned part object (only Gemini-supported fields like text/inlineData)
  */
 function cleanSystemPart(part) {
   if (!part || typeof part !== 'object') return part;
 
   const cleanedPart = {};
 
-  // 只保留 Gemini API 支持的 part 字段
+  // Keep only fields supported by the Gemini API
   if (part.text !== undefined) {
     cleanedPart.text = part.text;
   }
@@ -242,71 +242,71 @@ function cleanSystemPart(part) {
     cleanedPart.fileData = part.fileData;
   }
 
-  // 返回清理后的 part，如果没有有效内容则返回 null
+  // Return the cleaned part; return null if it has no valid content
   return Object.keys(cleanedPart).length > 0 ? cleanedPart : null;
 }
 
 /**
- * 构建系统提示词 parts 数组
+ * Build system prompt parts.
  *
- * 逻辑说明：
- * 1. 官方提示词：反重力官方要求的提示词，可在前端编辑
- * 2. 反代提示词：反代自带的提示词（如萌萌），可在前端编辑
- * 3. 用户请求提示词：用户在 API 请求中传入的 system 消息
+ * Logic:
+ * 1. Official prompt: Antigravity official prompt, editable in the UI
+ * 2. Proxy prompt: built-in proxy prompt (e.g., Moemoe), editable in the UI
+ * 3. User prompt: system messages supplied in the API request
  *
- * 配置选项：
- * - useContextSystemPrompt: 开启后，将用户请求的 system 追加到反代提示词后面
- * - mergeSystemPrompt: 开启后，将所有提示词合并为单个 part（需要先开启 useContextSystemPrompt）
- * - officialPromptPosition: 官方提示词位置，'before' = 在反代提示词前面，'after' = 在反代提示词后面
+ * Config options:
+ * - useContextSystemPrompt: when enabled, append user system prompts after the proxy prompt
+ * - mergeSystemPrompt: when enabled, merge all prompts into a single part (requires useContextSystemPrompt)
+ * - officialPromptPosition: position of the official prompt; 'before' or 'after' the proxy prompt
  *
- * @param {string|Array} userSystemPrompt - 用户请求中的系统提示词（字符串或 parts 数组）
- * @returns {Array} 系统提示词 parts 数组
+ * @param {string|Array} userSystemPrompt - User system prompt (string or parts array)
+ * @returns {Array} System prompt parts array
  */
 export function buildSystemPromptParts(userSystemPrompt) {
   const parts = [];
 
-  // 获取各层提示词（config.js 已处理默认值，直接使用）
+  // Get prompts for each layer (defaults handled in config.js)
   const officialPrompt = config.officialSystemPrompt;
   const proxyPrompt = config.systemInstruction;
 
-  // 处理用户提示词：可能是字符串或 parts 数组
+  // Handle user prompts: string or parts array
   let userParts = [];
   if (userSystemPrompt) {
     if (typeof userSystemPrompt === 'string' && userSystemPrompt.trim()) {
       userParts = [{ text: userSystemPrompt.trim() }];
     } else if (Array.isArray(userSystemPrompt)) {
-      // 清理每个 part，移除 Gemini API 不支持的字段（如 type、cache_control）
+      // Clean each part, removing Gemini-unsupported fields (e.g., type, cache_control)
       userParts = userSystemPrompt
         .map(p => cleanSystemPart(p))
         .filter(p => p !== null);
     } else if (typeof userSystemPrompt === 'object' && userSystemPrompt.parts) {
-      // 处理 { role: 'user', parts: [...] } 格式
+      // Handle { role: 'user', parts: [...] } format
       userParts = userSystemPrompt.parts
         .map(p => cleanSystemPart(p))
         .filter(p => p !== null);
     }
   }
 
-  // 构建反代提示词部分（可能包含用户请求的 system）
+  // Build proxy prompt parts (may include user system prompt)
   const proxyParts = [];
   if (proxyPrompt.trim()) {
     proxyParts.push({ text: proxyPrompt.trim() });
   }
 
-  // 如果开启上下文 System，将用户请求的 system 追加到反代提示词后面
+  // If context system prompts are enabled, append user system prompts after proxy prompt
   if (config.useContextSystemPrompt && userParts.length > 0) {
     proxyParts.push(...userParts);
   }
 
-  // 根据官方提示词位置配置，组合最终的 parts 数组
+  // Build the final parts array based on official prompt position
   if (config.officialPromptPosition === 'before') {
-    // 官方提示词在前
+    // Official prompt first
     if (officialPrompt.trim()) {
       parts.push({ text: officialPrompt.trim() });
     }
     parts.push(...proxyParts);
   } else {
-    // 官方提示词在后
+    // Official prompt last
     parts.push(...proxyParts);
     if (officialPrompt.trim()) {
       parts.push({ text: officialPrompt.trim() });
@@ -317,9 +317,9 @@ export function buildSystemPromptParts(userSystemPrompt) {
 }
 
 /**
- * 构建系统提示词（合并为单个字符串或保留多 part 结构）
- * @param {string|Array} userSystemPrompt - 用户请求中的系统提示词
- * @returns {Object} { text: string } 或 { parts: Array }
+ * Build system instruction (merged string or multi-part structure).
+ * @param {string|Array} userSystemPrompt - User system prompt
+ * @returns {Object} { text: string } or { parts: Array }
  */
 export function buildSystemInstruction(userSystemPrompt) {
   const parts = buildSystemPromptParts(userSystemPrompt);
@@ -329,7 +329,7 @@ export function buildSystemInstruction(userSystemPrompt) {
   }
 
   if (config.mergeSystemPrompt) {
-    // 合并为单个字符串
+    // Merge into a single string
     const mergedText = parts
       .map(p => p.text || '')
       .filter(t => t.trim())
@@ -339,7 +339,7 @@ export function buildSystemInstruction(userSystemPrompt) {
       parts: [{ text: mergedText }]
     };
   } else {
-    // 保留多 part 结构
+    // Preserve multi-part structure
     return {
       role: 'user',
       parts: parts
@@ -348,20 +348,20 @@ export function buildSystemInstruction(userSystemPrompt) {
 }
 
 /**
- * 合并系统指令（兼容旧接口）
- * @param {string} baseSystem - 基础系统指令（萌萌提示词）
- * @param {string} contextSystem - 上下文系统指令（用户请求中的提示词）
- * @returns {string} 合并后的系统指令
+ * Merge system instruction (legacy compatibility).
+ * @param {string} baseSystem - Base system instruction (Moemoe prompt)
+ * @param {string} contextSystem - Context system instruction (user prompt)
+ * @returns {string} Merged system instruction
  */
 export function mergeSystemInstruction(baseSystem, contextSystem) {
-  // 使用新的构建函数
+  // Use the new builder
   const result = buildSystemInstruction(contextSystem);
 
   if (!result) {
     return baseSystem || '';
   }
 
-  // 返回合并后的文本
+  // Return merged text
   if (result.parts && result.parts.length > 0) {
     return result.parts.map(p => p.text || '').filter(t => t.trim()).join('\n\n');
   }
@@ -369,10 +369,10 @@ export function mergeSystemInstruction(baseSystem, contextSystem) {
   return baseSystem || '';
 }
 
-// 重导出常用函数
+// Re-export common helpers
 export { sanitizeToolName, modelMapping, isEnableThinking, generateGenerationConfig };
 
-// 重导出参数规范化函数
+// Re-export parameter normalization helpers
 export {
   normalizeOpenAIParameters,
   normalizeClaudeParameters,

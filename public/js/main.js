@@ -17,6 +17,7 @@ initFilterState(); // Restore filter state
         
         if (loggedIn) {
             showMainContent();
+            loadTunnelUrl();
             // Restore tab state; switchTab will load relevant data by tab
             const savedTab = localStorage.getItem('currentTab');
             if (savedTab === 'settings') {
@@ -66,6 +67,7 @@ document.getElementById('login').addEventListener('submit', async (e) => {
             showMainContent();
             loadTokens();
             loadConfig();
+            loadTunnelUrl();
         } else {
             showToast(data.message || 'Incorrect username or password', 'error');
         }
@@ -80,3 +82,40 @@ document.getElementById('login').addEventListener('submit', async (e) => {
 
 // Config form submission
 document.getElementById('configForm').addEventListener('submit', saveConfig);
+
+async function loadTunnelUrl() {
+    const banner = document.getElementById('tunnelBanner');
+    const link = document.getElementById('tunnelUrlLink');
+    const copyButton = document.getElementById('copyTunnelUrl');
+    if (!banner || !link) return;
+
+    try {
+        const response = await fetch('/admin/tunnel-url', {
+            credentials: 'include'
+        });
+        if (!response.ok) {
+            throw new Error('Failed to fetch tunnel URL');
+        }
+        const data = await response.json();
+        if (data?.url) {
+            link.textContent = data.url;
+            link.href = data.url;
+            banner.classList.remove('hidden');
+            if (copyButton && !copyButton.dataset.bound) {
+                copyButton.dataset.bound = 'true';
+                copyButton.addEventListener('click', async () => {
+                    try {
+                        await navigator.clipboard.writeText(link.href);
+                        showToast('Tunnel URL copied to clipboard', 'success');
+                    } catch (copyError) {
+                        showToast('Failed to copy tunnel URL', 'error');
+                    }
+                });
+            }
+        } else {
+            banner.classList.add('hidden');
+        }
+    } catch (error) {
+        banner.classList.add('hidden');
+    }
+}

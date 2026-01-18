@@ -1,8 +1,8 @@
 import fs from 'fs';
 
 /**
- * 解析 .env 文件内容为对象
- * 支持多行字符串（用双引号或单引号包裹）
+ * Parse a .env file into an object.
+ * Supports multiline strings wrapped in double or single quotes.
  */
 export function parseEnvFile(filePath) {
   const envData = {};
@@ -18,11 +18,11 @@ export function parseEnvFile(filePath) {
     let line = lines[i];
     
     if (inMultiline) {
-      // 继续收集多行值
+      // Keep collecting multiline values
       currentValue += '\n' + line;
-      // 检查是否结束（以引号结尾）
+      // Check if the multiline value ends (closing quote)
       if (line.trimEnd().endsWith(quoteChar)) {
-        // 移除结尾引号
+        // Remove the trailing quote
         currentValue = currentValue.slice(0, -1);
         envData[currentKey] = currentValue;
         inMultiline = false;
@@ -40,17 +40,17 @@ export function parseEnvFile(filePath) {
       const key = line.slice(0, eqIndex).trim();
       let value = line.slice(eqIndex + 1);
       
-      // 检查是否是引号开头的多行字符串
+      // Check for a quoted multiline string
       const trimmedValue = value.trimStart();
       if ((trimmedValue.startsWith('"') || trimmedValue.startsWith("'")) &&
           !trimmedValue.endsWith(trimmedValue[0])) {
-        // 多行字符串开始
+        // Multiline string begins
         quoteChar = trimmedValue[0];
         currentKey = key;
-        currentValue = trimmedValue.slice(1); // 移除开头引号
+        currentValue = trimmedValue.slice(1); // Remove the opening quote
         inMultiline = true;
       } else {
-        // 单行值，移除可能的引号
+        // Single-line value: remove wrapping quotes if present
         value = value.trim();
         if ((value.startsWith('"') && value.endsWith('"')) ||
             (value.startsWith("'") && value.endsWith("'"))) {
@@ -61,7 +61,7 @@ export function parseEnvFile(filePath) {
     }
   }
   
-  // 处理未闭合的多行字符串
+  // Handle an unterminated multiline string
   if (inMultiline && currentKey) {
     envData[currentKey] = currentValue;
   }
@@ -70,34 +70,34 @@ export function parseEnvFile(filePath) {
 }
 
 /**
- * 更新 .env 文件中的键值对
- * 支持多行字符串（自动用双引号包裹）
+ * Update key/value pairs in a .env file.
+ * Supports multiline strings (automatically wraps with double quotes).
  */
 export function updateEnvFile(filePath, updates) {
   let content = fs.readFileSync(filePath, 'utf8');
   
   Object.entries(updates).forEach(([key, value]) => {
-    // 检查值是否包含换行符，如果包含则用双引号包裹
+    // Wrap values containing newlines in double quotes
     let formattedValue = value;
     if (typeof value === 'string' && value.includes('\n')) {
-      // 多行字符串：用双引号包裹
+      // Multiline string: wrap in double quotes
       formattedValue = `"${value}"`;
     }
     
-    // 匹配整个键值对（包括可能的多行值）
-    // 1. 先尝试匹配单行格式
+    // Match the entire key/value pair (including multiline values)
+    // 1. Try single-line format first
     const singleLineRegex = new RegExp(`^${key}=.*$`, 'm');
-    // 2. 再尝试匹配多行格式（以引号开头，可能跨多行，以引号结尾）
+    // 2. Then try multiline format (quoted, possibly spanning multiple lines)
     const multiLineRegex = new RegExp(`^${key}=["']([\\s\\S]*?)["']$`, 'm');
     
     if (multiLineRegex.test(content)) {
-      // 替换多行格式
+      // Replace multiline format
       content = content.replace(multiLineRegex, `${key}=${formattedValue}`);
     } else if (singleLineRegex.test(content)) {
-      // 替换单行格式
+      // Replace single-line format
       content = content.replace(singleLineRegex, `${key}=${formattedValue}`);
     } else {
-      // 键不存在，追加到文件末尾
+      // Key not found: append to end of file
       content += `\n${key}=${formattedValue}`;
     }
   });

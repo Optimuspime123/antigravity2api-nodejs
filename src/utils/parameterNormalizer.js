@@ -1,30 +1,30 @@
-// 统一参数处理模块
-// 将 OpenAI、Claude、Gemini 三种格式的参数统一转换为内部格式
+// Unified parameter normalization module
+// Converts OpenAI, Claude, and Gemini parameters into a shared internal format
 
 import config from '../config/config.js';
 import { REASONING_EFFORT_MAP } from '../constants/index.js';
 
 /**
- * 内部统一参数格式
+ * Shared internal parameter format
  * @typedef {Object} NormalizedParameters
- * @property {number} max_tokens - 最大输出 token 数
- * @property {number} temperature - 温度
- * @property {number} top_p - Top-P 采样
- * @property {number} top_k - Top-K 采样
- * @property {number|undefined} thinking_budget - 思考预算（undefined 表示使用默认值）
+ * @property {number} max_tokens - Max output tokens
+ * @property {number} temperature - Temperature
+ * @property {number} top_p - Top-P sampling
+ * @property {number} top_k - Top-K sampling
+ * @property {number|undefined} thinking_budget - Thinking budget (undefined uses default)
  */
 
 /**
- * 从 OpenAI 格式提取参数
- * OpenAI 格式参数：
+ * Extract parameters from OpenAI format.
+ * OpenAI parameters:
  * - max_tokens: number
  * - temperature: number
  * - top_p: number
- * - top_k: number (非标准，但支持)
- * - thinking_budget: number (扩展)
- * - reasoning_effort: 'low' | 'medium' | 'high' (扩展)
- * 
- * @param {Object} params - OpenAI 格式的参数对象
+ * - top_k: number (non-standard but supported)
+ * - thinking_budget: number (extension)
+ * - reasoning_effort: 'low' | 'medium' | 'high' (extension)
+ *
+ * @param {Object} params - OpenAI parameter object
  * @returns {NormalizedParameters}
  */
 export function normalizeOpenAIParameters(params = {}) {
@@ -36,7 +36,7 @@ export function normalizeOpenAIParameters(params = {}) {
     response_format: params.response_format,
   };
 
-  // 处理思考预算
+  // Handle thinking budget
   if (params.thinking_budget !== undefined) {
     normalized.thinking_budget = params.thinking_budget;
   } else if (params.reasoning_effort !== undefined) {
@@ -47,15 +47,15 @@ export function normalizeOpenAIParameters(params = {}) {
 }
 
 /**
- * 从 Claude 格式提取参数
- * Claude 格式参数：
+ * Extract parameters from Claude format.
+ * Claude parameters:
  * - max_tokens: number
  * - temperature: number
  * - top_p: number
  * - top_k: number
  * - thinking: { type: 'enabled' | 'disabled', budget_tokens?: number }
  * 
- * @param {Object} params - Claude 格式的参数对象
+ * @param {Object} params - Claude parameter object
  * @returns {NormalizedParameters}
  */
 export function normalizeClaudeParameters(params = {}) {
@@ -68,33 +68,33 @@ export function normalizeClaudeParameters(params = {}) {
     top_k: top_k ?? config.defaults.top_k,
   };
 
-  // 处理 Claude 的 thinking 参数
-  // 格式: { "type": "enabled", "budget_tokens": 10000 } 或 { "type": "disabled" }
+  // Handle Claude thinking parameters.
+  // Format: { "type": "enabled", "budget_tokens": 10000 } or { "type": "disabled" }
   if (thinking && typeof thinking === 'object') {
     if (thinking.type === 'enabled' && thinking.budget_tokens !== undefined) {
       normalized.thinking_budget = thinking.budget_tokens;
     } else if (thinking.type === 'disabled') {
-      // 显式禁用思考
+      // Explicitly disable thinking
       normalized.thinking_budget = 0;
     }
   }
 
-  // 保留其他参数
+  // Preserve remaining parameters
   Object.assign(normalized, rest);
 
   return normalized;
 }
 
 /**
- * 从 Gemini 格式提取参数
- * Gemini 格式参数（在 generationConfig 中）：
+ * Extract parameters from Gemini format.
+ * Gemini parameters (in generationConfig):
  * - temperature: number
  * - topP: number
  * - topK: number
  * - maxOutputTokens: number
  * - thinkingConfig: { includeThoughts: boolean, thinkingBudget?: number }
  * 
- * @param {Object} generationConfig - Gemini 格式的 generationConfig 对象
+ * @param {Object} generationConfig - Gemini generationConfig object
  * @returns {NormalizedParameters}
  */
 export function normalizeGeminiParameters(generationConfig = {}) {
@@ -105,10 +105,10 @@ export function normalizeGeminiParameters(generationConfig = {}) {
     top_k: generationConfig.topK ?? config.defaults.top_k,
   };
 
-  // 处理 Gemini 的 thinkingConfig 参数
+  // Handle Gemini thinkingConfig parameters
   if (generationConfig.thinkingConfig && typeof generationConfig.thinkingConfig === 'object') {
     if (generationConfig.thinkingConfig.includeThoughts === false) {
-      // 显式禁用思考
+      // Explicitly disable thinking
       normalized.thinking_budget = 0;
     } else if (generationConfig.thinkingConfig.thinkingBudget !== undefined) {
       normalized.thinking_budget = generationConfig.thinkingConfig.thinkingBudget;
@@ -119,9 +119,9 @@ export function normalizeGeminiParameters(generationConfig = {}) {
 }
 
 /**
- * 自动检测格式并规范化参数
- * @param {Object} params - 原始参数对象
- * @param {'openai' | 'claude' | 'gemini'} format - API 格式
+ * Auto-detect format and normalize parameters.
+ * @param {Object} params - Raw parameters
+ * @param {'openai' | 'claude' | 'gemini'} format - API format
  * @returns {NormalizedParameters}
  */
 export function normalizeParameters(params, format) {
@@ -138,11 +138,11 @@ export function normalizeParameters(params, format) {
 }
 
 /**
- * 将规范化参数转换为 Gemini generationConfig 格式
- * @param {NormalizedParameters} normalized - 规范化后的参数
- * @param {boolean} enableThinking - 是否启用思考
- * @param {string} actualModelName - 实际模型名称
- * @returns {Object} Gemini generationConfig 格式
+ * Convert normalized parameters to Gemini generationConfig format.
+ * @param {NormalizedParameters} normalized - Normalized parameters
+ * @param {boolean} enableThinking - Whether thinking is enabled
+ * @param {string} actualModelName - Actual model name
+ * @returns {Object} Gemini generationConfig object
  */
 export function toGenerationConfig(normalized, enableThinking, actualModelName) {
   const defaultThinkingBudget = config.defaults.thinking_budget ?? 1024;
@@ -151,7 +151,7 @@ export function toGenerationConfig(normalized, enableThinking, actualModelName) 
   if (enableThinking) {
     if (normalized.thinking_budget !== undefined) {
       thinkingBudget = normalized.thinking_budget || normalized.thinkingBudget;
-      // 如果用户显式设置 thinking_budget = 0，则禁用思考
+      // If the user explicitly sets thinking_budget = 0, disable thinking
       if (thinkingBudget === 0) {
         actualEnableThinking = false;
       }
@@ -172,14 +172,14 @@ export function toGenerationConfig(normalized, enableThinking, actualModelName) 
     }
   };
 
-  // 处理 response_format 到 Gemini JSON 模式的映射
+  // Map response_format to Gemini JSON mode
   if (normalized.response_format && normalized.response_format.type === 'json_object') {
     if (actualModelName && actualModelName.toLowerCase().includes('gemini')) {
       generationConfig.responseMimeType = "application/json";
     }
   }
 
-  // Claude 模型在启用思考时不支持 topP
+  // Claude models do not support topP when thinking is enabled
   if (actualEnableThinking && actualModelName && actualModelName.includes('claude')) {
     delete generationConfig.topP;
   }
