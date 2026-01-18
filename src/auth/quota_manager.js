@@ -220,7 +220,7 @@ class QuotaManager {
       return null;
     }
 
-    return data;
+return data;
   }
 
   /**
