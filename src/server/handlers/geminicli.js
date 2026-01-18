@@ -1,6 +1,6 @@
 /**
- * Gemini CLI 格式处理器
- * 处理 /cli/v1/chat/completions 请求，支持流式和非流式响应
+ * Gemini CLI format handler
+ * Handles /cli/v1/chat/completions with streaming and non-streaming responses
  */
 
 import {
@@ -35,10 +35,10 @@ import { getSafeRetries } from './common/retry.js';
 import { disableTimeouts } from './common/timeouts.js';
 
 /**
- * 处理 Gemini CLI 格式的聊天请求（支持 OpenAI/Gemini/Claude 格式）
- * @param {Request} req - Express请求对象
- * @param {Response} res - Express响应对象
- * @param {string} forceFormat - 强制指定格式（可选）：'openai' | 'gemini' | 'claude'
+ * Handle Gemini CLI chat requests (OpenAI/Gemini/Claude formats)
+ * @param {Request} req - Express request
+ * @param {Response} res - Express response
+ * @param {string} forceFormat - optional format override: 'openai' | 'gemini' | 'claude'
  */
 export const handleGeminiCliRequest = async (req, res, forceFormat = null) => {
   const requestBody = req.body;
@@ -53,24 +53,24 @@ export const handleGeminiCliRequest = async (req, res, forceFormat = null) => {
   try {
     const token = await getToken();
     if (!token) {
-      throw new Error('没有可用的 Gemini CLI token，请在管理页面添加账号');
+      throw new Error('No available Gemini CLI token. Add one in the admin UI.');
     }
     const { geminiRequest, model: actualModel, features, sourceFormat } = convertToGeminiCli(cleanedBody);
 
 
-    // 保存原始请求的模型名称用于响应
+    // Keep original model name for the response
     const responseModel = requestBody.model || actualModel;
 
     const { id, created } = createResponseMeta();
     const safeRetries = getSafeRetries(config.retryTimes);
 
-    // 假流式模式：使用非流式 API 获取数据，然后模拟流式输出
+    // Pseudo-stream mode: use non-stream API then simulate streaming output
     const useFakeStreaming = features.fakeStreaming && stream;
 
     if (stream && !useFakeStreaming) {
       setStreamHeaders(res);
 
-      // 启动心跳，防止超时断连
+      // Start heartbeat to avoid timeout disconnects
       const heartbeatTimer = createHeartbeat(res);
 
       try {
@@ -100,11 +100,11 @@ export const handleGeminiCliRequest = async (req, res, forceFormat = null) => {
           writeStreamData(res, buildOpenAIErrorPayload(error, statusCode));
           endStream(res, false);
         }
-        logger.error('[GeminiCLI] 生成响应失败:', error.message);
+        logger.error('[GeminiCLI] Failed to generate response:', error.message);
         return;
       }
     } else if (useFakeStreaming) {
-      // 假流式模式：使用非流式 API 获取数据，然后模拟流式输出
+      // Pseudo-stream mode: use non-stream API then simulate streaming output
       setStreamHeaders(res);
       const heartbeatTimer = createHeartbeat(res);
 
@@ -116,7 +116,7 @@ export const handleGeminiCliRequest = async (req, res, forceFormat = null) => {
           () => recordRequest(token)
         );
 
-        // 缓存签名（假流式响应）
+        // Cache signature (pseudo-stream response)
         if (reasoningSignature && actualModel) {
           const hasTools = toolCalls && toolCalls.length > 0;
           const isImage = isImageModel(actualModel);
@@ -147,11 +147,11 @@ export const handleGeminiCliRequest = async (req, res, forceFormat = null) => {
           writeStreamData(res, buildOpenAIErrorPayload(error, statusCode));
           endStream(res, false);
         }
-        logger.error('[GeminiCLI] 假流式生成响应失败:', error.message);
+        logger.error('[GeminiCLI] Pseudo-stream response generation failed:', error.message);
         return;
       }
     } else {
-      // 非流式请求
+      // Non-stream request
       disableTimeouts(req, res);
 
       const { content, reasoningContent, reasoningSignature, toolCalls, usage } = await with429Retry(
@@ -161,32 +161,32 @@ export const handleGeminiCliRequest = async (req, res, forceFormat = null) => {
         () => recordRequest(token)
       );
 
-      // 处理签名：优先使用 API 返回的签名，否则使用缓存的签名
+      // Signature handling: prefer API signature, fallback to cached signature
       const hasTools = toolCalls && toolCalls.length > 0;
       const isImage = isImageModel(actualModel);
       let finalReasoningSignature = reasoningSignature;
       let finalReasoningContent = reasoningContent;
 
       if (!finalReasoningSignature && actualModel) {
-        // 尝试从缓存获取签名
+        // Try to fetch signature from cache
         const cached = getSignature(null, actualModel, { hasTools });
         if (cached) {
           finalReasoningSignature = cached.signature;
-          // 如果 API 没有返回思考内容，使用缓存的思考内容
+          // If API returns no reasoning content, use cached reasoning content
           if (!finalReasoningContent && cached.content && cached.content !== ' ') {
             finalReasoningContent = cached.content;
           }
         }
       }
 
-      // 缓存签名（非流式响应）
+      // Cache signature (non-stream response)
       if (finalReasoningSignature && actualModel) {
         if (shouldCacheSignature({ hasTools, isImageModel: isImage })) {
           setSignature(null, actualModel, finalReasoningSignature, finalReasoningContent || ' ', { hasTools, isImageModel: isImage });
         }
       }
 
-      // 根据请求格式返回相应格式的响应
+      // Return response based on requested format
       if (format === 'gemini') {
         res.json(createGeminiResponse(
           content,
@@ -229,7 +229,7 @@ export const handleGeminiCliRequest = async (req, res, forceFormat = null) => {
       }
     }
   } catch (error) {
-    logger.error('[GeminiCLI] 生成响应失败:', error.message);
+    logger.error('[GeminiCLI] Failed to generate response:', error.message);
     if (res.headersSent) return;
     const statusCode = error.statusCode || error.status || 500;
     return res.status(statusCode).json(buildOpenAIErrorPayload(error, statusCode));

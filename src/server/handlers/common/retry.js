@@ -1,5 +1,5 @@
 /**
- * 重试次数规范化工具
+ * Retry count normalization helper
  */
 
 /**

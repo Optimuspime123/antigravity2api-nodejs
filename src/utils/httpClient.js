@@ -5,9 +5,9 @@ import https from 'https';
 import { Readable } from 'stream';
 import config from '../config/config.js';
 
-// ==================== DNS & 代理统一配置 ====================
+// ==================== Unified DNS & proxy config ====================
 
-// 自定义 DNS 解析：优先 IPv4，失败则回退 IPv6
+// Custom DNS lookup: prefer IPv4, fall back to IPv6
 function customLookup(hostname, options, callback) {
   dns.lookup(hostname, { ...options, family: 4 }, (err4, address4, family4) => {
     if (!err4 && address4) {
@@ -22,7 +22,7 @@ function customLookup(hostname, options, callback) {
   });
 }
 
-// 使用自定义 DNS 解析的 Agent（优先 IPv4，失败则 IPv6）
+// Agent using custom DNS lookup (prefer IPv4, fall back to IPv6)
 const httpAgent = new http.Agent({
   lookup: customLookup,
   keepAlive: true
@@ -33,7 +33,7 @@ const httpsAgent = new https.Agent({
   keepAlive: true
 });
 
-// 统一构建代理配置
+// Build proxy configuration
 function buildProxyConfig() {
   if (!config.proxy) return false;
   try {
@@ -48,13 +48,13 @@ function buildProxyConfig() {
   }
 }
 
-// 将数据转换为流以启用 chunked 编码
+// Convert data to a stream to enable chunked encoding
 function createChunkedStream(data) {
   const jsonStr = typeof data === 'string' ? data : JSON.stringify(data);
   return Readable.from([jsonStr]);
 }
 
-// 为 axios 构建统一请求配置
+// Build shared axios request config
 export function buildAxiosRequestConfig({
   method = 'POST',
   url,
@@ -72,7 +72,7 @@ export function buildAxiosRequestConfig({
     httpAgent,
     httpsAgent,
     proxy: buildProxyConfig(),
-    // 禁用自动设置 Content-Length，让 axios 使用 Transfer-Encoding: chunked
+    // Disable Content-Length so axios uses Transfer-Encoding: chunked
     maxContentLength: Infinity,
     maxBodyLength: Infinity
   };
@@ -81,9 +81,9 @@ export function buildAxiosRequestConfig({
   
   if (data !== null) {
     if (useChunked) {
-      // 使用流式数据以启用 chunked 编码
+      // Use streaming data to enable chunked encoding
       axiosConfig.data = createChunkedStream(data);
-      // 删除 Content-Length 头，强制使用 chunked
+      // Remove Content-Length header to force chunked
       delete axiosConfig.headers['Content-Length'];
     } else {
       axiosConfig.data = data;
@@ -92,16 +92,16 @@ export function buildAxiosRequestConfig({
   return axiosConfig;
 }
 
-// 简单封装 axios 调用，方便后续统一扩展（重试、打点等）
+// Simple axios wrapper for future extensions (retries, metrics, etc.)
 export async function httpRequest(configOverrides) {
-  // 默认启用 chunked 编码以匹配官方客户端行为
+  // Enable chunked encoding by default to match official clients
   const axiosConfig = buildAxiosRequestConfig({ ...configOverrides, useChunked: true });
   return axios(axiosConfig);
 }
 
-// 流式请求封装
+// Streaming request wrapper
 export async function httpStreamRequest(configOverrides) {
-  // 默认启用 chunked 编码以匹配官方客户端行为
+  // Enable chunked encoding by default to match official clients
   const axiosConfig = buildAxiosRequestConfig({ ...configOverrides, useChunked: true });
   axiosConfig.responseType = 'stream';
   return axios(axiosConfig);

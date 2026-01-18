@@ -1,9 +1,9 @@
 /**
- * Gemini 响应格式化工具
+ * Gemini response formatter
  */
 
 /**
- * 创建 Gemini 格式流式数据块
+ * Create Gemini streaming chunk
  * @param {Array} parts
  * @param {string|null} finishReason
  * @returns {Object}
@@ -17,7 +17,7 @@ export const createGeminiStreamChunk = (parts, finishReason = null) => ({
 });
 
 /**
- * 创建 Gemini 非流式响应
+ * Create Gemini non-stream response
  * @param {string|null} content
  * @param {string|null} reasoning
  * @param {string|null} reasoningSignature
@@ -51,7 +51,8 @@ export const createGeminiResponse = (
 
   if (content) {
     const textPart = { text: content };
-    // 生图模型没有 thought part，但上游仍可能返回 thoughtSignature；透传时挂在文本 part 上
+    // Image models omit thought parts, but upstream may still send thoughtSignature;
+    // attach to text part when passing through.
     if (!reasoning && reasoningSignature && passSignatureToClient) {
       textPart.thoughtSignature = reasoningSignature;
     }
@@ -73,7 +74,7 @@ export const createGeminiResponse = (
         }
         parts.push(functionCallPart);
       } catch {
-        // 忽略解析错误
+        // Ignore parse errors
       }
     });
   }

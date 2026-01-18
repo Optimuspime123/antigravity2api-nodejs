@@ -1,4 +1,4 @@
-// Gemini 格式转换工具
+// Gemini format converter
 import config from '../../config/config.js';
 import { generateRequestId } from '../idGenerator.js';
 import { convertGeminiToolsToAntigravity } from '../toolConverter.js';
@@ -6,19 +6,19 @@ import { getSignatureContext, createThoughtPart, modelMapping, isEnableThinking,
 import { normalizeGeminiParameters, toGenerationConfig } from '../parameterNormalizer.js';
 
 /**
- * 为 functionCall 生成唯一 ID
+ * Generate a unique ID for functionCall.
  */
 function generateFunctionCallId() {
   return `call_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`;
 }
 
 /**
- * 处理 functionCall 和 functionResponse 的 ID 匹配
+ * Match IDs between functionCall and functionResponse.
  */
 function processFunctionCallIds(contents) {
   const functionCallIds = [];
 
-  // 收集所有 functionCall 的 ID
+  // Collect all functionCall IDs
   contents.forEach(content => {
     if (content.role === 'model' && content.parts && Array.isArray(content.parts)) {
       content.parts.forEach(part => {
@@ -32,7 +32,7 @@ function processFunctionCallIds(contents) {
     }
   });
 
-  // 为 functionResponse 分配对应的 ID
+  // Assign matching IDs to functionResponse
   let responseIndex = 0;
   contents.forEach(content => {
     if (content.role === 'user' && content.parts && Array.isArray(content.parts)) {
@@ -49,14 +49,14 @@ function processFunctionCallIds(contents) {
 }
 
 /**
- * 处理 model 消息中的 thought 和签名
+ * Handle thought and signature parts in model messages.
  */
 function processModelThoughts(content, reasoningSignature, reasoningContent, toolSignature, toolContent, enableThinking) {
   const parts = content.parts;
   const fallbackSig = reasoningSignature || toolSignature;
   const fallbackContent = (fallbackSig === reasoningSignature) ? (reasoningContent || ' ') : (toolContent || ' ');
 
-  // 非思考模型：仅为 inlineData 自动补签名（避免历史消息回放时报缺签名）
+  // Non-thinking models: only auto-sign inlineData to avoid missing signatures on replay.
   if (!enableThinking) {
     if (!fallbackSig) return;
     for (const part of parts) {
@@ -76,7 +76,7 @@ function processModelThoughts(content, reasoningSignature, reasoningContent, too
     !part.text &&
     !part.inlineData;
 
-  // 查找 thought 和独立 thoughtSignature 的位置
+  // Find the positions of thought and standalone thoughtSignature parts
   let thoughtIndex = -1;
   let signatureIndex = -1;
   let signatureValue = null;
@@ -92,19 +92,19 @@ function processModelThoughts(content, reasoningSignature, reasoningContent, too
     }
   }
 
-  // 合并或添加 thought 和签名
+  // Merge or add thought and signature
   if (thoughtIndex !== -1 && signatureIndex !== -1) {
     parts[thoughtIndex].thoughtSignature = signatureValue;
     parts.splice(signatureIndex, 1);
   } else if (thoughtIndex !== -1 && signatureIndex === -1) {
     if (fallbackSig) parts[thoughtIndex].thoughtSignature = fallbackSig;
   } else if (thoughtIndex === -1 && fallbackSig) {
-    // 只有在有签名时才添加 thought part，避免 API 报错
-    // 使用与签名绑定的缓存内容
+    // Only add a thought part when a signature exists to avoid API errors.
+    // Use cached content bound to the signature.
     parts.unshift(createThoughtPart(fallbackContent, fallbackSig));
   }
 
-  // 收集独立的签名 parts（用于 functionCall）
+  // Collect standalone signature parts (for functionCall)
   const standaloneSignatures = [];
   for (let i = parts.length - 1; i >= 0; i--) {
     const part = parts[i];
@@ -113,7 +113,7 @@ function processModelThoughts(content, reasoningSignature, reasoningContent, too
     }
   }
 
-  // 为 functionCall / inlineData 分配签名
+  // Assign signatures for functionCall / inlineData
   let sigIndex = 0;
   for (let i = 0; i < parts.length; i++) {
     const part = parts[i];
@@ -124,13 +124,13 @@ function processModelThoughts(content, reasoningSignature, reasoningContent, too
         continue;
       }
 
-      // functionCall 更倾向 toolSignature；inlineData 更倾向 reasoningSignature
+      // functionCall prefers toolSignature; inlineData prefers reasoningSignature
       const partFallback = part.functionCall ? (toolSignature || reasoningSignature) : (reasoningSignature || toolSignature);
       if (partFallback) part.thoughtSignature = partFallback;
     }
   }
 
-  // 移除已使用的独立签名 parts
+  // Remove standalone signature parts that have been used
   for (let i = standaloneSignatures.length - 1; i >= 0; i--) {
     if (i < sigIndex) {
       parts.splice(standaloneSignatures[i].index, 1);
@@ -146,7 +146,7 @@ export function generateGeminiRequestBody(geminiBody, modelName, token) {
   if (request.contents && Array.isArray(request.contents)) {
     processFunctionCallIds(request.contents);
 
-    // 转换工具定义（需要在获取签名前完成，以便判断 hasTools）
+    // Convert tool definitions before reading signatures so hasTools is accurate.
     if (request.tools && Array.isArray(request.tools)) {
       request.tools = convertGeminiToolsToAntigravity(request.tools, token.sessionId, actualModelName);
     }
@@ -161,20 +161,20 @@ export function generateGeminiRequestBody(geminiBody, modelName, token) {
     });
   }
 
-  // 使用统一参数规范化模块处理 Gemini 格式参数
+  // Normalize Gemini parameters using the shared module
   const normalizedParams = normalizeGeminiParameters(request.generationConfig || {});
 
-  // 转换为 generationConfig 格式
+  // Convert to generationConfig format
   request.generationConfig = toGenerationConfig(normalizedParams, enableThinking, actualModelName);
   request.sessionId = token.sessionId;
   delete request.safetySettings;
 
-  // 添加工具配置
+  // Add tool configuration
   if (request.tools && request.tools.length > 0 && !request.toolConfig) {
     request.toolConfig = { functionCallingConfig: { mode: 'VALIDATED' } };
   }
 
-  // 使用新的系统提示词构建函数，支持多 part 结构和位置配置
+  // Use the new system prompt builder (supports multi-part structure and positioning).
   const existingSystemInstruction = request.systemInstruction;
   const systemInstructionObj = buildSystemInstruction(existingSystemInstruction);
   if (systemInstructionObj) {

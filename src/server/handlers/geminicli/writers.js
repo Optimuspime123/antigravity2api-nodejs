@@ -14,7 +14,7 @@ function safeParseJson(value) {
 }
 
 /**
- * 创建 GeminiCLI 的流式输出 writer：把上游事件写成目标协议（OpenAI/Gemini/Claude）
+ * Create GeminiCLI stream writer: map upstream events to target protocol (OpenAI/Gemini/Claude)
  * @param {{format: 'openai'|'gemini'|'claude', res: any, id: string, created: number, responseModel: string}} args
  */
 export function createGeminiCliStreamWriter({ format, res, id, created, responseModel }) {
@@ -205,7 +205,7 @@ export function createGeminiCliStreamWriter({ format, res, id, created, response
 }
 
 /**
- * 假流式输出：使用非流式结果模拟流式
+ * Pseudo-stream output: simulate streaming using non-stream results
  */
 export function writeGeminiCliFakeStreamResponse({
   format,

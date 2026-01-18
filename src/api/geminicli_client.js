@@ -20,24 +20,24 @@ import { createStreamLineProcessor } from './streamLineProcessor.js';
 import { runAxiosSseStream, postJsonAndParse } from './geminiTransport.js';
 import { parseGeminiCandidateParts, toOpenAIUsage } from './geminiResponseParser.js';
 
-// ==================== 调试：复用 client.js 的调试日志实现 ====================
+// ==================== Debug: reuse client.js debug logging ====================
 
 /**
- * Gemini CLI API 客户端
- * 基于 client.js 简化实现，专门用于 Gemini CLI 反代
- * 主要区别：
- * 1. 使用 cloudcode-pa.googleapis.com 端点
- * 2. 使用 GeminiCLI User-Agent
- * 3. 使用 v1internal 端点，模型名称在请求体中指定
- * 4. 不需要 sessionId
+ * Gemini CLI API client
+ * Simplified implementation based on client.js, dedicated to Gemini CLI proxying
+ * Key differences:
+ * 1. Uses the cloudcode-pa.googleapis.com endpoint
+ * 2. Uses the GeminiCLI User-Agent
+ * 3. Uses the v1internal endpoint, with the model name in the request body
+ * 4. No sessionId required
  */
 
-// ==================== 辅助函数 ====================
+// ==================== Helper functions ====================
 
 /**
- * 构建 Gemini CLI 请求头
- * @param {Object} token - Token 对象
- * @returns {Object} 请求头
+ * Build Gemini CLI headers
+ * @param {Object} token - token object
+ * @returns {Object} headers
  */
 function buildHeaders(token) {
   const geminicliConfig = config.geminicli?.api || {};
@@ -51,29 +51,29 @@ function buildHeaders(token) {
 }
 
 /**
- * 构建 Gemini CLI API URL
- * @param {boolean} stream - 是否流式
+ * Build Gemini CLI API URL
+ * @param {boolean} stream - whether to stream
  * @returns {string} API URL
  */
 function buildApiUrl(stream = true) {
   const geminicliConfig = config.geminicli?.api || {};
-  // 使用 v1internal 端点，模型名称在请求体中指定
+  // Use the v1internal endpoint; model name is in the request body
   return stream
     ? (geminicliConfig.url || 'https://cloudcode-pa.googleapis.com/v1internal:streamGenerateContent?alt=sse')
     : (geminicliConfig.noStreamUrl || 'https://cloudcode-pa.googleapis.com/v1internal:generateContent');
 }
 
 /**
- * 构建 Gemini CLI 请求体
- * @param {Object} requestBody - 原始请求体（已包含 contents, generationConfig 等）
- * @param {string} model - 模型名称
- * @param {string} projectId - 项目ID（必需）
- * @returns {Object} 完整的请求体
+ * Build Gemini CLI request body
+ * @param {Object} requestBody - original request (already contains contents, generationConfig, etc.)
+ * @param {string} model - model name
+ * @param {string} projectId - project ID (required)
+ * @returns {Object} full request body
  */
 function buildRequestBody(requestBody, model, projectId) {
-  // Gemini CLI 使用 v1internal 端点，请求格式与 Antigravity 类似
-  // 需要包含 model、project、request 等字段
-  // 注意：project 字段是必需的，否则会返回 500 Internal Error
+  // Gemini CLI uses v1internal; request format is similar to Antigravity.
+  // Must include model, project, and request fields.
+  // Note: project is required or it returns 500 Internal Error.
   return {
     model: model,
     project: projectId,
@@ -82,9 +82,9 @@ function buildRequestBody(requestBody, model, projectId) {
 }
 
 /**
- * 统一错误处理
- * @param {Error} error - 错误对象
- * @param {Object} token - Token 对象
+ * Unified error handling
+ * @param {Error} error - error object
+ * @param {Object} token - token object
  */
 async function handleApiError(error, token) {
   const status = getUpstreamStatus(error);
@@ -92,49 +92,49 @@ async function handleApiError(error, token) {
   
   if (status === 403) {
     if (isCallerDoesNotHavePermission(errorBody)) {
-      throw createApiError(`超出模型最大上下文。错误详情: ${errorBody}`, status, errorBody);
+      throw createApiError(`Exceeded the model max context. Details: ${errorBody}`, status, errorBody);
     }
     geminicliTokenManager.disableCurrentToken(token);
-    throw createApiError(`该账号没有使用权限，已自动禁用。错误详情: ${errorBody}`, status, errorBody);
+    throw createApiError(`This account has no access and was disabled. Details: ${errorBody}`, status, errorBody);
   }
   
   if (status === 429) {
-    throw createApiError(`请求频率过高，请稍后重试。错误详情: ${errorBody}`, status, errorBody);
+    throw createApiError(`Too many requests. Please retry later. Details: ${errorBody}`, status, errorBody);
   }
   
-  throw createApiError(`API请求失败 (${status}): ${errorBody}`, status, errorBody);
+  throw createApiError(`API request failed (${status}): ${errorBody}`, status, errorBody);
 }
 
-// ==================== 导出函数 ====================
+// ==================== Exported functions ====================
 
 /**
- * 流式生成响应
- * @param {Object} requestBody - Gemini API 格式的请求体
- * @param {Object} token - Token 对象（必须包含 projectId）
- * @param {string} model - 模型名称
- * @param {Function} callback - 回调函数
+ * Generate streamed response
+ * @param {Object} requestBody - Gemini API request body
+ * @param {Object} token - token object (must include projectId)
+ * @param {string} model - model name
+ * @param {Function} callback - callback function
  */
 export async function generateStreamResponse(requestBody, token, model, callback) {
   if (!token.projectId) {
-    throw createApiError('Token 缺少 projectId，请在管理页面获取 ProjectId', 400);
+    throw createApiError('Token is missing projectId. Fetch it in the admin page.', 400);
   }
   
   const headers = buildHeaders(token);
   const url = buildApiUrl(true);
   const fullRequestBody = buildRequestBody(requestBody, model, token.projectId);
   
-  // 调试日志
+  // Debug logging
   const dumpId = isDebugDumpEnabled() ? createDumpId('cli_stream') : null;
   const streamCollector = dumpId ? createStreamCollector() : null;
   if (dumpId) {
     await dumpFinalRequest(dumpId, fullRequestBody);
   }
   
-  // 状态对象用于流式解析
+  // State object for streaming parsing
   const state = {
     toolCalls: [],
     reasoningSignature: null,
-    sessionId: null, // Gemini CLI 不使用 sessionId
+    sessionId: null, // Gemini CLI does not use sessionId
     model: model
   };
   const processor = createStreamLineProcessor({
@@ -152,7 +152,7 @@ export async function generateStreamResponse(requestBody, token, model, callback
       processor
     });
     
-    // 流式响应结束后写入日志
+    // Write logs after stream finishes
     if (dumpId) {
       await dumpStreamResponse(dumpId, streamCollector);
     }
@@ -163,22 +163,22 @@ export async function generateStreamResponse(requestBody, token, model, callback
 }
 
 /**
- * 非流式生成响应
- * @param {Object} requestBody - Gemini API 格式的请求体
- * @param {Object} token - Token 对象（必须包含 projectId）
- * @param {string} model - 模型名称
- * @returns {Promise<Object>} 响应内容
+ * Generate non-streamed response
+ * @param {Object} requestBody - Gemini API request body
+ * @param {Object} token - token object (must include projectId)
+ * @param {string} model - model name
+ * @returns {Promise<Object>} response
  */
 export async function generateNoStreamResponse(requestBody, token, model) {
   if (!token.projectId) {
-    throw createApiError('Token 缺少 projectId，请在管理页面获取 ProjectId', 400);
+    throw createApiError('Token is missing projectId. Fetch it in the admin page.', 400);
   }
   
   const headers = buildHeaders(token);
   const url = buildApiUrl(false);
   const fullRequestBody = buildRequestBody(requestBody, model, token.projectId);
   
-  // 调试日志
+  // Debug logging
   const dumpId = isDebugDumpEnabled() ? createDumpId('cli_no_stream') : null;
   if (dumpId) {
     await dumpFinalRequest(dumpId, fullRequestBody);
@@ -199,13 +199,13 @@ export async function generateNoStreamResponse(requestBody, token, model) {
     await handleApiError(error, token);
   }
   
-  // 处理 GeminiCLI 的 response 包装格式
-  // GeminiCLI API 返回格式: { "response": { "candidates": [...] } }
+  // Handle GeminiCLI response wrapper format
+  // GeminiCLI API returns: { "response": { "candidates": [...] } }
   if (data.response) {
     data = data.response;
   }
   
-  // 解析响应内容
+  // Parse response content
   const parts = (data.candidates?.[0]?.content?.parts) || [];
   const parsed = parseGeminiCandidateParts({
     parts,
@@ -239,24 +239,24 @@ export async function generateNoStreamResponse(requestBody, token, model) {
 }
 
 /**
- * 获取可用的 Token
- * @returns {Promise<Object|null>} Token 对象
+ * Get an available token
+ * @returns {Promise<Object|null>} token
  */
 export async function getToken() {
   return geminicliTokenManager.getToken();
 }
 
 /**
- * 禁用当前 Token
- * @param {Object} token - Token 对象
+ * Disable current token
+ * @param {Object} token - token object
  */
 export function disableCurrentToken(token) {
   geminicliTokenManager.disableCurrentToken(token);
 }
 
 /**
- * 记录请求（用于轮询策略）
- * @param {Object} token - Token 对象
+ * Record request (used by rotation strategy)
+ * @param {Object} token - token object
  */
 export function recordRequest(token) {
   if (token && token.refresh_token) {

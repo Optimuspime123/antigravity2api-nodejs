@@ -1,15 +1,15 @@
-// 工具转换公共模块
+// Shared tool conversion module
 import { sanitizeToolName, cleanParameters } from './utils.js';
 import { setToolNameMapping } from './toolNameCache.js';
 
 /**
- * 将单个工具定义转换为 Antigravity 格式的 functionDeclaration
- * @param {string} name - 工具名称
- * @param {string} description - 工具描述
- * @param {Object} parameters - 工具参数 schema
- * @param {string} sessionId - 会话 ID
- * @param {string} actualModelName - 实际模型名称
- * @returns {Object} functionDeclaration 对象
+ * Convert a single tool definition to an Antigravity functionDeclaration.
+ * @param {string} name - Tool name
+ * @param {string} description - Tool description
+ * @param {Object} parameters - Tool parameter schema
+ * @param {string} sessionId - Session ID
+ * @param {string} actualModelName - Actual model name
+ * @returns {Object} functionDeclaration object
  */
 function convertSingleTool(name, description, parameters, sessionId, actualModelName) {
   const originalName = name;
@@ -21,7 +21,7 @@ function convertSingleTool(name, description, parameters, sessionId, actualModel
   
   const rawParams = parameters || {};
   const cleanedParams = cleanParameters(rawParams) || {};
-  // 使用大写 OBJECT 以匹配官方 API 格式
+  // Use uppercase OBJECT to match the official API format
   if (cleanedParams.type === undefined) cleanedParams.type = 'OBJECT';
   else if (cleanedParams.type === 'object') cleanedParams.type = 'OBJECT';
   if ((cleanedParams.type === 'OBJECT' || cleanedParams.type === 'object') && cleanedParams.properties === undefined) cleanedParams.properties = {};
@@ -34,12 +34,12 @@ function convertSingleTool(name, description, parameters, sessionId, actualModel
 }
 
 /**
- * 将 OpenAI 格式的工具列表转换为 Antigravity 格式
- * OpenAI 格式: [{ type: 'function', function: { name, description, parameters } }]
- * @param {Array} openaiTools - OpenAI 格式的工具列表
- * @param {string} sessionId - 会话 ID
- * @param {string} actualModelName - 实际模型名称
- * @returns {Array} Antigravity 格式的工具列表（所有工具在一个 functionDeclarations 数组中）
+ * Convert OpenAI tools to Antigravity format.
+ * OpenAI format: [{ type: 'function', function: { name, description, parameters } }]
+ * @param {Array} openaiTools - OpenAI tool list
+ * @param {string} sessionId - Session ID
+ * @param {string} actualModelName - Actual model name
+ * @returns {Array} Antigravity tool list (all tools in a functionDeclarations array)
  */
 export function convertOpenAIToolsToAntigravity(openaiTools, sessionId, actualModelName) {
   if (!openaiTools || openaiTools.length === 0) return [];
@@ -61,12 +61,12 @@ export function convertOpenAIToolsToAntigravity(openaiTools, sessionId, actualMo
 }
 
 /**
- * 将 Claude 格式的工具列表转换为 Antigravity 格式
- * Claude 格式: [{ name, description, input_schema }]
- * @param {Array} claudeTools - Claude 格式的工具列表
- * @param {string} sessionId - 会话 ID
- * @param {string} actualModelName - 实际模型名称
- * @returns {Array} Antigravity 格式的工具列表（所有工具在一个 functionDeclarations 数组中）
+ * Convert Claude tools to Antigravity format.
+ * Claude format: [{ name, description, input_schema }]
+ * @param {Array} claudeTools - Claude tool list
+ * @param {string} sessionId - Session ID
+ * @param {string} actualModelName - Actual model name
+ * @returns {Array} Antigravity tool list (all tools in a functionDeclarations array)
  */
 export function convertClaudeToolsToAntigravity(claudeTools, sessionId, actualModelName) {
   if (!claudeTools || claudeTools.length === 0) return [];
@@ -87,31 +87,31 @@ export function convertClaudeToolsToAntigravity(claudeTools, sessionId, actualMo
 }
 
 /**
- * 将 Gemini 格式的工具列表转换为 Antigravity 格式
- * Gemini 格式可能是:
+ * Convert Gemini tools to Antigravity format.
+ * Gemini format can be:
  * 1. [{ functionDeclarations: [{ name, description, parameters }] }]
  * 2. [{ name, description, parameters }]
- * @param {Array} geminiTools - Gemini 格式的工具列表
- * @param {string} sessionId - 会话 ID
- * @param {string} actualModelName - 实际模型名称
- * @returns {Array} Antigravity 格式的工具列表（所有工具在一个 functionDeclarations 数组中）
+ * @param {Array} geminiTools - Gemini tool list
+ * @param {string} sessionId - Session ID
+ * @param {string} actualModelName - Actual model name
+ * @returns {Array} Antigravity tool list (all tools in a functionDeclarations array)
  */
 export function convertGeminiToolsToAntigravity(geminiTools, sessionId, actualModelName) {
   if (!geminiTools || geminiTools.length === 0) return [];
   
   const allDeclarations = [];
   for (const tool of geminiTools) {
-    // 格式1: 已经是 functionDeclarations 格式（支持驼峰和下划线命名）
+    // Format 1: already functionDeclarations (supports camelCase and snake_case)
     const declarations = tool.functionDeclarations || tool.function_declarations;
     if (declarations) {
-      // 收集所有声明
+      // Collect all declarations
       for (const fd of declarations) {
         allDeclarations.push(
           convertSingleTool(fd.name, fd.description, fd.parameters, sessionId, actualModelName)
         );
       }
     }
-    // 格式2: 单个工具定义格式
+    // Format 2: single tool definition
     else if (tool.name) {
       allDeclarations.push(
         convertSingleTool(
@@ -123,7 +123,7 @@ export function convertGeminiToolsToAntigravity(geminiTools, sessionId, actualMo
         )
       );
     }
-    // 格式3：不处理
+    // Format 3: not handled
   }
   
   return allDeclarations.length > 0 ? [{

@@ -1,5 +1,5 @@
 /**
- * 禁用 Express 的请求/响应超时（适用于大模型长响应）
+ * Disable Express request/response timeouts (for long model responses)
  * @param {any} req
  * @param {any} res
  */

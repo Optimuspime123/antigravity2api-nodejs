@@ -1,6 +1,6 @@
 /**
- * 路径工具模块
- * 统一处理 pkg 打包环境和开发环境下的路径获取
+ * Path utilities
+ * Handles path resolution for pkg bundles and development environments
  * @module utils/paths
  */
 
@@ -12,14 +12,14 @@ const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
 
 /**
- * 检测是否在 pkg 打包环境中运行
+ * Detect whether running in a pkg bundle
  * @type {boolean}
  */
 export const isPkg = typeof process.pkg !== 'undefined';
 
 /**
- * 获取项目根目录
- * @returns {string} 项目根目录路径
+ * Get project root directory
+ * @returns {string} project root path
  */
 export function getProjectRoot() {
   if (isPkg) {
@@ -29,23 +29,23 @@ export function getProjectRoot() {
 }
 
 /**
- * 获取数据目录路径
- * pkg 环境下使用可执行文件所在目录或当前工作目录
- * @returns {string} 数据目录路径
+ * Get data directory path
+ * In pkg, use executable directory or current working directory
+ * @returns {string} data directory path
  */
 export function getDataDir() {
   if (isPkg) {
-    // pkg 环境：优先使用可执行文件旁边的 data 目录
+    // pkg: prefer data directory next to the executable
     const exeDir = path.dirname(process.execPath);
     const exeDataDir = path.join(exeDir, 'data');
-    // 检查是否可以在该目录创建文件
+    // Check whether files can be created in this directory
     try {
       if (!fs.existsSync(exeDataDir)) {
         fs.mkdirSync(exeDataDir, { recursive: true });
       }
       return exeDataDir;
     } catch (e) {
-      // 如果无法创建，尝试当前工作目录
+      // If creation fails, try current working directory
       const cwdDataDir = path.join(process.cwd(), 'data');
       try {
         if (!fs.existsSync(cwdDataDir)) {
@@ -53,7 +53,7 @@ export function getDataDir() {
         }
         return cwdDataDir;
       } catch (e2) {
-        // 最后使用用户主目录
+        // Final fallback: user home directory
         const homeDataDir = path.join(process.env.HOME || process.env.USERPROFILE || '.', '.antigravity', 'data');
         if (!fs.existsSync(homeDataDir)) {
           fs.mkdirSync(homeDataDir, { recursive: true });
@@ -62,41 +62,41 @@ export function getDataDir() {
       }
     }
   }
-  // 开发环境
+  // Development environment
   return path.join(__dirname, '..', '..', 'data');
 }
 
 /**
- * 获取公共静态文件目录
- * @returns {string} public 目录路径
+ * Get public static directory
+ * @returns {string} public directory path
  */
 export function getPublicDir() {
   if (isPkg) {
-    // pkg 环境：优先使用可执行文件旁边的 public 目录
+    // pkg: prefer public directory next to the executable
     const exeDir = path.dirname(process.execPath);
     const exePublicDir = path.join(exeDir, 'public');
     if (fs.existsSync(exePublicDir)) {
       return exePublicDir;
     }
-    // 其次使用当前工作目录的 public 目录
+    // Fallback to public directory in current working directory
     const cwdPublicDir = path.join(process.cwd(), 'public');
     if (fs.existsSync(cwdPublicDir)) {
       return cwdPublicDir;
     }
-    // 最后使用打包内的 public 目录（通过 snapshot）
+    // Final fallback: public directory inside the bundle (via snapshot)
     return path.join(__dirname, '../../public');
   }
-  // 开发环境
+  // Development environment
   return path.join(__dirname, '../../public');
 }
 
 /**
- * 获取图片存储目录
- * @returns {string} 图片目录路径
+ * Get image storage directory
+ * @returns {string} image directory path
  */
 export function getImageDir() {
   if (isPkg) {
-    // pkg 环境：优先使用可执行文件旁边的 public/images 目录
+    // pkg: prefer public/images next to the executable
     const exeDir = path.dirname(process.execPath);
     const exeImageDir = path.join(exeDir, 'public', 'images');
     try {
@@ -105,7 +105,7 @@ export function getImageDir() {
       }
       return exeImageDir;
     } catch (e) {
-      // 如果无法创建，尝试当前工作目录
+      // If creation fails, try current working directory
       const cwdImageDir = path.join(process.cwd(), 'public', 'images');
       try {
         if (!fs.existsSync(cwdImageDir)) {
@@ -113,7 +113,7 @@ export function getImageDir() {
         }
         return cwdImageDir;
       } catch (e2) {
-        // 最后使用用户主目录
+        // Final fallback: user home directory
         const homeImageDir = path.join(process.env.HOME || process.env.USERPROFILE || '.', '.antigravity', 'images');
         if (!fs.existsSync(homeImageDir)) {
           fs.mkdirSync(homeImageDir, { recursive: true });
@@ -122,45 +122,45 @@ export function getImageDir() {
       }
     }
   }
-  // 开发环境
+  // Development environment
   return path.join(__dirname, '../../public/images');
 }
 
 /**
- * 获取 .env 文件路径
- * @returns {string} .env 文件路径
+ * Get .env file path
+ * @returns {string} .env file path
  */
 export function getEnvPath() {
   if (isPkg) {
-    // pkg 环境：优先使用可执行文件旁边的 .env
+    // pkg: prefer .env next to the executable
     const exeDir = path.dirname(process.execPath);
     const exeEnvPath = path.join(exeDir, '.env');
     if (fs.existsSync(exeEnvPath)) {
       return exeEnvPath;
     }
-    // 其次使用当前工作目录的 .env
+    // Fallback to .env in current working directory
     const cwdEnvPath = path.join(process.cwd(), '.env');
     if (fs.existsSync(cwdEnvPath)) {
       return cwdEnvPath;
     }
-    // 返回可执行文件目录的路径（即使不存在）
+    // Return executable directory path (even if missing)
     return exeEnvPath;
   }
-  // 开发环境
+  // Development environment
   return path.join(__dirname, '../../.env');
 }
 
 /**
- * 获取配置文件路径集合
- * @returns {{envPath: string, configJsonPath: string, configJsonExamplePath: string, examplePath: string}} 配置文件路径
+ * Get config file paths
+ * @returns {{envPath: string, configJsonPath: string, configJsonExamplePath: string, examplePath: string}} config paths
  */
 export function getConfigPaths() {
   if (isPkg) {
-    // pkg 环境：优先使用可执行文件旁边的配置文件
+    // pkg: prefer config files next to the executable
     const exeDir = path.dirname(process.execPath);
     const cwdDir = process.cwd();
     
-    // 查找 .env 文件
+    // Find .env file
     let envPath = path.join(exeDir, '.env');
     if (!fs.existsSync(envPath)) {
       const cwdEnvPath = path.join(cwdDir, '.env');
@@ -169,7 +169,7 @@ export function getConfigPaths() {
       }
     }
     
-    // 查找 config.json 文件
+    // Find config.json file
     let configJsonPath = path.join(exeDir, 'config.json');
     if (!fs.existsSync(configJsonPath)) {
       const cwdConfigPath = path.join(cwdDir, 'config.json');
@@ -178,7 +178,7 @@ export function getConfigPaths() {
       }
     }
     
-    // 查找 config.json.example 文件
+    // Find config.json.example file
     let configJsonExamplePath = path.join(exeDir, 'config.json.example');
     if (!fs.existsSync(configJsonExamplePath)) {
       const cwdExamplePath = path.join(cwdDir, 'config.json.example');
@@ -187,7 +187,7 @@ export function getConfigPaths() {
       }
     }
     
-    // 查找 .env.example 文件
+    // Find .env.example file
     let examplePath = path.join(exeDir, '.env.example');
     if (!fs.existsSync(examplePath)) {
       const cwdExamplePath = path.join(cwdDir, '.env.example');
@@ -199,7 +199,7 @@ export function getConfigPaths() {
     return { envPath, configJsonPath, configJsonExamplePath, examplePath };
   }
   
-  // 开发环境
+  // Development environment
   return {
     envPath: path.join(__dirname, '../../.env'),
     configJsonPath: path.join(__dirname, '../../config.json'),
@@ -209,9 +209,9 @@ export function getConfigPaths() {
 }
 
 /**
- * 计算相对路径用于日志显示
- * @param {string} absolutePath - 绝对路径
- * @returns {string} 相对路径或原路径
+ * Compute relative path for log display
+ * @param {string} absolutePath - absolute path
+ * @returns {string} relative or original path
  */
 export function getRelativePath(absolutePath) {
   if (isPkg) {

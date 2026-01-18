@@ -1,6 +1,6 @@
 /**
- * Gemini 格式处理器
- * 处理 /v1beta/models/* 请求，支持流式和非流式响应
+ * Gemini format handler
+ * Handles /v1beta/models/* requests with streaming and non-streaming responses
  */
 
 import { generateAssistantResponse, generateAssistantResponseNoStream, getAvailableModels } from '../../api/client.js';
@@ -21,8 +21,8 @@ import {
 } from '../stream.js';
 
 /**
- * 将 OpenAI 模型列表转换为 Gemini 格式
- * @param {Object} openaiModels - OpenAI格式模型列表
+ * Convert OpenAI model list to Gemini format
+ * @param {Object} openaiModels - OpenAI format model list
  * @returns {Object}
  */
 export const convertToGeminiModelList = (openaiModels) => {
@@ -31,8 +31,8 @@ export const convertToGeminiModelList = (openaiModels) => {
     version: "001",
     displayName: model.id,
     description: "Imported model",
-    inputTokenLimit: 32768, // 默认值
-    outputTokenLimit: 8192, // 默认值
+    inputTokenLimit: 32768, // default value
+    outputTokenLimit: 8192, // default value
     supportedGenerationMethods: ["generateContent", "countTokens"],
     temperature: 0.9,
     topP: 1.0,
@@ -42,9 +42,9 @@ export const convertToGeminiModelList = (openaiModels) => {
 };
 
 /**
- * 获取 Gemini 格式模型列表
- * @param {Request} req - Express请求对象
- * @param {Response} res - Express响应对象
+ * Get Gemini model list
+ * @param {Request} req - Express request
+ * @param {Response} res - Express response
  */
 export const handleGeminiModelsList = async (req, res) => {
   try {
@@ -52,15 +52,15 @@ export const handleGeminiModelsList = async (req, res) => {
     const geminiModels = convertToGeminiModelList(openaiModels);
     res.json(geminiModels);
   } catch (error) {
-    logger.error('获取模型列表失败:', error.message);
+    logger.error('Failed to fetch model list:', error.message);
     res.status(500).json({ error: { code: 500, message: error.message, status: "INTERNAL" } });
   }
 };
 
 /**
- * 获取单个模型详情（Gemini格式）
- * @param {Request} req - Express请求对象
- * @param {Response} res - Express响应对象
+ * Get single model detail (Gemini format)
+ * @param {Request} req - Express request
+ * @param {Response} res - Express response
  */
 export const handleGeminiModelDetail = async (req, res) => {
   try {
@@ -86,17 +86,17 @@ export const handleGeminiModelDetail = async (req, res) => {
       res.status(404).json({ error: { code: 404, message: `Model ${modelId} not found`, status: "NOT_FOUND" } });
     }
   } catch (error) {
-    logger.error('获取模型详情失败:', error.message);
+    logger.error('Failed to fetch model detail:', error.message);
     res.status(500).json({ error: { code: 500, message: error.message, status: "INTERNAL" } });
   }
 };
 
 /**
- * 处理 Gemini 格式的聊天请求
- * @param {Request} req - Express请求对象
- * @param {Response} res - Express响应对象
- * @param {string} modelName - 模型名称
- * @param {boolean} isStream - 是否流式响应
+ * Handle Gemini chat requests
+ * @param {Request} req - Express request
+ * @param {Response} res - Express response
+ * @param {string} modelName - model name
+ * @param {boolean} isStream - streaming response
  */
 export const handleGeminiRequest = async (req, res, modelName, isStream) => {
   const safeRetries = getSafeRetries(config.retryTimes);
@@ -110,7 +110,7 @@ export const handleGeminiRequest = async (req, res, modelName, isStream) => {
 
     const token = await tokenManager.getToken();
     if (!token) {
-      throw new Error('没有可用的token，请运行 npm run login 获取token');
+      throw new Error('No available token. Run npm run login to add one.');
     }
 
     const isImageModel = modelName.includes('-image');
@@ -126,7 +126,7 @@ export const handleGeminiRequest = async (req, res, modelName, isStream) => {
 
       try {
         if (isImageModel) {
-          // 生图模型：使用非流式获取结果后一次性返回
+          // Image models: use non-streaming and return once
           const { content, usage, reasoningSignature } = await with429Retry(
             () => generateAssistantResponseNoStream(requestBody, token),
             safeRetries,
@@ -147,16 +147,16 @@ export const handleGeminiRequest = async (req, res, modelName, isStream) => {
             if (data.type === 'usage') {
               usageData = data.usage;
             } else if (data.type === 'reasoning') {
-              // Gemini 思考内容
+              // Gemini reasoning content
               const chunk = createGeminiResponse(null, data.reasoning_content, data.thoughtSignature, null, null, null, { passSignatureToClient: config.passSignatureToClient });
               writeStreamData(res, chunk);
             } else if (data.type === 'tool_calls') {
               hasToolCall = true;
-              // Gemini 工具调用
+              // Gemini tool call
               const chunk = createGeminiResponse(null, null, null, data.tool_calls, null, null, { passSignatureToClient: config.passSignatureToClient });
               writeStreamData(res, chunk);
             } else {
-              // 普通文本
+              // Plain text
               const chunk = createGeminiResponse(data.content, null, null, null, null, null, { passSignatureToClient: config.passSignatureToClient });
               writeStreamData(res, chunk);
             }
@@ -165,8 +165,8 @@ export const handleGeminiRequest = async (req, res, modelName, isStream) => {
           'gemini.stream '
         );
 
-        // 发送结束块和 usage
-        const finishReason = hasToolCall ? "STOP" : "STOP"; // Gemini 工具调用也是 STOP
+        // Send final chunk and usage
+        const finishReason = hasToolCall ? "STOP" : "STOP"; // Gemini tool calls also use STOP
         const finalChunk = createGeminiResponse(null, null, null, null, finishReason, usageData, { passSignatureToClient: config.passSignatureToClient });
         writeStreamData(res, finalChunk);
 
@@ -179,11 +179,11 @@ export const handleGeminiRequest = async (req, res, modelName, isStream) => {
           writeStreamData(res, buildGeminiErrorPayload(error, statusCode));
           endStream(res, false);
         }
-        logger.error('Gemini 流式请求失败:', error.message);
+        logger.error('Gemini streaming request failed:', error.message);
         return;
       }
     } else if (config.fakeNonStream && !isImageModel) {
-      // 假非流模式：使用流式API获取数据，组装成非流式响应
+      // Pseudo-non-stream: use streaming API and assemble a non-stream response
       req.setTimeout(0);
       res.setTimeout(0);
 
@@ -217,13 +217,13 @@ export const handleGeminiRequest = async (req, res, modelName, isStream) => {
         const response = createGeminiResponse(content, reasoningContent || null, reasoningSignature, toolCalls, finishReason, usageData, { passSignatureToClient: config.passSignatureToClient });
         res.json(response);
       } catch (error) {
-        logger.error('Gemini 假非流请求失败:', error.message);
+        logger.error('Gemini pseudo-non-stream request failed:', error.message);
         if (res.headersSent) return;
         const statusCode = error.statusCode || error.status || 500;
         res.status(statusCode).json(buildGeminiErrorPayload(error, statusCode));
       }
     } else {
-      // 非流式
+      // Non-stream
       req.setTimeout(0);
       res.setTimeout(0);
 
@@ -238,7 +238,7 @@ export const handleGeminiRequest = async (req, res, modelName, isStream) => {
       res.json(response);
     }
   } catch (error) {
-    logger.error('Gemini 请求失败:', error.message);
+    logger.error('Gemini request failed:', error.message);
     if (res.headersSent) return;
     const statusCode = error.statusCode || error.status || 500;
     res.status(statusCode).json(buildGeminiErrorPayload(error, statusCode));

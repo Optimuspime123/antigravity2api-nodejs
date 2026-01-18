@@ -1,6 +1,6 @@
 /**
- * 日志工具模块
- * 支持控制台输出、WebSocket 实时推送、文件持久化
+ * Logging utility module
+ * Supports console output, WebSocket live push, and file persistence
  */
 import logWsServer from './logWsServer.js';
 
@@ -15,7 +15,7 @@ const colors = {
 };
 
 /**
- * 格式化日志参数为字符串
+ * Format log arguments as strings
  */
 function formatArgs(args) {
   return args.map(arg => {
@@ -35,10 +35,10 @@ function logMessage(level, ...args) {
   const color = { info: colors.green, warn: colors.yellow, error: colors.red, debug: colors.blue }[level];
   const message = formatArgs(args);
 
-  // 输出到控制台
+  // Output to console
   console.log(`${colors.gray}${timestamp}${colors.reset} ${color}[${level}]${colors.reset}`, ...args);
 
-  // 存储日志并推送 WebSocket
+  // Store logs and push to WebSocket
   logWsServer.storeLog(level, message);
 }
 
@@ -46,10 +46,10 @@ function logRequest(method, path, status, duration) {
   const statusColor = status >= 500 ? colors.red : status >= 400 ? colors.yellow : colors.green;
   const message = `[${method}] - ${path} ${status} ${duration}ms`;
 
-  // 输出到控制台
+  // Output to console
   console.log(`${colors.cyan}[${method}]${colors.reset} - ${path} ${statusColor}${status}${colors.reset} ${colors.gray}${duration}ms${colors.reset}`);
 
-  // 存储日志（根据状态码决定级别）
+  // Store logs (level determined by status code)
   const level = status >= 500 ? 'error' : status >= 400 ? 'warn' : 'request';
   logWsServer.storeLog(level, message);
 }
@@ -60,7 +60,7 @@ export const log = {
   error: (...args) => logMessage('error', ...args),
   debug: (...args) => logMessage('debug', ...args),
   request: logRequest,
-  // API 方法（委托给 logWsServer）
+  // API methods (delegated to logWsServer)
   getLogs: (options) => logWsServer.getLogs(options),
   clearLogs: () => logWsServer.clearLogs(),
   getLogStats: () => logWsServer.getLogStats()

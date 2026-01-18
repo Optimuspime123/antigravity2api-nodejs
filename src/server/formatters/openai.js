@@ -1,12 +1,12 @@
 /**
- * OpenAI 响应格式化工具
- * 复用对象池以减少 GC 压力
+ * OpenAI response formatter
+ * Reuse object pool to reduce GC pressure
  */
 
 import { getChunkObject } from '../stream.js';
 
 /**
- * 创建 OpenAI 格式流式数据块
+ * Create OpenAI streaming chunk
  * @param {string} id
  * @param {number} created
  * @param {string} model
@@ -26,7 +26,7 @@ export const createOpenAIStreamChunk = (id, created, model, delta, finish_reason
 };
 
 /**
- * 创建 OpenAI 非流式 chat.completion 响应
+ * Create OpenAI non-stream chat.completion response
  * @param {{
  *   id: string,
  *   created: number,

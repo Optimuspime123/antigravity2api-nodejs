@@ -1,5 +1,5 @@
 /**
- * Claude/Anthropic 流式响应状态管理器
+ * Claude/Anthropic streaming response state manager
  */
 
 export class ClaudeStreamState {

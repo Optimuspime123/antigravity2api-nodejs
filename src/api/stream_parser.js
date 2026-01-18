@@ -4,22 +4,22 @@ import { setSignature, shouldCacheSignature, isImageModel } from '../utils/thoug
 import { getOriginalToolName } from '../utils/toolNameCache.js';
 import config from '../config/config.js';
 
-// 预编译的常量（避免重复创建字符串）
+// Precompiled constants (avoid recreating strings)
 const DATA_PREFIX = 'data: ';
 const DATA_PREFIX_LEN = DATA_PREFIX.length;
 
-// 高效的行分割器（零拷贝，避免 split 创建新数组）
-// 使用对象池复用 LineBuffer 实例
+// Efficient line splitter (zero-copy, avoids split allocations)
+// Reuse LineBuffer instances via an object pool
 class LineBuffer {
   constructor() {
     this.buffer = '';
     this.lines = [];
   }
   
-  // 追加数据并返回完整的行
+  // Append data and return complete lines
   append(chunk) {
     this.buffer += chunk;
-    this.lines.length = 0; // 重用数组
+    this.lines.length = 0; // Reuse array
     
     let start = 0;
     let end;
@@ -28,7 +28,7 @@ class LineBuffer {
       start = end + 1;
     }
     
-    // 保留未完成的部分
+    // Preserve the incomplete remainder
     this.buffer = start < this.buffer.length ? this.buffer.slice(start) : '';
     return this.lines;
   }
@@ -39,7 +39,7 @@ class LineBuffer {
   }
 }
 
-// LineBuffer 对象池
+// LineBuffer object pool
 const lineBufferPool = [];
 const getLineBuffer = () => {
   const buffer = lineBufferPool.pop();
@@ -57,7 +57,7 @@ const releaseLineBuffer = (buffer) => {
   }
 };
 
-// toolCall 对象池
+// toolCall object pool
 const toolCallPool = [];
 const getToolCallObject = () => toolCallPool.pop() || { id: '', type: 'function', function: { name: '', arguments: '' } };
 const releaseToolCallObject = (obj) => {
@@ -65,14 +65,14 @@ const releaseToolCallObject = (obj) => {
   if (toolCallPool.length < maxSize) toolCallPool.push(obj);
 };
 
-// 注册内存清理回调（供外部统一调用）
+// Register memory cleanup callbacks (invoked externally)
 function registerStreamMemoryCleanup() {
   registerMemoryPoolCleanup(toolCallPool, () => memoryManager.getPoolSizes().toolCall);
   registerMemoryPoolCleanup(lineBufferPool, () => memoryManager.getPoolSizes().lineBuffer);
 }
 
-// 转换 functionCall 为 OpenAI 格式（使用对象池）
-// 会尝试将安全工具名还原为原始工具名
+// Convert functionCall to OpenAI format (use object pool)
+// Attempt to restore the original tool name from safe names
 function convertToToolCall(functionCall, sessionId, model) {
   const toolCall = getToolCallObject();
   toolCall.id = functionCall.id || generateToolCallId();
@@ -86,10 +86,10 @@ function convertToToolCall(functionCall, sessionId, model) {
   return toolCall;
 }
 
-// 解析并发送流式响应片段（会修改 state 并触发 callback）
-// 支持 DeepSeek 格式：思维链内容通过 reasoning_content 字段输出
-// 同时透传 thoughtSignature，方便客户端后续复用
-// 签名和思考内容绑定存储：收集完整思考内容后和签名一起缓存
+// Parse and emit streamed response chunks (mutates state and triggers callback)
+// Supports DeepSeek format: chain-of-thought via reasoning_content field
+// Pass through thoughtSignature for client reuse
+// Store signature bound to reasoning content once collected
 function parseAndEmitStreamChunk(line, state, callback) {
   if (!line.startsWith(DATA_PREFIX)) return;
   
@@ -100,23 +100,23 @@ function parseAndEmitStreamChunk(line, state, callback) {
     if (parts) {
       for (const part of parts) {
         if (part.thoughtSignature) {
-          // Gemini 等模型可能只在 functionCall part 上给出 thoughtSignature；
-          // 将其视为本轮"最新签名"，用于后续 functionCall 兜底与下次请求缓存。
+          // Models like Gemini may only include thoughtSignature on functionCall parts.
+          // Treat it as the latest signature for fallback tool calls and caching.
           if (part.thoughtSignature !== state.reasoningSignature) {
             state.reasoningSignature = part.thoughtSignature;
-            // 延迟缓存：等收集完思考内容后再缓存
+            // Defer caching until reasoning content is fully collected
           }
         }
 
         if (part.thought === true) {
-          // 累积思考内容
+          // Accumulate reasoning content
           if (part.text) {
             state.reasoningContent = (state.reasoningContent || '') + part.text;
           }
           
           if (part.thoughtSignature) {
             state.reasoningSignature = part.thoughtSignature;
-            // 延迟到流结束时缓存，确保收集到完整的思考内容
+            // Defer caching until stream ends to ensure complete reasoning content
           }
           callback({
             type: 'reasoning',
@@ -130,7 +130,7 @@ function parseAndEmitStreamChunk(line, state, callback) {
           const sig = part.thoughtSignature || state.reasoningSignature || null;
           if (sig) {
             toolCall.thoughtSignature = sig;
-            // 标记有工具调用
+            // Mark that we have tool calls
             state.hasToolCalls = true;
           }
           state.toolCalls.push(toolCall);
@@ -139,12 +139,12 @@ function parseAndEmitStreamChunk(line, state, callback) {
     }
     
     if (data.response?.candidates?.[0]?.finishReason) {
-      // 流结束时，判断是否应该缓存签名
+      // When the stream ends, decide whether to cache the signature
       const hasTools = state.hasToolCalls || state.toolCalls.length > 0;
       const isImage = isImageModel(state.model);
       
-      // 注意：GeminiCLI 不使用 sessionId，但签名缓存仍然应该工作
-      // sessionId 参数在 thoughtSignatureCache.js 中已不再用于缓存 key
+      // Note: GeminiCLI does not use sessionId, but signature caching still works.
+      // sessionId is no longer used in thoughtSignatureCache.js cache keys.
       if (state.model && state.reasoningSignature) {
         if (shouldCacheSignature({ hasTools, isImageModel: isImage })) {
           const content = state.reasoningContent || ' ';
@@ -167,12 +167,12 @@ function parseAndEmitStreamChunk(line, state, callback) {
           }
         });
       }
-      // 清空累积的思考内容和状态
+      // Clear accumulated reasoning content and state
       state.reasoningContent = '';
       state.hasToolCalls = false;
     }
   } catch {
-    // 忽略 JSON 解析错误
+    // Ignore JSON parse errors
   }
 }
 

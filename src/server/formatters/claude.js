@@ -1,9 +1,9 @@
 /**
- * Claude/Anthropic 响应格式化工具
+ * Claude/Anthropic response formatter
  */
 
 /**
- * 创建 Claude 非流式响应
+ * Create Claude non-stream response
  * @param {string} id
  * @param {string} model
  * @param {string|null} content

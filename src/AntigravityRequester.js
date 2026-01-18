@@ -6,11 +6,11 @@ import fs from 'fs';
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 
-// 检测是否在 pkg 打包环境中运行
+// Detect whether we're running in a pkg bundle
 const isPkg = typeof process.pkg !== 'undefined';
 
-// 缓冲区大小警告阈值（不限制，只警告）
-const BUFFER_WARNING_SIZE = 50 * 1024 * 1024; // 50MB 警告
+// Buffer size warning threshold (warn only, do not limit)
+const BUFFER_WARNING_SIZE = 50 * 1024 * 1024; // 50MB warning
 
 class antigravityRequester {
     constructor(options = {}) {
@@ -42,40 +42,40 @@ class antigravityRequester {
             throw new Error(`Unsupported platform: ${platform}+${arch}`);
         }
         
-        // 获取 bin 目录路径
-        // pkg 环境下优先使用可执行文件旁边的 bin 目录
+        // Resolve bin directory path
+        // In pkg, prefer the bin directory next to the executable
         let binPath = this.binPath;
         if (!binPath) {
             if (isPkg) {
-                // pkg 环境：优先使用可执行文件旁边的 bin 目录
+                // pkg: prefer the bin directory next to the executable
                 const exeDir = path.dirname(process.execPath);
                 const exeBinDir = path.join(exeDir, 'bin');
                 if (fs.existsSync(exeBinDir)) {
                     binPath = exeBinDir;
                 } else {
-                    // 其次使用当前工作目录的 bin 目录
+                    // Fallback to the bin directory in the current working directory
                     const cwdBinDir = path.join(process.cwd(), 'bin');
                     if (fs.existsSync(cwdBinDir)) {
                         binPath = cwdBinDir;
                     } else {
-                        // 最后使用打包内的 bin 目录
+                        // Last fallback: bin directory inside the bundle
                         binPath = path.join(__dirname, 'bin');
                     }
                 }
             } else {
-                // 开发环境
+                // Development environment
                 binPath = path.join(__dirname, 'bin');
             }
         }
         
         const requester_execPath = path.join(binPath, filename);
         
-        // 检查文件是否存在
+        // Check whether the binary exists
         if (!fs.existsSync(requester_execPath)) {
             console.warn(`Binary not found at: ${requester_execPath}`);
         }
         
-        // 设置执行权限（非Windows平台）
+        // Set execute permissions (non-Windows)
         if (platform !== 'win32') {
             try {
                 fs.chmodSync(requester_execPath, 0o755);
@@ -93,34 +93,34 @@ class antigravityRequester {
             stdio: ['pipe', 'pipe', 'pipe']
         });
 
-        // 设置 stdin 为非阻塞模式
+        // Set stdin to non-blocking mode
         if (this.proc.stdin.setDefaultEncoding) {
             this.proc.stdin.setDefaultEncoding('utf8');
         }
 
-        // 增大 stdout 缓冲区以减少背压
+        // Increase stdout buffer to reduce backpressure
         if (this.proc.stdout.setEncoding) {
             this.proc.stdout.setEncoding('utf8');
         }
         
-        // 使用 setImmediate 异步处理数据,避免阻塞
+        // Use setImmediate to process data asynchronously, avoiding blocking
         this.proc.stdout.on('data', (data) => {
             const chunk = data.toString();
             
-            // 缓冲区大小监控（仅警告，不限制，因为图片响应可能很大）
+            // Buffer size monitoring (warn only, image responses can be large)
             if (!this.bufferWarned && this.buffer.length > BUFFER_WARNING_SIZE) {
-                console.warn(`AntigravityRequester: 缓冲区较大 (${Math.round(this.buffer.length / 1024 / 1024)}MB)，可能有大型响应`);
+                console.warn(`AntigravityRequester: large buffer (${Math.round(this.buffer.length / 1024 / 1024)}MB), possible large response`);
                 this.bufferWarned = true;
             }
             
             this.buffer += chunk;
             
-            // 使用 setImmediate 异步处理,避免阻塞 stdout 读取
+            // Use setImmediate to avoid blocking stdout reads
             setImmediate(() => {
                 let start = 0;
                 let end;
                 
-                // 高效的行分割（避免 split 创建大量字符串）
+                // Efficient line splitting (avoid split allocations)
                 while ((end = this.buffer.indexOf('\n', start)) !== -1) {
                     const line = this.buffer.slice(start, end).trim();
                     start = end + 1;
@@ -146,11 +146,11 @@ class antigravityRequester {
                             }
                         }
                     } catch (e) {
-                        // 忽略 JSON 解析错误（可能是不完整的行）
+                        // Ignore JSON parse errors (possibly incomplete line)
                     }
                 }
                 
-                // 保留未处理的部分
+                // Preserve unprocessed remainder
                 this.buffer = start < this.buffer.length ? this.buffer.slice(start) : '';
                 this.bufferWarned = false;
             });
@@ -226,7 +226,7 @@ class antigravityRequester {
                 if (canWrite) {
                     resolve();
                 } else {
-                    // 等待 drain 事件，并在任一事件触发后移除另一个监听器
+                    // Wait for drain, and remove the other listener once one fires
                     const onDrain = () => {
                         this.proc.stdin.removeListener('error', onError);
                         resolve();
@@ -246,7 +246,7 @@ class antigravityRequester {
 
     close() {
         if (this.proc) {
-            // 先拒绝所有待处理的请求
+            // First, reject all pending requests
             for (const [id, pending] of this.pendingRequests) {
                 if (pending.reject) {
                     pending.reject(new Error('Requester closed'));
@@ -256,36 +256,36 @@ class antigravityRequester {
             }
             this.pendingRequests.clear();
             
-            // 清理缓冲区
+            // Clear buffer
             this.buffer = '';
             
             const proc = this.proc;
             this.proc = null;
             
-            // 关闭输入流
+            // Close input stream
             try {
                 proc.stdin.end();
             } catch (e) {
-                // 忽略关闭错误
+                // Ignore close errors
             }
             
-            // 立即发送 SIGTERM 终止子进程，不使用 setTimeout
-            // 这样可以确保在主进程退出前子进程被正确终止
+            // Send SIGTERM immediately without setTimeout
+            // Ensures the child is terminated before the parent exits
             try {
                 if (proc && !proc.killed) {
                     proc.kill('SIGTERM');
                 }
             } catch (e) {
-                // 忽略错误
+                // Ignore errors
             }
             
-            // 如果 SIGTERM 无效，立即使用 SIGKILL
+            // If SIGTERM is ineffective, send SIGKILL immediately
             try {
                 if (proc && !proc.killed) {
                     proc.kill('SIGKILL');
                 }
             } catch (e) {
-                // 忽略错误
+                // Ignore errors
             }
         }
     }
@@ -306,7 +306,7 @@ class StreamResponse {
         this._error = null;
         this._textPromiseResolve = null;
         this._textPromiseReject = null;
-        // 保存最终文本结果（用于流结束后调用 text()）
+        // Save final text result (used after stream ends for text())
         this._finalText = null;
     }
 
@@ -323,18 +323,18 @@ class StreamResponse {
             if (this._onData) this._onData(data);
         } else if (chunk.type === 'end') {
             this._ended = true;
-            // 先保存最终文本，再清空 chunks（释放内存）
+            // Save final text before clearing chunks (free memory)
             this._finalText = this.chunks.join('');
             if (this._textPromiseResolve) this._textPromiseResolve(this._finalText);
             if (this._onEnd) this._onEnd();
-            // 流结束后清理 chunks 数组，释放内存
+            // Clear chunks after stream ends to free memory
             this.chunks = [];
         } else if (chunk.type === 'error') {
             this._ended = true;
             this._error = new Error(chunk.error);
             if (this._textPromiseReject) this._textPromiseReject(this._error);
             if (this._onError) this._onError(this._error);
-            // 错误时也清理 chunks 数组
+            // Clear chunks on error as well
             this.chunks = [];
         }
     }
@@ -362,7 +362,7 @@ class StreamResponse {
     async text() {
         if (this._ended) {
             if (this._error) throw this._error;
-            // 使用保存的最终文本，因为 chunks 可能已被清空
+            // Use saved final text because chunks may be cleared
             return this._finalText || '';
         }
         return new Promise((resolve, reject) => {

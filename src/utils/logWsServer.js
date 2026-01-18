@@ -1,23 +1,23 @@
 /**
- * WebSocket 日志服务模块
- * 提供实时日志推送和日志文件管理
+ * WebSocket log service module.
+ * Provides real-time log streaming and log file management.
  */
 import { WebSocketServer } from 'ws';
 import fs from 'fs';
 import path from 'path';
 import { getDataDir } from './paths.js';
 
-// 默认配置
-const DEFAULT_LOG_MAX_SIZE_MB = 10;   // 单个日志文件最大 10MB
-const DEFAULT_LOG_MAX_FILES = 5;      // 保留 5 个历史文件
-const DEFAULT_LOG_MAX_MEMORY = 500;   // 内存中保留 500 条日志
+// Default configuration
+const DEFAULT_LOG_MAX_SIZE_MB = 10;   // Max 10MB per log file
+const DEFAULT_LOG_MAX_FILES = 5;      // Keep 5 history files
+const DEFAULT_LOG_MAX_MEMORY = 500;   // Keep 500 log entries in memory
 
-// 日志目录
+// Log directory
 const dataDir = getDataDir();
 const LOG_DIR = path.join(dataDir, 'logs');
 const LOG_FILE = path.join(LOG_DIR, 'app.log');
 
-// 确保日志目录存在
+// Ensure log directory exists
 if (!fs.existsSync(LOG_DIR)) {
     fs.mkdirSync(LOG_DIR, { recursive: true });
 }
@@ -29,22 +29,22 @@ class LogWebSocketServer {
         this.logStore = [];
         this.currentLogSize = 0;
 
-        // 配置（可在运行时更新）
+        // Configuration (can be updated at runtime)
         this.maxSizeMB = DEFAULT_LOG_MAX_SIZE_MB;
         this.maxFiles = DEFAULT_LOG_MAX_FILES;
         this.maxMemory = DEFAULT_LOG_MAX_MEMORY;
 
-        // 初始化日志文件大小
+        // Initialize log file size
         this._initLogFileSize();
 
-        // 写入缓冲（避免频繁写入）
+        // Write buffer (avoid frequent disk writes)
         this.writeBuffer = [];
         this.flushTimer = null;
-        this.FLUSH_INTERVAL = 1000; // 1秒刷新一次
+        this.FLUSH_INTERVAL = 1000; // Flush every 1 second
     }
 
     /**
-     * 初始化获取当前日志文件大小
+     * Initialize by reading the current log file size.
      */
     _initLogFileSize() {
         try {
@@ -58,7 +58,7 @@ class LogWebSocketServer {
     }
 
     /**
-     * 更新配置
+     * Update configuration.
      */
     updateConfig(config) {
         if (config.logMaxSizeMB !== undefined) {
@@ -73,8 +73,8 @@ class LogWebSocketServer {
     }
 
     /**
-     * 初始化 WebSocket 服务器
-     * @param {http.Server} server - HTTP 服务器实例
+     * Initialize the WebSocket server.
+     * @param {http.Server} server - HTTP server instance
      */
     initialize(server) {
         this.wss = new WebSocketServer({ server, path: '/ws/logs' });
@@ -82,7 +82,7 @@ class LogWebSocketServer {
         this.wss.on('connection', (ws, req) => {
             this.clients.add(ws);
 
-            // 发送最近的日志历史
+            // Send recent log history
             const recentLogs = this.logStore.slice(-50);
             if (recentLogs.length > 0) {
                 ws.send(JSON.stringify({
@@ -102,7 +102,7 @@ class LogWebSocketServer {
     }
 
     /**
-     * 广播日志到所有客户端
+     * Broadcast a log entry to all clients.
      */
     broadcast(entry) {
         const message = JSON.stringify({
@@ -122,7 +122,7 @@ class LogWebSocketServer {
     }
 
     /**
-     * 存储日志条目
+     * Store a log entry.
      */
     storeLog(level, message) {
         const entry = {
@@ -132,29 +132,29 @@ class LogWebSocketServer {
             message
         };
 
-        // 存储到内存
+        // Store in memory
         this.logStore.push(entry);
         while (this.logStore.length > this.maxMemory) {
             this.logStore.shift();
         }
 
-        // 广播到 WebSocket 客户端
+        // Broadcast to WebSocket clients
         this.broadcast(entry);
 
-        // 添加到写入缓冲
+        // Add to write buffer
         this._bufferWrite(entry);
 
         return entry;
     }
 
     /**
-     * 缓冲写入（减少磁盘 I/O）
+     * Buffered write (reduce disk I/O).
      */
     _bufferWrite(entry) {
         const line = `${entry.timestamp} [${entry.level}] ${entry.message}\n`;
         this.writeBuffer.push(line);
 
-        // 设置定时刷新
+        // Schedule flush
         if (!this.flushTimer) {
             this.flushTimer = setTimeout(() => {
                 this._flushBuffer();
@@ -163,7 +163,7 @@ class LogWebSocketServer {
     }
 
     /**
-     * 刷新缓冲到文件
+     * Flush buffer to disk.
      */
     _flushBuffer() {
         if (this.writeBuffer.length === 0) {
@@ -177,26 +177,26 @@ class LogWebSocketServer {
 
         const contentSize = Buffer.byteLength(content, 'utf8');
 
-        // 检查是否需要轮转
+        // Check whether rotation is needed
         if (this.currentLogSize + contentSize > this.maxSizeMB * 1024 * 1024) {
             this._rotateLog();
         }
 
-        // 追加写入
+        // Append write
         try {
             fs.appendFileSync(LOG_FILE, content, 'utf8');
             this.currentLogSize += contentSize;
         } catch (error) {
-            console.error('写入日志文件失败:', error.message);
+            console.error('Failed to write log file:', error.message);
         }
     }
 
     /**
-     * 日志轮转
+     * Rotate log files.
      */
     _rotateLog() {
         try {
-            // 删除最旧的文件
+            // Delete the oldest file
             for (let i = this.maxFiles - 1; i >= 1; i--) {
                 const oldFile = `${LOG_FILE}.${i}`;
                 const newFile = `${LOG_FILE}.${i + 1}`;
@@ -209,26 +209,26 @@ class LogWebSocketServer {
                 }
             }
 
-            // 重命名当前文件
+            // Rename current file
             if (fs.existsSync(LOG_FILE)) {
                 fs.renameSync(LOG_FILE, `${LOG_FILE}.1`);
             }
 
             this.currentLogSize = 0;
         } catch (error) {
-            console.error('日志轮转失败:', error.message);
+            console.error('Log rotation failed:', error.message);
         }
     }
 
     /**
-     * 获取日志（API 查询）
+     * Fetch logs (API query).
      */
     getLogs(options = {}) {
         const { level, search, limit = 100, offset = 0 } = options;
 
         let filtered = [...this.logStore];
 
-        // 过滤分隔符
+        // Filter separators
         filtered = filtered.filter(log => !this._isSeparator(log.message));
 
         if (level && level !== 'all') {
@@ -251,7 +251,7 @@ class LogWebSocketServer {
     }
 
     /**
-     * 判断是否为分隔符
+     * Determine whether a message is a separator.
      */
     _isSeparator(message) {
         if (!message || typeof message !== 'string') return false;
@@ -261,11 +261,11 @@ class LogWebSocketServer {
     }
 
     /**
-     * 清空日志
+     * Clear logs.
      */
     clearLogs() {
         this.logStore.length = 0;
-        // 广播清空事件
+        // Broadcast clear event
         for (const client of this.clients) {
             if (client.readyState === 1) {
                 try {
@@ -276,7 +276,7 @@ class LogWebSocketServer {
     }
 
     /**
-     * 获取统计
+     * Get stats.
      */
     getLogStats() {
         const stats = { total: 0, info: 0, warn: 0, error: 0, request: 0, debug: 0 };
@@ -293,16 +293,16 @@ class LogWebSocketServer {
     }
 
     /**
-     * 关闭服务
+     * Close the service.
      */
     close() {
-        // 刷新剩余缓冲
+        // Flush remaining buffer
         if (this.flushTimer) {
             clearTimeout(this.flushTimer);
             this._flushBuffer();
         }
 
-        // 关闭 WebSocket
+        // Close WebSocket
         if (this.wss) {
             for (const client of this.clients) {
                 client.close();
@@ -312,6 +312,6 @@ class LogWebSocketServer {
     }
 }
 
-// 单例
+// Singleton
 export const logWsServer = new LogWebSocketServer();
 export default logWsServer;

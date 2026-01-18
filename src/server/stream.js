@@ -1,6 +1,6 @@
 /**
- * SSE 流式响应和心跳机制工具模块
- * 提供统一的流式响应处理、心跳保活、429重试等功能
+ * SSE streaming responses and heartbeat utilities
+ * Provides unified streaming handling, heartbeat keepalive, 429 retries, etc.
  */
 
 import config from '../config/config.js';
@@ -8,14 +8,14 @@ import logger from '../utils/logger.js';
 import memoryManager, { registerMemoryPoolCleanup } from '../utils/memoryManager.js';
 import { DEFAULT_HEARTBEAT_INTERVAL } from '../constants/index.js';
 
-// ==================== 心跳机制（防止 CF 超时） ====================
+// ==================== Heartbeat (prevent CF timeouts) ====================
 const HEARTBEAT_INTERVAL = config.server.heartbeatInterval || DEFAULT_HEARTBEAT_INTERVAL;
 const SSE_HEARTBEAT = Buffer.from(': heartbeat\n\n');
 
 /**
- * 创建心跳定时器
- * @param {Response} res - Express响应对象
- * @returns {NodeJS.Timeout} 定时器
+ * Create heartbeat timer
+ * @param {Response} res - Express response
+ * @returns {NodeJS.Timeout} timer
  */
 export const createHeartbeat = (res) => {
   const timer = setInterval(() => {
@@ -26,20 +26,20 @@ export const createHeartbeat = (res) => {
     }
   }, HEARTBEAT_INTERVAL);
 
-  // 响应结束时清理
+  // Cleanup when response ends
   res.on('close', () => clearInterval(timer));
   res.on('finish', () => clearInterval(timer));
 
   return timer;
 };
 
-// ==================== 预编译的常量字符串（避免重复创建） ====================
+// ==================== Precompiled constants (avoid reallocations) ====================
 const SSE_PREFIX = Buffer.from('data: ');
 const SSE_SUFFIX = Buffer.from('\n\n');
 const SSE_DONE = Buffer.from('data: [DONE]\n\n');
 
 /**
- * 生成响应元数据
+ * Generate response metadata
  * @returns {{id: string, created: number}}
  */
 export const createResponseMeta = () => ({
@@ -48,29 +48,29 @@ export const createResponseMeta = () => ({
 });
 
 /**
- * 设置流式响应头
- * @param {Response} res - Express响应对象
+ * Set streaming headers
+ * @param {Response} res - Express response
  */
 export const setStreamHeaders = (res) => {
   res.setHeader('Content-Type', 'text/event-stream');
   res.setHeader('Cache-Control', 'no-cache');
   res.setHeader('Connection', 'keep-alive');
-  res.setHeader('X-Accel-Buffering', 'no'); // 禁用 nginx 缓冲
-  // 立即发送响应头，确保客户端尽快建立连接
+  res.setHeader('X-Accel-Buffering', 'no'); // Disable nginx buffering
+  // Flush headers immediately so clients connect quickly
   res.flushHeaders();
 };
 
-// ==================== 对象池（减少 GC） ====================
+// ==================== Object pool (reduce GC) ====================
 const chunkPool = [];
 
 /**
- * 从对象池获取 chunk 对象
+ * Get chunk object from pool
  * @returns {Object}
  */
 export const getChunkObject = () => chunkPool.pop() || { choices: [{ index: 0, delta: {}, finish_reason: null }] };
 
 /**
- * 释放 chunk 对象回对象池
+ * Release chunk object back to pool
  * @param {Object} obj 
  */
 export const releaseChunkObject = (obj) => {
@@ -78,41 +78,41 @@ export const releaseChunkObject = (obj) => {
   if (chunkPool.length < maxSize) chunkPool.push(obj);
 };
 
-// 注册内存清理回调
+// Register memory cleanup callback
 registerMemoryPoolCleanup(chunkPool, () => memoryManager.getPoolSizes().chunk);
 
 /**
- * 获取当前对象池大小（用于监控）
+ * Get current pool size (for monitoring)
  * @returns {number}
  */
 export const getChunkPoolSize = () => chunkPool.length;
 
 /**
- * 清空对象池
+ * Clear object pool
  */
 export const clearChunkPool = () => {
   chunkPool.length = 0;
 };
 
 /**
- * 零拷贝写入流式数据
- * @param {Response} res - Express响应对象
- * @param {Object} data - 要发送的数据
+ * Zero-copy write streamed data
+ * @param {Response} res - Express response
+ * @param {Object} data - data to send
  */
 export const writeStreamData = (res, data) => {
   const json = JSON.stringify(data);
   res.write(SSE_PREFIX);
   res.write(json);
   res.write(SSE_SUFFIX);
-  // 立即刷新缓冲区，确保数据实时发送给客户端
+  // Flush buffer immediately to send data in real time
   if (typeof res.flush === 'function') {
     res.flush();
   }
 };
 
 /**
- * 结束流式响应
- * @param {Response} res - Express响应对象
+ * End streaming response
+ * @param {Response} res - Express response
  */
 export const endStream = (res, isWriteDone = true) => {
   if (res.writableEnded) return;
@@ -120,7 +120,7 @@ export const endStream = (res, isWriteDone = true) => {
   res.end();
 };
 
-// ==================== 通用重试工具（处理 429） ====================
+// ==================== Retry helper (handles 429) ====================
 
 function sleep(ms) {
   return new Promise(resolve => setTimeout(resolve, ms));
@@ -242,34 +242,34 @@ function computeBackoffMs(attempt, explicitDelayMs) {
 }
 
 /**
- * 带 429 重试的执行器
- * @param {Function} fn - 要执行的异步函数，接收 attempt 参数
- * @param {number} maxRetries - 最大重试次数
- * @param {string} loggerPrefix - 日志前缀
- * @param {Function} onAttempt - 可选，每次尝试时的回调（用于记录请求次数）
+ * Executor with 429 retries
+ * @param {Function} fn - async function to execute, receives attempt index
+ * @param {number} maxRetries - max retry count
+ * @param {string} loggerPrefix - log prefix
+ * @param {Function} onAttempt - optional callback for each attempt (request counting)
  * @returns {Promise<any>}
  */
 export const with429Retry = async (fn, maxRetries, loggerPrefix = '', onAttempt = null) => {
   const retries = Number.isFinite(maxRetries) && maxRetries > 0 ? Math.floor(maxRetries) : 0;
   let attempt = 0;
-  // 首次执行 + 最多 retries 次重试
+  // First call + up to retries attempts
   while (true) {
     try {
-      // 每次尝试时调用回调（用于记录请求次数）
+      // Call callback on each attempt (for request counting)
       if (typeof onAttempt === 'function') {
         onAttempt(attempt);
       }
       return await fn(attempt);
     } catch (error) {
-      // 兼容多种错误格式：error.status, error.statusCode, error.response?.status
+      // Support multiple error shapes: error.status, error.statusCode, error.response?.status
       const status = Number(error.status || error.statusCode || error.response?.status);
       if (status === 429 && attempt < retries) {
         const nextAttempt = attempt + 1;
         const explicitDelayMs = getUpstreamRetryDelayMs(error);
         const waitMs = computeBackoffMs(nextAttempt, explicitDelayMs);
         logger.warn(
-          `${loggerPrefix}收到 429，等待 ${waitMs}ms 后进行第 ${nextAttempt} 次重试（共 ${retries} 次）` +
-          (explicitDelayMs !== null ? `（上游提示≈${explicitDelayMs}ms）` : '')
+          `${loggerPrefix}Received 429; waiting ${waitMs}ms before retry ${nextAttempt} (total ${retries})` +
+          (explicitDelayMs !== null ? ` (upstream hint ≈${explicitDelayMs}ms)` : '')
         );
         await sleep(waitMs);
         attempt = nextAttempt;

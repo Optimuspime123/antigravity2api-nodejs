@@ -7,14 +7,14 @@ import { MIME_TO_EXT } from '../constants/index.js';
 
 const IMAGE_DIR = getImageDir();
 
-// 确保图片目录存在（开发环境）
+// Ensure the image directory exists (development environment)
 if (!isPkg && !fs.existsSync(IMAGE_DIR)) {
   fs.mkdirSync(IMAGE_DIR, { recursive: true });
 }
 
 /**
- * 清理超过限制数量的旧图片
- * @param {number} maxCount - 最大保留图片数量
+ * Remove old images beyond the retention limit.
+ * @param {number} maxCount - Maximum number of images to keep
  */
 function cleanOldImages(maxCount = 10) {
   const files = fs.readdirSync(IMAGE_DIR)
@@ -32,24 +32,24 @@ function cleanOldImages(maxCount = 10) {
 }
 
 /**
- * 保存 base64 图片到本地并返回访问 URL
- * @param {string} base64Data - base64 编码的图片数据
- * @param {string} mimeType - 图片 MIME 类型
- * @returns {string} 图片访问 URL
+ * Save a base64 image locally and return its URL.
+ * @param {string} base64Data - Base64-encoded image data
+ * @param {string} mimeType - Image MIME type
+ * @returns {string} Image URL
  */
 export function saveBase64Image(base64Data, mimeType) {
   const ext = MIME_TO_EXT[mimeType] || 'jpg';
   const filename = `${Date.now()}_${Math.random().toString(36).slice(2, 9)}.${ext}`;
   const filepath = path.join(IMAGE_DIR, filename);
   
-  // 解码并保存
+  // Decode and save
   const buffer = Buffer.from(base64Data, 'base64');
   fs.writeFileSync(filepath, buffer);
   
-  // 清理旧图片
+  // Clean up old images
   cleanOldImages(config.maxImages);
   
-  // 返回访问 URL
+  // Return URL
   const baseUrl = config.imageBaseUrl || `http://${getDefaultIp()}:${config.server.port}`;
   return `${baseUrl}/images/${filename}`;
 }

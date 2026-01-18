@@ -1,12 +1,12 @@
 /**
- * Gemini CLI API 路由
- * 处理多种格式的端点：
- * - /cli/v1/chat/completions (OpenAI 格式)
- * - /cli/v1beta/models/:model:generateContent (Gemini 格式)
- * - /cli/v1beta/models/:model:streamGenerateContent (Gemini 流式格式)
- * - /cli/v1/messages (Claude 格式)
+ * Gemini CLI API routes
+ * Handles endpoints for multiple formats:
+ * - /cli/v1/chat/completions (OpenAI format)
+ * - /cli/v1beta/models/:model:generateContent (Gemini format)
+ * - /cli/v1beta/models/:model:streamGenerateContent (Gemini streaming format)
+ * - /cli/v1/messages (Claude format)
  *
- * 这是 Gemini CLI 反代的入口，支持 OpenAI/Gemini/Claude 兼容的 API 格式
+ * Entry point for the Gemini CLI proxy, supporting OpenAI/Gemini/Claude-compatible formats.
  */
 
 import { Router } from 'express';
@@ -17,13 +17,13 @@ import config from '../config/config.js';
 const router = Router();
 
 /**
- * 中间件：检查 Gemini CLI 功能是否启用
+ * Middleware: check whether Gemini CLI is enabled
  */
 const checkGeminiCliEnabled = (req, res, next) => {
   if (config.geminicli?.enabled === false) {
     return res.status(503).json({
       error: {
-        message: 'Gemini CLI 功能未启用',
+        message: 'Gemini CLI is not enabled',
         type: 'service_unavailable',
         code: 'geminicli_disabled'
       }
@@ -32,12 +32,12 @@ const checkGeminiCliEnabled = (req, res, next) => {
   next();
 };
 
-// 应用中间件到所有路由
+// Apply middleware to all routes
 router.use(checkGeminiCliEnabled);
 
 /**
- * 生成 Gemini CLI 可用模型列表
- * 与 gcli2api 项目保持一致
+ * Generate Gemini CLI model list
+ * Keep consistent with the gcli2api project
  */
 function getGeminiCliModels() {
   const baseModels = [
@@ -48,26 +48,26 @@ function getGeminiCliModels() {
   ];
   
   const models = [];
-  const featurePrefixes = ['', '假流式/', '流式抗截断/'];
+  const featurePrefixes = ['', 'pseudo-stream/', 'stream-anti-truncate/'];
   const thinkingSuffixes = ['', '-maxthinking', '-nothinking'];
   const searchSuffix = '-search';
   
   for (const baseModel of baseModels) {
     for (const prefix of featurePrefixes) {
-      // 基础模型
+      // Base model
       models.push(`${prefix}${baseModel}`);
       
-      // 带 thinking 后缀
+      // With thinking suffix
       for (const thinkingSuffix of thinkingSuffixes) {
         if (thinkingSuffix) {
           models.push(`${prefix}${baseModel}${thinkingSuffix}`);
         }
       }
       
-      // 带 search 后缀
+      // With search suffix
       models.push(`${prefix}${baseModel}${searchSuffix}`);
       
-      // 带 thinking + search 组合后缀
+      // With thinking + search suffix
       for (const thinkingSuffix of thinkingSuffixes) {
         if (thinkingSuffix) {
           models.push(`${prefix}${baseModel}${thinkingSuffix}${searchSuffix}`);
@@ -80,7 +80,7 @@ function getGeminiCliModels() {
 }
 
 /**
- * 返回模型列表的通用处理函数
+ * Shared handler for model list responses
  */
 function handleModelsRequest(req, res) {
   try {
@@ -99,65 +99,65 @@ function handleModelsRequest(req, res) {
     
     res.json(modelList);
   } catch (error) {
-    logger.error('[GeminiCLI] 获取模型列表失败:', error.message);
+    logger.error('[GeminiCLI] Failed to fetch model list:', error.message);
     res.status(500).json({ error: error.message });
   }
 }
 
 /**
  * GET /cli/v1/models
- * 获取可用模型列表（OpenAI 格式）
+ * Get available model list (OpenAI format)
  */
 router.get('/v1/models', handleModelsRequest);
 
 /**
  * GET /cli/v1beta/models
- * 获取可用模型列表（Gemini 格式）
+ * Get available model list (Gemini format)
  */
 router.get('/v1beta/models', handleModelsRequest);
 
 /**
  * POST /cli/v1/chat/completions
- * 处理 OpenAI 格式的聊天补全请求
+ * Handle OpenAI chat completion requests
  */
 router.post('/v1/chat/completions', (req, res) => handleGeminiCliRequest(req, res, 'openai'));
 
-// ==================== Gemini 格式端点 ====================
+// ==================== Gemini format endpoints ====================
 
 /**
  * POST /cli/v1beta/models/:model:generateContent
- * 处理 Gemini 格式的非流式请求
+ * Handle Gemini non-stream requests
  */
 router.post('/v1beta/models/:model\\:generateContent', (req, res) => {
-  // 将模型名称添加到请求体
+  // Add model name to request body
   req.body.model = req.params.model;
   handleGeminiCliRequest(req, res, 'gemini');
 });
 
 /**
  * POST /cli/v1beta/models/:model:streamGenerateContent
- * 处理 Gemini 格式的流式请求
+ * Handle Gemini streaming requests
  */
 router.post('/v1beta/models/:model\\:streamGenerateContent', (req, res) => {
-  // 将模型名称添加到请求体，并标记为流式
+  // Add model name to request body and mark as streaming
   req.body.model = req.params.model;
-  req.body._isStream = true; // 内部标记
+  req.body._isStream = true; // Internal flag
   handleGeminiCliRequest(req, res, 'gemini');
 });
 
-// ==================== Claude 格式端点 ====================
+// ==================== Claude format endpoints ====================
 
 /**
  * POST /cli/v1/messages
- * 处理 Claude 格式的消息请求
+ * Handle Claude message requests
  */
 router.post('/v1/messages', (req, res) => handleGeminiCliRequest(req, res, 'claude'));
 
-// ==================== 健康检查 ====================
+// ==================== Health check ====================
 
 /**
  * GET /cli/health
- * 健康检查端点
+ * Health check endpoint
  */
 router.get('/health', (req, res) => {
   res.json({
