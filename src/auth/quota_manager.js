@@ -4,12 +4,12 @@ import { log } from '../utils/logger.js';
 import { getDataDir } from '../utils/paths.js';
 import { QUOTA_CACHE_TTL, QUOTA_CLEANUP_INTERVAL } from '../constants/index.js';
 
-// 每次请求消耗的额度百分比
+// Quota percentage consumed per request
 const REQUEST_COST_PERCENT = 0.6667;
 
 class QuotaManager {
   /**
-   * @param {string} filePath - 额度数据文件路径
+   * @param {string} filePath - quota data file path
    */
   constructor(filePath = path.join(getDataDir(), 'quotas.json')) {
     this.filePath = filePath;
@@ -38,13 +38,13 @@ class QuotaManager {
       const data = fs.readFileSync(this.filePath, 'utf8');
       const parsed = JSON.parse(data);
       Object.entries(parsed.quotas || {}).forEach(([key, value]) => {
-        // 确保 requestCounts 和 resetTimes 字段存在
+        // Ensure requestCounts and resetTimes fields exist
         if (!value.requestCounts) value.requestCounts = {};
         if (!value.resetTimes) value.resetTimes = {};
         this.cache.set(key, value);
       });
     } catch (error) {
-      log.error('加载额度文件失败:', error.message);
+      log.error('Failed to load quota file:', error.message);
     }
   }
 
@@ -60,14 +60,14 @@ class QuotaManager {
       };
       fs.writeFileSync(this.filePath, JSON.stringify(data, null, 2), 'utf8');
     } catch (error) {
-      log.error('保存额度文件失败:', error.message);
+      log.error('Failed to save quota file:', error.message);
     }
   }
 
   /**
-   * 更新额度数据
+   * Update quota data
    * @param {string} refreshToken - Token ID
-   * @param {Object} quotas - 额度数据
+   * @param {Object} quotas - quota data
    */
   updateQuota(refreshToken, quotas) {
     const existing = this.cache.get(refreshToken) || {};
@@ -75,20 +75,20 @@ class QuotaManager {
     const existingRequestCounts = existing.requestCounts || {};
     const existingResetTimes = existing.resetTimes || {};
 
-    // 检查各个模型组的重置时间和额度变化
+    // Check reset times and quota changes per model group
     const newResetTimes = {};
     const newRequestCounts = { ...existingRequestCounts };
 
-    // 记录需要重置的组（静默，不打印日志）
+    // Track groups that need reset (silent)
     const silentResetGroups = new Set();
-    // 记录额度真正增加的组（需要打印日志）
+    // Track groups with real quota increase (log needed)
     const quotaIncreasedGroups = new Set();
 
-    // 记录每个组的最低额度，用于检测额度增加
+    // Track minimum quota per group to detect increases
     const groupMinRemaining = {};
     const existingGroupMinRemaining = {};
 
-    // 计算新数据中每个组的最低额度
+    // Compute minimum quota per group in new data
     Object.entries(quotas || {}).forEach(([modelId, quotaData]) => {
       const groupKey = this._getGroupKey(modelId);
       const remaining = quotaData.r || 0;
@@ -102,18 +102,18 @@ class QuotaManager {
         const newResetMs = Date.parse(resetTimeRaw);
         const oldResetMs = existingResetTimes[groupKey] ? Date.parse(existingResetTimes[groupKey]) : null;
 
-        // 更新重置时间（取最早的）
+        // Update reset time (earliest wins)
         if (!newResetTimes[groupKey] || newResetMs < Date.parse(newResetTimes[groupKey])) {
           newResetTimes[groupKey] = resetTimeRaw;
         }
 
-        // 如果重置时间变化（新的重置周期），静默重置计数
+        // If reset time changes (new cycle), reset counts silently
         if (oldResetMs && newResetMs > oldResetMs && !silentResetGroups.has(groupKey)) {
           newRequestCounts[groupKey] = 0;
           silentResetGroups.add(groupKey);
         }
 
-        // 如果当前时间已超过重置时间，也静默重置计数
+        // If current time exceeds reset time, reset counts silently
         if (newResetMs && Date.now() > newResetMs && existingRequestCounts[groupKey] > 0) {
           newRequestCounts[groupKey] = 0;
           silentResetGroups.add(groupKey);
@@ -121,7 +121,7 @@ class QuotaManager {
       }
     });
 
-    // 计算旧数据中每个组的最低额度
+    // Compute minimum quota per group in old data
     Object.entries(existingModels).forEach(([modelId, quotaData]) => {
       const groupKey = this._getGroupKey(modelId);
       const remaining = quotaData.r || 0;
@@ -131,21 +131,21 @@ class QuotaManager {
       }
     });
 
-    // 检测额度增加：如果新的最低额度 > 旧的最低额度，说明额度重置了
+    // Detect quota increase: if new min > old min, quota reset happened
     for (const groupKey of Object.keys(groupMinRemaining)) {
       const newMin = groupMinRemaining[groupKey];
       const oldMin = existingGroupMinRemaining[groupKey];
 
-      // 只有当旧数据存在且新额度明显高于旧额度时才标记为额度增加
+      // Only mark increase when old data exists and new quota is clearly higher
       if (oldMin !== undefined && newMin > oldMin + 0.05) {
         newRequestCounts[groupKey] = 0;
         quotaIncreasedGroups.add(groupKey);
       }
     }
 
-    // 只有额度真正增加时才打印日志
+    // Log only when quota truly increases
     if (quotaIncreasedGroups.size > 0) {
-      log.info(`[QuotaManager] 额度重置，清零请求计数: ${Array.from(quotaIncreasedGroups).join(', ')}`);
+      log.info(`[QuotaManager] Quota reset; cleared request counts: ${Array.from(quotaIncreasedGroups).join(', ')}`);
     }
 
     this.cache.set(refreshToken, {
@@ -158,9 +158,9 @@ class QuotaManager {
   }
 
   /**
-   * 获取模型所属的组 key
-   * @param {string} modelId - 模型 ID
-   * @returns {string} 组 key
+   * Get group key for a model
+   * @param {string} modelId - model ID
+   * @returns {string} group key
    */
   _getGroupKey(modelId) {
     const lower = modelId.toLowerCase();
@@ -171,14 +171,14 @@ class QuotaManager {
   }
 
   /**
-   * 记录一次请求
+   * Record a request
    * @param {string} refreshToken - Token ID
-   * @param {string} modelId - 使用的模型 ID
+   * @param {string} modelId - model ID used
    */
   recordRequest(refreshToken, modelId) {
     let data = this.cache.get(refreshToken);
 
-    // 如果没有缓存条目，创建一个新的
+    // Create a new cache entry if missing
     if (!data) {
       data = {
         lastUpdated: Date.now(),
@@ -192,12 +192,12 @@ class QuotaManager {
     const groupKey = this._getGroupKey(modelId);
     if (!data.requestCounts) data.requestCounts = {};
 
-    // 检查是否已过重置时间
+    // Check if reset time has passed
     const resetTimeRaw = data.resetTimes?.[groupKey];
     if (resetTimeRaw) {
       const resetMs = Date.parse(resetTimeRaw);
       if (Date.now() > resetMs) {
-        // 已过重置时间，重置计数
+        // Reset time passed; reset count
         data.requestCounts[groupKey] = 0;
       }
     }
@@ -207,15 +207,15 @@ class QuotaManager {
   }
 
   /**
-   * 获取额度数据（包含请求计数和预估）
+   * Get quota data (includes request counts and estimates)
    * @param {string} refreshToken - Token ID
-   * @returns {Object|null} 额度数据
+   * @returns {Object|null} quota data
    */
   getQuota(refreshToken) {
     const data = this.cache.get(refreshToken);
     if (!data) return null;
 
-    // 检查缓存是否过期
+    // Check whether cache expired
     if (Date.now() - data.lastUpdated > this.CACHE_TTL) {
       return null;
     }
@@ -224,9 +224,9 @@ class QuotaManager {
   }
 
   /**
-   * 获取指定 token 的请求计数
+   * Get request counts for a token
    * @param {string} refreshToken - Token ID
-   * @returns {Object} 请求计数 { claude: number, gemini: number, banana: number, other: number }
+   * @returns {Object} request counts { claude: number, gemini: number, banana: number, other: number }
    */
   getRequestCounts(refreshToken) {
     const data = this.cache.get(refreshToken);
@@ -234,46 +234,46 @@ class QuotaManager {
   }
 
   /**
-   * 检查 token 对特定模型组是否有额度
+   * Check whether token has quota for a model group
    * @param {string} tokenId - Token ID
    * @param {string} modelId - 模型 ID
-   * @returns {boolean} 是否有额度（true = 有额度或无数据，false = 额度为 0）
+   * @returns {boolean} true if quota exists or unknown; false if zero
    */
   hasQuotaForModel(tokenId, modelId) {
     const data = this.cache.get(tokenId);
     if (!data || !data.models) {
-      // 没有额度数据，假设有额度
+      // No quota data; assume available
       return true;
     }
 
     const groupKey = this._getGroupKey(modelId);
 
-    // 查找该组中任意模型的额度
+    // Find any model's quota within the group
     for (const [id, quotaData] of Object.entries(data.models)) {
       const idGroupKey = this._getGroupKey(id);
       if (idGroupKey === groupKey) {
         const remaining = quotaData.r || 0;
-        // 如果额度为 0，返回 false
+        // If quota is 0, return false
         if (remaining <= 0) {
           return false;
         }
       }
     }
 
-    // 没有找到该组的模型，或者所有模型都有额度
+    // No model found in group, or all have quota
     return true;
   }
 
   /**
-   * 获取模型组的最小额度
+   * Get minimum quota for a model group
    * @param {string} tokenId - Token ID
    * @param {string} modelId - 模型 ID
-   * @returns {number} 该组的最小额度 (0-1)，如果没有数据返回 1
+   * @returns {number} minimum quota for group (0-1), 1 if no data
    */
   getModelGroupQuota(tokenId, modelId) {
     const data = this.cache.get(tokenId);
     if (!data || !data.models) {
-      return 1; // 没有数据，假设满额
+      return 1; // No data; assume full quota
     }
 
     const groupKey = this._getGroupKey(modelId);
@@ -295,16 +295,16 @@ class QuotaManager {
   }
 
   /**
-   * 计算预估剩余请求次数
+   * Calculate estimated remaining requests
    * @param {number} remainingFraction - 剩余额度比例 (0-1)
    * @param {number} requestCount - 已使用的请求次数
-   * @returns {number} 预估剩余请求次数
+   * @returns {number} estimated remaining requests
    */
   calculateEstimatedRequests(remainingFraction, requestCount = 0) {
-    // 基于当前阈值计算总的可用次数
+    // Estimate total available requests from current threshold
     const percentageValue = remainingFraction * 100;
     const totalFromThreshold = Math.floor(percentageValue / REQUEST_COST_PERCENT);
-    // 减去已记录的请求次数
+    // Subtract recorded request count
     return Math.max(0, totalFromThreshold - requestCount);
   }
 
@@ -320,7 +320,7 @@ class QuotaManager {
     });
 
     if (cleaned > 0) {
-      log.info(`清理了 ${cleaned} 个过期的额度记录`);
+      log.info(`Cleaned ${cleaned} expired quota records`);
       this.saveToFile();
     }
   }
@@ -330,7 +330,7 @@ class QuotaManager {
       clearInterval(this.cleanupTimer);
     }
     this.cleanupTimer = setInterval(() => this.cleanup(), this.CLEANUP_INTERVAL);
-    // 使用 unref 避免阻止进程退出
+    // Use unref to avoid blocking process exit
     this.cleanupTimer.unref?.();
   }
 
@@ -360,4 +360,3 @@ class QuotaManager {
 
 const quotaManager = new QuotaManager();
 export default quotaManager;
-

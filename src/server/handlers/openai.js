@@ -44,7 +44,7 @@ export const handleOpenAIRequest = async (req, res) => {
 
     const token = await tokenManager.getToken(model);
     if (!token) {
-      throw new Error('没有可用的token，请运行 npm run login 获取token');
+      throw new Error('No available token. Run npm run login to add one.');
     }
 
     const isImageModel = model.includes('-image');
@@ -126,7 +126,7 @@ export const handleOpenAIRequest = async (req, res) => {
           writeStreamData(res, buildOpenAIErrorPayload(error, statusCode));
           endStream(res);
         }
-        logger.error('生成响应失败:', error.message);
+        logger.error('Failed to generate response:', error.message);
         return;
       }
     } else if (config.fakeNonStream && !isImageModel) {
@@ -188,7 +188,7 @@ export const handleOpenAIRequest = async (req, res) => {
           stripToolCallSignature: !config.passSignatureToClient
         }));
       } catch (error) {
-        logger.error('假非流生成响应失败:', error.message);
+        logger.error('Pseudo-non-stream response generation failed:', error.message);
         if (res.headersSent) return;
         const statusCode = error.statusCode || error.status || 500;
         return res.status(statusCode).json(buildOpenAIErrorPayload(error, statusCode));
@@ -235,7 +235,7 @@ export const handleOpenAIRequest = async (req, res) => {
       }));
     }
   } catch (error) {
-    logger.error('生成响应失败:', error.message);
+    logger.error('Failed to generate response:', error.message);
     if (res.headersSent) return;
     const statusCode = error.statusCode || error.status || 500;
     return res.status(statusCode).json(buildOpenAIErrorPayload(error, statusCode));

@@ -1,9 +1,9 @@
-// Gemini CLI Token 管理模块
+// Gemini CLI Token management module
 
 let cachedGeminiCliTokens = [];
 let currentGeminiCliFilter = localStorage.getItem('geminicliTokenFilter') || 'all';
 
-// Gemini CLI OAuth 配置
+// Gemini CLI OAuth configuration
 const GEMINICLI_CLIENT_ID = '681255809395-oo8ft2oprdrnp9e3aqf6av3hmdib135j.apps.googleusercontent.com';
 const GEMINICLI_SCOPES = [
     'openid',
@@ -13,7 +13,7 @@ const GEMINICLI_SCOPES = [
 
 let geminicliOauthPort = null;
 
-// 获取 Gemini CLI OAuth URL
+// Get Gemini CLI OAuth URL
 function getGeminiCliOAuthUrl() {
     if (!geminicliOauthPort) geminicliOauthPort = Math.floor(Math.random() * 10000) + 50000;
     const redirectUri = `http://localhost:${geminicliOauthPort}/oauth-callback`;
@@ -23,43 +23,43 @@ function getGeminiCliOAuthUrl() {
         `scope=${encodeURIComponent(GEMINICLI_SCOPES)}&state=geminicli_${Date.now()}`;
 }
 
-// 打开 Gemini CLI OAuth 窗口
+// Open Gemini CLI OAuth window
 function openGeminiCliOAuthWindow() {
     window.open(getGeminiCliOAuthUrl(), '_blank');
 }
 
-// 复制 Gemini CLI OAuth URL
+// Copy Gemini CLI OAuth URL
 function copyGeminiCliOAuthUrl() {
     const url = getGeminiCliOAuthUrl();
     navigator.clipboard.writeText(url).then(() => {
-        showToast('Gemini CLI 授权链接已复制', 'success');
+        showToast('Gemini CLI authorization link copied', 'success');
     }).catch(() => {
-        showToast('复制失败', 'error');
+        showToast('Copy failed', 'error');
     });
 }
 
-// 显示 Gemini CLI OAuth 弹窗
+// Show Gemini CLI OAuth modal
 function showGeminiCliOAuthModal() {
-    showToast('点击后请在新窗口完成授权', 'info');
+    showToast('Click to complete authorization in a new window.', 'info');
     const modal = document.createElement('div');
     modal.className = 'modal form-modal';
     modal.innerHTML = `
         <div class="modal-content">
-            <div class="modal-title">🔐 Gemini CLI OAuth授权</div>
+            <div class="modal-title">🔐 Gemini CLI OAuth Authorization</div>
             <div class="oauth-steps">
-                <p><strong>📝 授权流程：</strong></p>
-                <p>1️⃣ 点击下方按钮打开Google授权页面</p>
-                <p>2️⃣ 完成授权后，复制浏览器地址栏的完整URL</p>
-                <p>3️⃣ 粘贴URL到下方输入框并提交</p>
+                <p><strong>📝 Authorization steps:</strong></p>
+                <p>1️⃣ Click the button below to open the Google authorization page</p>
+                <p>2️⃣ After authorizing, copy the full URL from the browser address bar</p>
+                <p>3️⃣ Paste the URL below and submit</p>
             </div>
             <div style="display: flex; gap: 8px; margin-bottom: 12px;">
-                <button type="button" onclick="openGeminiCliOAuthWindow()" class="btn btn-success" style="flex: 1;">🔐 打开授权页面</button>
-                <button type="button" onclick="copyGeminiCliOAuthUrl()" class="btn btn-info" style="flex: 1;">📋 复制授权链接</button>
+                <button type="button" onclick="openGeminiCliOAuthWindow()" class="btn btn-success" style="flex: 1;">🔐 Open authorization page</button>
+                <button type="button" onclick="copyGeminiCliOAuthUrl()" class="btn btn-info" style="flex: 1;">📋 Copy authorization link</button>
             </div>
-            <input type="text" id="geminicliCallbackUrl" placeholder="粘贴完整的回调URL (http://localhost:xxxxx/oauth-callback?code=...)">
+            <input type="text" id="geminicliCallbackUrl" placeholder="Paste the full callback URL (http://localhost:xxxxx/oauth-callback?code=...)">
             <div class="modal-actions">
-                <button class="btn btn-secondary" onclick="this.closest('.modal').remove()">取消</button>
-                <button class="btn btn-success" onclick="processGeminiCliOAuthCallback()">✅ 提交</button>
+                <button class="btn btn-secondary" onclick="this.closest('.modal').remove()">Cancel</button>
+                <button class="btn btn-success" onclick="processGeminiCliOAuthCallback()">✅ Submit</button>
             </div>
         </div>
     `;
@@ -67,16 +67,16 @@ function showGeminiCliOAuthModal() {
     modal.onclick = (e) => { if (e.target === modal) modal.remove(); };
 }
 
-// 处理 Gemini CLI OAuth 回调
+// Handle Gemini CLI OAuth callback
 async function processGeminiCliOAuthCallback() {
     const modal = document.querySelector('.form-modal');
     const callbackUrl = document.getElementById('geminicliCallbackUrl').value.trim();
     if (!callbackUrl) {
-        showToast('请输入回调URL', 'warning');
+        showToast('Please enter the callback URL', 'warning');
         return;
     }
 
-    showLoading('正在处理授权...');
+    showLoading('Processing authorization...');
 
     try {
         const url = new URL(callbackUrl);
@@ -85,11 +85,11 @@ async function processGeminiCliOAuthCallback() {
 
         if (!code) {
             hideLoading();
-            showToast('URL中未找到授权码', 'error');
+            showToast('No authorization code found in URL', 'error');
             return;
         }
 
-        // 使用 geminicli 模式交换 token
+        // Exchange token in geminicli mode
         const response = await authFetch('/admin/oauth/exchange', {
             method: 'POST',
             headers: {
@@ -101,7 +101,7 @@ async function processGeminiCliOAuthCallback() {
         const result = await response.json();
         if (result.success) {
             const account = result.data;
-            // 添加到 Gemini CLI token 列表
+            // Add to Gemini CLI token list
             const addResponse = await authFetch('/admin/geminicli/tokens', {
                 method: 'POST',
                 headers: {
@@ -114,22 +114,22 @@ async function processGeminiCliOAuthCallback() {
             hideLoading();
             if (addResult.success) {
                 modal.remove();
-                showToast('Gemini CLI Token添加成功', 'success');
+                showToast('Gemini CLI Token added', 'success');
                 loadGeminiCliTokens();
             } else {
-                showToast('添加失败: ' + addResult.message, 'error');
+                showToast('Add failed: ' + addResult.message, 'error');
             }
         } else {
             hideLoading();
-            showToast('交换失败: ' + result.message, 'error');
+            showToast('Exchange failed: ' + result.message, 'error');
         }
     } catch (error) {
         hideLoading();
-        showToast('处理失败: ' + error.message, 'error');
+        showToast('Processing failed: ' + error.message, 'error');
     }
 }
 
-// 加载 Gemini CLI Token 列表
+// Load Gemini CLI Token list
 async function loadGeminiCliTokens() {
     try {
         const response = await authFetch('/admin/geminicli/tokens');
@@ -137,16 +137,16 @@ async function loadGeminiCliTokens() {
         if (data.success) {
             renderGeminiCliTokens(data.data);
         } else {
-            showToast('加载失败: ' + (data.message || '未知错误'), 'error');
+            showToast('Load failed: ' + (data.message || 'Unknown error'), 'error');
         }
     } catch (error) {
         if (error.message !== 'Unauthorized') {
-            showToast('加载Gemini CLI Token失败: ' + error.message, 'error');
+            showToast('Failed to load Gemini CLI Tokens: ' + error.message, 'error');
         }
     }
 }
 
-// 渲染 Gemini CLI Token 列表
+// Render Gemini CLI Token list
 function renderGeminiCliTokens(tokens) {
     cachedGeminiCliTokens = tokens;
 
@@ -154,7 +154,7 @@ function renderGeminiCliTokens(tokens) {
     document.getElementById('geminicliEnabledTokens').textContent = tokens.filter(t => t.enable).length;
     document.getElementById('geminicliDisabledTokens').textContent = tokens.filter(t => !t.enable).length;
 
-    // 根据筛选条件过滤
+    // Filter by current criteria
     let filteredTokens = tokens;
     if (currentGeminiCliFilter === 'enabled') {
         filteredTokens = tokens.filter(t => t.enable);
@@ -164,9 +164,9 @@ function renderGeminiCliTokens(tokens) {
 
     const tokenList = document.getElementById('geminicliTokenList');
     if (filteredTokens.length === 0) {
-        const emptyText = currentGeminiCliFilter === 'all' ? '暂无Token' :
-            currentGeminiCliFilter === 'enabled' ? '暂无启用的Token' : '暂无禁用的Token';
-        const emptyHint = currentGeminiCliFilter === 'all' ? '点击上方OAuth按钮添加Token' : '点击上方"总数"查看全部';
+        const emptyText = currentGeminiCliFilter === 'all' ? 'No Tokens yet' :
+            currentGeminiCliFilter === 'enabled' ? 'No enabled Tokens' : 'No disabled Tokens';
+        const emptyHint = currentGeminiCliFilter === 'all' ? 'Click OAuth above to add a Token' : 'Click “Total” to view all';
         tokenList.innerHTML = `
             <div class="empty-state">
                 <div class="empty-state-icon">📦</div>
@@ -194,24 +194,24 @@ function renderGeminiCliTokens(tokens) {
             <div class="token-header">
                 <div class="token-header-left">
                     <span class="status ${token.enable ? 'enabled' : 'disabled'}">
-                        ${token.enable ? '✅ 启用' : '❌ 禁用'}
+                        ${token.enable ? '✅ Enabled' : '❌ Disabled'}
                     </span>
-                    <button class="btn-icon token-refresh-btn" onclick="refreshGeminiCliToken('${safeTokenId}')" title="刷新Token">🔄</button>
+                    <button class="btn-icon token-refresh-btn" onclick="refreshGeminiCliToken('${safeTokenId}')" title="Refresh Token">🔄</button>
                 </div>
                 <div class="token-header-right">
                     <span class="token-id">#${tokenNumber}</span>
                 </div>
             </div>
             <div class="token-info">
-                <div class="info-row editable sensitive-row" onclick="editGeminiCliField(event, '${safeTokenId}', 'email', '${safeEmailJs}')" title="点击编辑">
+                <div class="info-row editable sensitive-row" onclick="editGeminiCliField(event, '${safeTokenId}', 'email', '${safeEmailJs}')" title="Click to edit">
                     <span class="info-label">📧</span>
-                    <span class="info-value sensitive-info">${safeEmail || '点击设置'}</span>
+                    <span class="info-value sensitive-info">${safeEmail || 'Click to set'}</span>
                     <span class="info-edit-icon">✏️</span>
                 </div>
-                <div class="info-row ${hasProjectId ? '' : 'warning'}" title="${hasProjectId ? 'Project ID' : '缺少 Project ID，点击获取'}">
+                <div class="info-row ${hasProjectId ? '' : 'warning'}" title="${hasProjectId ? 'Project ID' : 'Missing Project ID, click to fetch'}">
                     <span class="info-label">📁</span>
-                    <span class="info-value ${hasProjectId ? '' : 'text-warning'}">${safeProjectId || '未获取'}</span>
-                    ${!hasProjectId ? `<button class="btn btn-info btn-xs" onclick="fetchGeminiCliProjectId('${safeTokenId}')" style="margin-left: auto;">获取</button>` : ''}
+                    <span class="info-value ${hasProjectId ? '' : 'text-warning'}">${safeProjectId || 'Not fetched'}</span>
+                    ${!hasProjectId ? `<button class="btn btn-info btn-xs" onclick="fetchGeminiCliProjectId('${safeTokenId}')" style="margin-left: auto;">Fetch</button>` : ''}
                 </div>
             </div>
             <div class="token-id-row" title="Token ID: ${escapeHtml(tokenId)}">
@@ -219,10 +219,10 @@ function renderGeminiCliTokens(tokens) {
                 <span class="token-id-value">${escapeHtml(tokenId.length > 24 ? tokenId.substring(0, 12) + '...' + tokenId.substring(tokenId.length - 8) : tokenId)}</span>
             </div>
             <div class="token-actions">
-                <button class="btn ${token.enable ? 'btn-warning' : 'btn-success'} btn-xs" onclick="toggleGeminiCliToken('${safeTokenId}', ${!token.enable})" title="${token.enable ? '禁用' : '启用'}">
-                    ${token.enable ? '⏸️ 禁用' : '▶️ 启用'}
+                <button class="btn ${token.enable ? 'btn-warning' : 'btn-success'} btn-xs" onclick="toggleGeminiCliToken('${safeTokenId}', ${!token.enable})" title="${token.enable ? 'Disable' : 'Enable'}">
+                    ${token.enable ? '⏸️ Disable' : '▶️ Enable'}
                 </button>
-                <button class="btn btn-danger btn-xs" onclick="deleteGeminiCliToken('${safeTokenId}')" title="删除">🗑️ 删除</button>
+                <button class="btn btn-danger btn-xs" onclick="deleteGeminiCliToken('${safeTokenId}')" title="Delete">🗑️ Delete</button>
             </div>
         </div>
     `}).join('');
@@ -230,7 +230,7 @@ function renderGeminiCliTokens(tokens) {
     updateSensitiveInfoDisplay();
 }
 
-// 筛选 Gemini CLI Token
+// Filter Gemini CLI Tokens
 function filterGeminiCliTokens(filter) {
     currentGeminiCliFilter = filter;
     localStorage.setItem('geminicliTokenFilter', filter);
@@ -238,7 +238,7 @@ function filterGeminiCliTokens(filter) {
     renderGeminiCliTokens(cachedGeminiCliTokens);
 }
 
-// 更新筛选按钮状态
+// Update filter button state
 function updateGeminiCliFilterButtonState(filter) {
     document.querySelectorAll('#geminicliPage .stat-item').forEach(item => {
         item.classList.remove('active');
@@ -250,7 +250,7 @@ function updateGeminiCliFilterButtonState(filter) {
     }
 }
 
-// 刷新 Gemini CLI Token
+// Refresh Gemini CLI Token
 async function refreshGeminiCliToken(tokenId) {
     try {
         const response = await authFetch(`/admin/geminicli/tokens/${encodeURIComponent(tokenId)}/refresh`, {
@@ -258,21 +258,21 @@ async function refreshGeminiCliToken(tokenId) {
         });
         const data = await response.json();
         if (data.success) {
-            showToast('Token 刷新成功', 'success');
+            showToast('Token refreshed', 'success');
             loadGeminiCliTokens();
         } else {
-            showToast(`刷新失败: ${data.message || '未知错误'}`, 'error');
+            showToast(`Refresh failed: ${data.message || 'Unknown error'}`, 'error');
         }
     } catch (error) {
         if (error.message !== 'Unauthorized') {
-            showToast(`刷新失败: ${error.message}`, 'error');
+            showToast(`Refresh failed: ${error.message}`, 'error');
         }
     }
 }
 
-// 获取 Gemini CLI Token 的 Project ID
+// Fetch Project ID for Gemini CLI Token
 async function fetchGeminiCliProjectId(tokenId) {
-    showLoading('正在获取 Project ID...');
+    showLoading('Fetching Project ID...');
     try {
         const response = await authFetch(`/admin/geminicli/tokens/${encodeURIComponent(tokenId)}/fetch-project-id`, {
             method: 'POST'
@@ -280,20 +280,20 @@ async function fetchGeminiCliProjectId(tokenId) {
         const data = await response.json();
         hideLoading();
         if (data.success) {
-            showToast(`Project ID 获取成功: ${data.projectId}`, 'success');
+            showToast(`Project ID fetched: ${data.projectId}`, 'success');
             loadGeminiCliTokens();
         } else {
-            showToast(`获取失败: ${data.message || '未知错误'}`, 'error');
+            showToast(`Fetch failed: ${data.message || 'Unknown error'}`, 'error');
         }
     } catch (error) {
         hideLoading();
         if (error.message !== 'Unauthorized') {
-            showToast(`获取失败: ${error.message}`, 'error');
+            showToast(`Fetch failed: ${error.message}`, 'error');
         }
     }
 }
 
-// 编辑 Gemini CLI Token 字段
+// Edit Gemini CLI Token fields
 function editGeminiCliField(event, tokenId, field, currentValue) {
     event.stopPropagation();
     const row = event.currentTarget;
@@ -301,13 +301,13 @@ function editGeminiCliField(event, tokenId, field, currentValue) {
 
     if (row.querySelector('input')) return;
 
-    const fieldLabels = { email: '邮箱' };
+    const fieldLabels = { email: 'Email' };
 
     const input = document.createElement('input');
     input.type = 'email';
     input.value = currentValue;
     input.className = 'inline-edit-input';
-    input.placeholder = `输入${fieldLabels[field]}`;
+    input.placeholder = `Enter ${fieldLabels[field]}`;
 
     valueSpan.style.display = 'none';
     row.insertBefore(input, valueSpan.nextSibling);
@@ -329,14 +329,14 @@ function editGeminiCliField(event, tokenId, field, currentValue) {
 
             const data = await response.json();
             if (data.success) {
-                showToast('已保存', 'success');
+                showToast('Saved', 'success');
                 loadGeminiCliTokens();
             } else {
-                showToast(data.message || '保存失败', 'error');
+                showToast(data.message || 'Save failed', 'error');
                 cancel();
             }
         } catch (error) {
-            showToast('保存失败', 'error');
+            showToast('Save failed', 'error');
             cancel();
         }
     };
@@ -368,13 +368,13 @@ function editGeminiCliField(event, tokenId, field, currentValue) {
     });
 }
 
-// 切换 Gemini CLI Token 状态
+// Toggle Gemini CLI Token state
 async function toggleGeminiCliToken(tokenId, enable) {
-    const action = enable ? '启用' : '禁用';
-    const confirmed = await showConfirm(`确定要${action}这个Token吗？`, `${action}确认`);
+    const action = enable ? 'Enable' : 'Disable';
+    const confirmed = await showConfirm(`Are you sure you want to ${action.toLowerCase()} this Token?`, `${action} confirmation`);
     if (!confirmed) return;
 
-    showLoading(`正在${action}...`);
+    showLoading(`${action}ing...`);
     try {
         const response = await authFetch(`/admin/geminicli/tokens/${encodeURIComponent(tokenId)}`, {
             method: 'PUT',
@@ -387,23 +387,23 @@ async function toggleGeminiCliToken(tokenId, enable) {
         const data = await response.json();
         hideLoading();
         if (data.success) {
-            showToast(`已${action}`, 'success');
+            showToast(`${action}d`, 'success');
             loadGeminiCliTokens();
         } else {
-            showToast(data.message || '操作失败', 'error');
+            showToast(data.message || 'Operation failed', 'error');
         }
     } catch (error) {
         hideLoading();
-        showToast('操作失败: ' + error.message, 'error');
+        showToast('Operation failed: ' + error.message, 'error');
     }
 }
 
-// 删除 Gemini CLI Token
+// Delete Gemini CLI Token
 async function deleteGeminiCliToken(tokenId) {
-    const confirmed = await showConfirm('删除后无法恢复，确定删除？', '⚠️ 删除确认');
+    const confirmed = await showConfirm('This cannot be undone. Delete anyway?', '⚠️ Delete confirmation');
     if (!confirmed) return;
 
-    showLoading('正在删除...');
+    showLoading('Deleting...');
     try {
         const response = await authFetch(`/admin/geminicli/tokens/${encodeURIComponent(tokenId)}`, {
             method: 'DELETE'
@@ -412,23 +412,23 @@ async function deleteGeminiCliToken(tokenId) {
         const data = await response.json();
         hideLoading();
         if (data.success) {
-            showToast('已删除', 'success');
+            showToast('Deleted', 'success');
             loadGeminiCliTokens();
         } else {
-            showToast(data.message || '删除失败', 'error');
+            showToast(data.message || 'Delete failed', 'error');
         }
     } catch (error) {
         hideLoading();
-        showToast('删除失败: ' + error.message, 'error');
+        showToast('Delete failed: ' + error.message, 'error');
     }
 }
 
-// 导出 Gemini CLI Token
+// Export Gemini CLI Tokens
 async function exportGeminiCliTokens() {
-    const password = await showPasswordPrompt('请输入管理员密码以导出 Gemini CLI Token');
+    const password = await showPasswordPrompt('Enter admin password to export Gemini CLI Tokens');
     if (!password) return;
 
-    showLoading('正在导出...');
+    showLoading('Exporting...');
     try {
         const response = await authFetch('/admin/geminicli/tokens/export', {
             method: 'POST',
@@ -449,23 +449,23 @@ async function exportGeminiCliTokens() {
             a.click();
             document.body.removeChild(a);
             URL.revokeObjectURL(url);
-            showToast('导出成功', 'success');
+            showToast('Export successful', 'success');
         } else {
             if (response.status === 403) {
-                showToast('密码错误，请重新输入', 'error');
+                showToast('Incorrect password, please try again', 'error');
             } else {
-                showToast(data.message || '导出失败', 'error');
+                showToast(data.message || 'Export failed', 'error');
             }
         }
     } catch (error) {
         hideLoading();
-        showToast('导出失败: ' + error.message, 'error');
+        showToast('Export failed: ' + error.message, 'error');
     }
 }
 
-// 重载 Gemini CLI Token
+// Reload Gemini CLI Tokens
 async function reloadGeminiCliTokens() {
-    showLoading('正在重载...');
+    showLoading('Reloading...');
     try {
         const response = await authFetch('/admin/geminicli/tokens/reload', {
             method: 'POST'
@@ -473,29 +473,29 @@ async function reloadGeminiCliTokens() {
         const data = await response.json();
         hideLoading();
         if (data.success) {
-            showToast('重载成功', 'success');
+            showToast('Reloaded successfully', 'success');
             loadGeminiCliTokens();
         } else {
-            showToast(data.message || '重载失败', 'error');
+            showToast(data.message || 'Reload failed', 'error');
         }
     } catch (error) {
         hideLoading();
-        showToast('重载失败: ' + error.message, 'error');
+        showToast('Reload failed: ' + error.message, 'error');
     }
 }
 
-// 初始化 Gemini CLI 页面
+// Initialize Gemini CLI page
 function initGeminiCliPage() {
     updateGeminiCliFilterButtonState(currentGeminiCliFilter);
     loadGeminiCliTokens();
 }
 
-// ==================== 导入 Gemini CLI Token ====================
+// ==================== Import Gemini CLI Tokens ====================
 
 let geminicliImportTab = 'file';
 let geminicliImportFile = null;
 
-// 存储导入弹窗的事件处理器引用，便于清理
+// Store import modal handlers for cleanup
 let geminicliImportModalHandlers = null;
 
 async function importGeminiCliTokens() {
@@ -517,7 +517,7 @@ function closeGeminiCliImportModal() {
     const modal = document.getElementById('geminicliImportModal');
     if (modal) modal.remove();
 
-    // 重置状态，避免下次打开沿用旧值
+    // Reset state to avoid carrying over next time
     geminicliImportTab = 'file';
     geminicliImportFile = null;
 }
@@ -546,7 +546,7 @@ function clearGeminiCliImportFile() {
 }
 
 function showGeminiCliImportModal() {
-    // 如果已存在，先按“可清理”方式关闭
+    // If it already exists, close with cleanup
     const existing = document.getElementById('geminicliImportModal');
     if (existing) closeGeminiCliImportModal();
 
@@ -555,18 +555,18 @@ function showGeminiCliImportModal() {
     modal.id = 'geminicliImportModal';
     modal.innerHTML = `
         <div class="modal-content modal-lg">
-            <div class="modal-title">📥 导入 Gemini CLI Token</div>
+            <div class="modal-title">📥 Import Gemini CLI Tokens</div>
 
             <div class="import-tabs">
-                <button class="import-tab active" data-tab="file" onclick="switchGeminiCliImportTab('file')">📁 文件上传</button>
-                <button class="import-tab" data-tab="json" onclick="switchGeminiCliImportTab('json')">📝 JSON导入</button>
+                <button class="import-tab active" data-tab="file" onclick="switchGeminiCliImportTab('file')">📁 File upload</button>
+                <button class="import-tab" data-tab="json" onclick="switchGeminiCliImportTab('json')">📝 JSON import</button>
             </div>
 
             <div class="import-tab-content" id="geminicliImportTabFile">
                 <div class="import-dropzone" id="geminicliImportDropzone">
                     <div class="dropzone-icon">📁</div>
-                    <div class="dropzone-text">拖拽文件到此处</div>
-                    <div class="dropzone-hint">或点击选择文件</div>
+                    <div class="dropzone-text">Drag and drop files here</div>
+                    <div class="dropzone-hint">or click to choose a file</div>
                     <input type="file" id="geminicliImportFileInput" accept=".json" style="display: none;">
                 </div>
                 <div class="import-file-info hidden" id="geminicliImportFileInfo">
@@ -580,28 +580,28 @@ function showGeminiCliImportModal() {
 
             <div class="import-tab-content hidden" id="geminicliImportTabJson">
                 <div class="form-group">
-                    <label>📝 粘贴 JSON 内容</label>
+                    <label>📝 Paste JSON content</label>
                     <textarea id="geminicliImportJsonInput" rows="8" placeholder='{"tokens": [...], "exportTime": "..."}'></textarea>
                 </div>
             </div>
 
             <div class="form-group">
-                <label>导入模式</label>
+                <label>Import mode</label>
                 <select id="geminicliImportMode">
-                    <option value="merge">合并（保留现有，添加/更新）</option>
-                    <option value="replace">替换（清空现有，导入新的）</option>
+                    <option value="merge">Merge (keep existing, add/update)</option>
+                    <option value="replace">Replace (clear existing, import new)</option>
                 </select>
-                <p style="font-size: 0.75rem; color: var(--text-light); margin-top: 0.25rem;">💡 以 refresh_token 去重：合并会更新同 refresh_token 的记录</p>
+                <p style="font-size: 0.75rem; color: var(--text-light); margin-top: 0.25rem;">💡 De-dup by refresh_token: merge updates matching refresh_token records.</p>
             </div>
 
             <div class="form-group">
-                <label>管理员密码</label>
-                <input type="password" id="geminicliImportPassword" placeholder="必填" autocomplete="current-password">
+                <label>Admin password</label>
+                <input type="password" id="geminicliImportPassword" placeholder="Required" autocomplete="current-password">
             </div>
 
             <div class="modal-actions">
-                <button class="btn btn-secondary" onclick="closeGeminiCliImportModal()">取消</button>
-                <button class="btn btn-success" onclick="submitGeminiCliImport()">✅ 导入</button>
+                <button class="btn btn-secondary" onclick="closeGeminiCliImportModal()">Cancel</button>
+                <button class="btn btn-success" onclick="submitGeminiCliImport()">✅ Import</button>
             </div>
         </div>
     `;
@@ -645,17 +645,17 @@ function showGeminiCliImportModal() {
 }
 
 function normalizeGeminiCliImportData(parsed) {
-    // 后端期望: { tokens: [...] }
+    // Backend expects: { tokens: [...] }
     if (Array.isArray(parsed)) return { tokens: parsed };
     if (parsed && typeof parsed === 'object') {
         if (Array.isArray(parsed.tokens)) return { tokens: parsed.tokens };
         if (Array.isArray(parsed.accounts)) return { tokens: parsed.accounts };
-        // 允许用户直接粘贴 export 返回中的 data
+        // Allow users to paste export data directly
         if (parsed.data && Array.isArray(parsed.data.tokens)) return { tokens: parsed.data.tokens };
         if (parsed.data && Array.isArray(parsed.data.accounts)) return { tokens: parsed.data.accounts };
 
-        // 兼容 gcli 单文件凭证：直接是一个 credential 对象
-        // 常见字段：refresh_token / refreshToken / token / access_token / accessToken
+        // Support gcli single-file credentials (one credential object)
+        // Common fields: refresh_token / refreshToken / token / access_token / accessToken
         const hasRefresh = (parsed.refresh_token || parsed.refreshToken);
         const hasAccess = (parsed.access_token || parsed.accessToken || parsed.token);
         if (hasRefresh || hasAccess) return { tokens: [parsed] };
@@ -668,21 +668,21 @@ async function submitGeminiCliImport() {
     const mode = document.getElementById('geminicliImportMode')?.value || 'merge';
 
     if (!password) {
-        showToast('请输入管理员密码', 'warning');
+        showToast('Please enter the admin password', 'warning');
         return;
     }
 
     let rawText = '';
     if (geminicliImportTab === 'file') {
         if (!geminicliImportFile) {
-            showToast('请选择要导入的 JSON 文件', 'warning');
+            showToast('Please select a JSON file to import', 'warning');
             return;
         }
         rawText = await geminicliImportFile.text();
     } else {
         rawText = document.getElementById('geminicliImportJsonInput')?.value || '';
         if (!rawText.trim()) {
-            showToast('请粘贴 JSON 内容', 'warning');
+            showToast('Please paste JSON content', 'warning');
             return;
         }
     }
@@ -691,17 +691,17 @@ async function submitGeminiCliImport() {
     try {
         parsed = JSON.parse(rawText);
     } catch (e) {
-        showToast('JSON 解析失败: ' + (e?.message || e), 'error');
+        showToast('JSON parse failed: ' + (e?.message || e), 'error');
         return;
     }
 
     const data = normalizeGeminiCliImportData(parsed);
     if (!data) {
-        showToast('无效的导入格式：需要 {"tokens": [...]} 或 token 数组', 'error');
+        showToast('Invalid import format: expected {\"tokens\": [...]} or a token array', 'error');
         return;
     }
 
-    showLoading('正在导入...');
+    showLoading('Importing...');
     try {
         const response = await authFetch('/admin/geminicli/tokens/import', {
             method: 'POST',
@@ -713,17 +713,17 @@ async function submitGeminiCliImport() {
 
         if (result.success) {
             closeGeminiCliImportModal();
-            showToast(result.message || '导入成功', 'success');
+            showToast(result.message || 'Import successful', 'success');
             loadGeminiCliTokens();
         } else {
             if (response.status === 403) {
-                showToast('密码错误，请重新输入', 'error');
+                showToast('Incorrect password, please try again', 'error');
             } else {
-                showToast(result.message || '导入失败', 'error');
+                showToast(result.message || 'Import failed', 'error');
             }
         }
     } catch (error) {
         hideLoading();
-        showToast('导入失败: ' + error.message, 'error');
+        showToast('Import failed: ' + error.message, 'error');
     }
 }

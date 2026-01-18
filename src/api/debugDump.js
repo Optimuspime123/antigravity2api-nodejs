@@ -48,9 +48,9 @@ export async function dumpFinalRequest(dumpId, requestBody) {
     const json = JSON.stringify(requestBody, null, 2);
     const header = `\n${'='.repeat(80)}\n[${getTimestamp()}] REQUEST ${dumpId}\n${'='.repeat(80)}\n`;
     await appendDumpLog(header + json + '\n');
-    logger.warn(`[DEBUG_DUMP ${dumpId}] 已写入请求体到: ${DEBUG_DUMP_FILE}`);
+    logger.warn(`[DEBUG_DUMP ${dumpId}] Request body written to: ${DEBUG_DUMP_FILE}`);
   } catch (e) {
-    logger.error(`[DEBUG_DUMP ${dumpId}] 写入请求体失败:`, e?.message || e);
+    logger.error(`[DEBUG_DUMP ${dumpId}] Failed to write request body:`, e?.message || e);
   }
 }
 
@@ -81,9 +81,9 @@ export async function dumpStreamResponse(dumpId, collector) {
     const footer = `\n[${getTimestamp()}] END ${dumpId}\n`;
 
     await appendDumpLog(header + jsonOutput + footer);
-    logger.warn(`[DEBUG_DUMP ${dumpId}] 响应记录完成 (${jsonObjects.length} 条数据)`);
+    logger.warn(`[DEBUG_DUMP ${dumpId}] Response capture complete (${jsonObjects.length} entries)`);
   } catch (e) {
-    logger.error(`[DEBUG_DUMP ${dumpId}] 写入流式响应失败:`, e?.message || e);
+    logger.error(`[DEBUG_DUMP ${dumpId}] Failed to write streaming response:`, e?.message || e);
   }
 }
 
@@ -93,8 +93,8 @@ export async function dumpFinalRawResponse(dumpId, rawText) {
     const header = `\n${'-'.repeat(80)}\n[${getTimestamp()}] RESPONSE ${dumpId} (NO-STREAM)\n${'-'.repeat(80)}\n`;
     const footer = `\n[${getTimestamp()}] END ${dumpId}\n`;
     await appendDumpLog(header + (rawText ?? '') + footer);
-    logger.warn(`[DEBUG_DUMP ${dumpId}] 响应记录完成`);
+    logger.warn(`[DEBUG_DUMP ${dumpId}] Response capture complete`);
   } catch (e) {
-    logger.error(`[DEBUG_DUMP ${dumpId}] 写入响应失败:`, e?.message || e);
+    logger.error(`[DEBUG_DUMP ${dumpId}] Failed to write response:`, e?.message || e);
   }
 }

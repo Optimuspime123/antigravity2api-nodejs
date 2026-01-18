@@ -63,7 +63,7 @@ export const handleClaudeRequest = async (req, res, isStream) => {
 
     const token = await tokenManager.getToken(model);
     if (!token) {
-      throw new Error('没有可用的token，请运行 npm run login 获取token');
+      throw new Error('No available token. Run npm run login to add one.');
     }
 
     // 使用统一参数规范化模块处理 Claude 格式参数
@@ -293,7 +293,7 @@ export const handleClaudeRequest = async (req, res, isStream) => {
           res.write(createClaudeStreamEvent('error', buildClaudeErrorPayload(error, statusCode)));
           res.end();
         }
-        logger.error('Claude 流式请求失败:', error.message);
+        logger.error('Claude streaming request failed:', error.message);
         return;
       }
     } else if (config.fakeNonStream && !isImageModel) {
@@ -343,7 +343,7 @@ export const handleClaudeRequest = async (req, res, isStream) => {
 
         res.json(response);
       } catch (error) {
-        logger.error('Claude 假非流请求失败:', error.message);
+        logger.error('Claude pseudo-non-stream request failed:', error.message);
         if (res.headersSent) return;
         const statusCode = error.statusCode || error.status || 500;
         res.status(statusCode).json(buildClaudeErrorPayload(error, statusCode));
@@ -376,7 +376,7 @@ export const handleClaudeRequest = async (req, res, isStream) => {
       res.json(response);
     }
   } catch (error) {
-    logger.error('Claude 请求失败:', error.message);
+    logger.error('Claude request failed:', error.message);
     if (res.headersSent) return;
     const statusCode = error.statusCode || error.status || 500;
     res.status(statusCode).json(buildClaudeErrorPayload(error, statusCode));

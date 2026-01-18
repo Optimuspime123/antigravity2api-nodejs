@@ -13,7 +13,7 @@ const ACCOUNTS_FILE = path.join(__dirname, '..', 'data', 'accounts.json');
 let isClosing = false;
 
 const server = http.createServer((req, res) => {
-  // 如果服务器正在关闭，忽略新请求
+  // Ignore new requests if the server is shutting down
   const addr = server.address();
   if (!addr || isClosing) {
     res.writeHead(503);
@@ -29,34 +29,34 @@ const server = http.createServer((req, res) => {
     const error = url.searchParams.get('error');
     
     if (code) {
-      log.info('收到授权码，正在交换 Token...');
+      log.info('Authorization code received. Exchanging token...');
       oauthManager.authenticate(code, port).then(account => {
         const result = tokenManager.addToken(account);
         if (result.success) {
-          log.info(`Token 已保存到 ${ACCOUNTS_FILE}`);
+          log.info(`Token saved to ${ACCOUNTS_FILE}`);
           if (!account.hasQuota) {
-            log.warn('该账号无资格，已自动使用随机ProjectId');
+            log.warn('This account is not eligible; a random ProjectId was assigned.');
           }
         } else {
-          log.error('保存 Token 失败:', result.message);
+          log.error('Failed to save token:', result.message);
         }
         
-        const statusMsg = account.hasQuota ? '' : '<p style="color: orange;">⚠️ 该账号无资格，已自动使用随机ProjectId</p>';
+        const statusMsg = account.hasQuota ? '' : '<p style="color: orange;">⚠️ This account is not eligible; a random ProjectId was assigned.</p>';
         res.writeHead(200, { 'Content-Type': 'text/html; charset=utf-8' });
-        res.end(`<h1>授权成功！</h1><p>Token 已保存，可以关闭此页面。</p>${statusMsg}`);
+        res.end(`<h1>Authorization successful!</h1><p>Token saved. You can close this page.</p>${statusMsg}`);
         isClosing = true;
         setTimeout(() => server.close(), 1000);
       }).catch(err => {
-        log.error('认证失败:', err.message);
+        log.error('Authentication failed:', err.message);
         res.writeHead(200, { 'Content-Type': 'text/html; charset=utf-8' });
-        res.end('<h1>认证失败</h1><p>查看控制台错误信息</p>');
+        res.end('<h1>Authentication failed</h1><p>Check the console for details.</p>');
         isClosing = true;
         setTimeout(() => server.close(), 1000);
       });
     } else {
-      log.error('授权失败:', error || '未收到授权码');
+      log.error('Authorization failed:', error || 'No authorization code received');
       res.writeHead(200, { 'Content-Type': 'text/html; charset=utf-8' });
-      res.end('<h1>授权失败</h1>');
+      res.end('<h1>Authorization failed</h1>');
       isClosing = true;
       setTimeout(() => server.close(), 1000);
     }
@@ -69,8 +69,8 @@ const server = http.createServer((req, res) => {
 server.listen(0, () => {
   const port = server.address().port;
   const authUrl = oauthManager.generateAuthUrl(port);
-  log.info(`服务器运行在 http://localhost:${port}`);
-  log.info('请在浏览器中打开以下链接进行登录：');
+  log.info(`Server running at http://localhost:${port}`);
+  log.info('Open the following link in your browser to sign in:');
   console.log(`\n${authUrl}\n`);
-  log.info('等待授权回调...');
+  log.info('Waiting for authorization callback...');
 });

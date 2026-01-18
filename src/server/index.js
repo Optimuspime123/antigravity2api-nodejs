@@ -92,7 +92,7 @@ app.use((req, res, next) => {
 // SD API 路由
 app.use('/sdapi/v1', sdRouter);
 
-// ==================== API Key 验证中间件 ====================
+// ==================== API key validation middleware ====================
 app.use((req, res, next) => {
   if (req.path.startsWith('/v1/') || req.path.startsWith('/cli/v1/')) {
     const apiKey = config.security?.apiKey;
@@ -101,7 +101,7 @@ app.use((req, res, next) => {
       const providedKey = authHeader?.startsWith('Bearer ') ? authHeader.slice(7) : authHeader;
       if (providedKey !== apiKey) {
         ipBlockManager.recordViolation(req.ip, 'auth_fail');
-        logger.warn(`API Key 验证失败: ${req.method} ${req.path} (提供的Key: ${providedKey ? providedKey.substring(0, 10) + '...' : '无'})`);
+        logger.warn(`API key validation failed: ${req.method} ${req.path} (provided key: ${providedKey ? providedKey.substring(0, 10) + '...' : 'none'})`);
         return res.status(401).json({ error: 'Invalid API Key' });
       }
     }
@@ -111,7 +111,7 @@ app.use((req, res, next) => {
       const providedKey = req.query.key || req.headers['x-goog-api-key'];
       if (providedKey !== apiKey) {
         ipBlockManager.recordViolation(req.ip, 'auth_fail');
-        logger.warn(`API Key 验证失败: ${req.method} ${req.path} (提供的Key: ${providedKey ? providedKey.substring(0, 10) + '...' : '无'})`);
+        logger.warn(`API key validation failed: ${req.method} ${req.path} (provided key: ${providedKey ? providedKey.substring(0, 10) + '...' : 'none'})`);
         return res.status(401).json({ error: 'Invalid API Key' });
       }
     }
@@ -195,7 +195,7 @@ app.use((req, res, next) => {
 
 // ==================== 服务器启动 ====================
 const server = app.listen(config.server.port, config.server.host, () => {
-  logger.info(`服务器已启动: ${config.server.host}:${config.server.port}`);
+  logger.info(`Server started: ${config.server.host}:${config.server.port}`);
 
   // 初始化 WebSocket 日志服务
   logWsServer.initialize(server);
@@ -204,50 +204,50 @@ const server = app.listen(config.server.port, config.server.host, () => {
     logMaxFiles: config.log?.maxFiles,
     logMaxMemory: config.log?.maxMemory
   });
-  logger.info('WebSocket 日志服务已启动: /ws/logs');
+  logger.info('WebSocket log service started: /ws/logs');
 });
 
 server.on('error', (error) => {
   if (error.code === 'EADDRINUSE') {
-    logger.error(`端口 ${config.server.port} 已被占用`);
+    logger.error(`Port ${config.server.port} is already in use`);
     process.exit(1);
   } else if (error.code === 'EACCES') {
-    logger.error(`端口 ${config.server.port} 无权限访问`);
+    logger.error(`No permission to access port ${config.server.port}`);
     process.exit(1);
   } else {
-    logger.error('服务器启动失败:', error.message);
+    logger.error('Server startup failed:', error.message);
     process.exit(1);
   }
 });
 
 // ==================== 优雅关闭 ====================
 const shutdown = () => {
-  logger.info('正在关闭服务器...');
+  logger.info('Shutting down server...');
 
   // 停止内存管理器
   memoryManager.stop();
-  logger.info('已停止内存管理器');
+  logger.info('Memory manager stopped');
 
   // 关闭子进程请求器
   closeRequester();
-  logger.info('已关闭子进程请求器');
+  logger.info('Child request process stopped');
 
   // 清理对象池
   clearChunkPool();
-  logger.info('已清理对象池');
+  logger.info('Object pools cleared');
 
   // 关闭 WebSocket 日志服务
   logWsServer.close();
-  logger.info('已关闭 WebSocket 日志服务');
+  logger.info('WebSocket log service stopped');
 
   server.close(() => {
-    logger.info('服务器已关闭');
+    logger.info('Server shut down');
     process.exit(0);
   });
 
   // 5秒超时强制退出
   setTimeout(() => {
-    logger.warn('服务器关闭超时，强制退出');
+    logger.warn('Server shutdown timed out; forcing exit');
     process.exit(0);
   }, 5000);
 };
@@ -257,10 +257,10 @@ process.on('SIGTERM', shutdown);
 
 // ==================== 异常处理 ====================
 process.on('uncaughtException', (error) => {
-  logger.error('未捕获异常:', error.message);
+  logger.error('Uncaught exception:', error.message);
   // 不立即退出，让当前请求完成
 });
 
 process.on('unhandledRejection', (reason, promise) => {
-  logger.error('未处理的 Promise 拒绝:', reason);
+  logger.error('Unhandled promise rejection:', reason);
 });

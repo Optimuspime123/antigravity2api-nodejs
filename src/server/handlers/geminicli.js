@@ -53,7 +53,7 @@ export const handleGeminiCliRequest = async (req, res, forceFormat = null) => {
   try {
     const token = await getToken();
     if (!token) {
-      throw new Error('没有可用的 Gemini CLI token，请在管理页面添加账号');
+      throw new Error('No available Gemini CLI token. Add one in the admin UI.');
     }
     const { geminiRequest, model: actualModel, features, sourceFormat } = convertToGeminiCli(cleanedBody);
 
@@ -100,7 +100,7 @@ export const handleGeminiCliRequest = async (req, res, forceFormat = null) => {
           writeStreamData(res, buildOpenAIErrorPayload(error, statusCode));
           endStream(res, false);
         }
-        logger.error('[GeminiCLI] 生成响应失败:', error.message);
+        logger.error('[GeminiCLI] Failed to generate response:', error.message);
         return;
       }
     } else if (useFakeStreaming) {
@@ -147,7 +147,7 @@ export const handleGeminiCliRequest = async (req, res, forceFormat = null) => {
           writeStreamData(res, buildOpenAIErrorPayload(error, statusCode));
           endStream(res, false);
         }
-        logger.error('[GeminiCLI] 假流式生成响应失败:', error.message);
+        logger.error('[GeminiCLI] Pseudo-stream response generation failed:', error.message);
         return;
       }
     } else {
@@ -229,7 +229,7 @@ export const handleGeminiCliRequest = async (req, res, forceFormat = null) => {
       }
     }
   } catch (error) {
-    logger.error('[GeminiCLI] 生成响应失败:', error.message);
+    logger.error('[GeminiCLI] Failed to generate response:', error.message);
     if (res.headersSent) return;
     const statusCode = error.statusCode || error.status || 500;
     return res.status(statusCode).json(buildOpenAIErrorPayload(error, statusCode));

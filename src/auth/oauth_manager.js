@@ -2,7 +2,7 @@ import axios from 'axios';
 import crypto from 'crypto';
 import log from '../utils/logger.js';
 import config from '../config/config.js';
-import { generateProjectId } from '../utils/idGenerator.js'; // TODO: 可移除，已不再使用
+import { generateProjectId } from '../utils/idGenerator.js'; // TODO: removable; no longer used
 import tokenManager from './token_manager.js';
 import geminicliTokenManager from './geminicli_token_manager.js';
 import { OAUTH_CONFIG, OAUTH_SCOPES, GEMINICLI_OAUTH_CONFIG, GEMINICLI_OAUTH_SCOPES } from '../constants/oauth.js';
@@ -14,9 +14,9 @@ class OAuthManager {
   }
 
   /**
-   * 生成授权URL
-   * @param {number} port - 回调端口
-   * @param {string} mode - 模式：'antigravity' 或 'geminicli'
+   * Generate authorization URL
+   * @param {number} port - callback port
+   * @param {string} mode - mode: 'antigravity' or 'geminicli'
    */
   generateAuthUrl(port, mode = 'antigravity') {
     const oauthConfig = mode === 'geminicli' ? GEMINICLI_OAUTH_CONFIG : OAUTH_CONFIG;
@@ -29,16 +29,16 @@ class OAuthManager {
       redirect_uri: `http://localhost:${port}/oauth-callback`,
       response_type: 'code',
       scope: scopes.join(' '),
-      state: `${this.state}_${mode}` // 在 state 中包含 mode 信息
+      state: `${this.state}_${mode}` // include mode in state
     });
     return `${oauthConfig.AUTH_URL}?${params.toString()}`;
   }
 
   /**
-   * 交换授权码获取Token
-   * @param {string} code - 授权码
-   * @param {number} port - 回调端口
-   * @param {string} mode - 模式：'antigravity' 或 'geminicli'
+   * Exchange auth code for token
+   * @param {string} code - auth code
+   * @param {number} port - callback port
+   * @param {string} mode - mode: 'antigravity' or 'geminicli'
    */
   async exchangeCodeForToken(code, port, mode = 'antigravity') {
     const oauthConfig = mode === 'geminicli' ? GEMINICLI_OAUTH_CONFIG : OAUTH_CONFIG;
@@ -63,7 +63,7 @@ class OAuthManager {
   }
 
   /**
-   * 获取用户邮箱
+   * Fetch user email
    */
   async fetchUserEmail(accessToken) {
     try {
@@ -80,44 +80,44 @@ class OAuthManager {
       }));
       return response.data?.email;
     } catch (err) {
-      log.warn('获取用户邮箱失败:', err.message);
+      log.warn('Failed to fetch user email:', err.message);
       return null;
     }
   }
 
   /**
-   * 资格校验：尝试获取projectId
+   * Eligibility check: try to fetch projectId
    */
   async validateAndGetProjectId(accessToken) {
     try {
-      log.info('正在验证账号资格...');
+      log.info('Validating account eligibility...');
       const projectId = await tokenManager.fetchProjectId({ access_token: accessToken });
 
       if (projectId === undefined || projectId === null) {
-        log.warn('该账号无法获取 projectId，可能无资格或需要稍后重试');
+        log.warn('Unable to fetch projectId; account may be ineligible or needs a retry later');
         return { projectId: null, hasQuota: false };
       }
 
-      log.info('账号验证通过，projectId: ' + projectId);
+      log.info('Account validated. projectId: ' + projectId);
       return { projectId, hasQuota: true };
     } catch (err) {
-      log.error('验证账号资格失败: ' + err.message);
+      log.error('Account eligibility validation failed: ' + err.message);
       return { projectId: null, hasQuota: false };
     }
   }
 
   /**
-   * 完整的OAuth认证流程：交换Token -> 获取邮箱 -> 资格校验
-   * @param {string} code - 授权码
-   * @param {number} port - 回调端口
-   * @param {string} mode - 模式：'antigravity' 或 'geminicli'
+   * Full OAuth flow: exchange token -> fetch email -> eligibility check
+   * @param {string} code - auth code
+   * @param {number} port - callback port
+   * @param {string} mode - mode: 'antigravity' or 'geminicli'
    */
   async authenticate(code, port, mode = 'antigravity') {
-    // 1. 交换授权码获取Token
+    // 1. Exchange auth code for token
     const tokenData = await this.exchangeCodeForToken(code, port, mode);
 
     if (!tokenData.access_token) {
-      throw new Error('Token交换失败：未获取到access_token');
+      throw new Error('Token exchange failed: access_token missing');
     }
 
     const account = {
@@ -127,14 +127,14 @@ class OAuthManager {
       timestamp: Date.now()
     };
 
-    // 2. 获取用户邮箱
+    // 2. Fetch user email
     const email = await this.fetchUserEmail(account.access_token);
     if (email) {
       account.email = email;
-      log.info(`[${mode}] 获取到用户邮箱: ${email}`);
+      log.info(`[${mode}] User email: ${email}`);
     }
 
-    // 3. 资格校验（仅 antigravity 模式需要 projectId）
+    // 3. Eligibility check (projectId only needed for antigravity mode)
     if (mode === 'antigravity') {
       const { projectId, hasQuota } = await this.validateAndGetProjectId(account.access_token);
       account.projectId = projectId;
@@ -147,9 +147,9 @@ class OAuthManager {
   }
 
   /**
-   * Gemini CLI 专用认证流程（简化版，不需要 projectId）
-   * @param {string} code - 授权码
-   * @param {number} port - 回调端口
+   * Gemini CLI auth flow (simplified, no projectId)
+   * @param {string} code - auth code
+   * @param {number} port - callback port
    */
   async authenticateGeminiCli(code, port) {
     return this.authenticate(code, port, 'GeminiCLI');

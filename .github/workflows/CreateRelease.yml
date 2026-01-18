@@ -104,7 +104,7 @@ jobs:
       - name: Checkout
         uses: actions/checkout@v4
         with:
-          fetch-depth: 0  # 获取所有 tag 用于计数
+          fetch-depth: 0  # Fetch all tags for counting
 
       - name: Download all artifacts
         uses: actions/download-artifact@v4
@@ -122,7 +122,7 @@ jobs:
           DATE=$(date +'%Y%m%d')
           SHA_SHORT=$(git rev-parse --short HEAD)
           
-          # 获取今天已有的 release 数量
+          # Get how many releases already exist today
           COUNT=$(git tag -l "${DATE}.*" | wc -l)
           BUILD_NUM=$((COUNT + 1))
           
@@ -145,14 +145,14 @@ jobs:
             artifacts/**/*.tar.gz
           generate_release_notes: true
           body: |
-            ## 📦 自动构建 - ${{ steps.tag.outputs.tag }}
+            ## 📦 Automated build - ${{ steps.tag.outputs.tag }}
             
-            **日期**: ${{ steps.tag.outputs.date }}
-            **今日构建**: #${{ steps.tag.outputs.build_num }}
-            **提交**: `${{ steps.tag.outputs.sha }}`
-            **分支**: `${{ github.ref_name }}`
+            **Date**: ${{ steps.tag.outputs.date }}
+            **Build number today**: #${{ steps.tag.outputs.build_num }}
+            **Commit**: `${{ steps.tag.outputs.sha }}`
+            **Branch**: `${{ github.ref_name }}`
             
-            ### 下载说明
+            ### Download notes
             - **Windows x64**: `antigravity-win-x64.zip`
             - **Linux x64**: `antigravity-linux-x64.tar.gz`
             - **Linux ARM64** (Termux): `antigravity-linux-arm64.tar.gz`
