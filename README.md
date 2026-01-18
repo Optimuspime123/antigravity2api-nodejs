@@ -1,7 +1,7 @@
 # Antigravity to OpenAI API Proxy Service
 
 This project converts the Google Antigravity API into an OpenAI-compatible proxy service. It supports streaming responses, tool calls, and multi-account management.
-
+Need help using or understanding it? Just [![Ask DeepWiki](https://deepwiki.com/badge.svg)](https://deepwiki.com/Optimuspime123/antigravity2api-nodejs)
 ## Features
 
 - ✅ OpenAI API compatible format
