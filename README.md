@@ -5,6 +5,7 @@ This project converts the Google Antigravity API into an OpenAI-compatible proxy
 ## Features
 
 - ✅ OpenAI API compatible format
+- ✅ automatic tunneling to cloudfared for remote access
 - ✅ Streaming and non-streaming responses
 - ✅ Structured JSON output support (`response_format`)
 - ✅ Tool calling (Function Calling) support
@@ -149,85 +150,6 @@ npm start
 
 The service starts at `http://localhost:8045`.
 
-## Binary Deployment (Recommended)
-
-No Node.js installation required. Download and run the prebuilt binaries.
-
-### Download binaries
-
-Download the binary for your platform from [GitHub Releases](https://github.com/ZhaoShanGeng/antigravity2api-nodejs/releases):
-
-| Platform | Filename |
-|------|--------|
-| Windows x64 | `antigravity2api-win-x64.exe` |
-| Linux x64 | `antigravity2api-linux-x64` |
-| Linux ARM64 | `antigravity2api-linux-arm64` |
-| macOS x64 | `antigravity2api-macos-x64` |
-| macOS ARM64 | `antigravity2api-macos-arm64` |
-
-### Prepare configuration files
-
-Place the following in the same directory as the binary:
-
-```
-├── antigravity2api-win-x64.exe  # Binary
-├── .env                          # Environment config (optional; created on first run)
-├── config.json.example           # Config template (required)
-├── public/                       # Static files (required)
-│   ├── index.html
-│   ├── style.css
-│   ├── assets/
-│   │   └── bg.jpg
-│   └── js/
-│       ├── auth.js
-│       ├── config.js
-│       ├── main.js
-│       ├── quota.js
-│       ├── tokens.js
-│       ├── ui.js
-│       └── utils.js
-└── data/                         # Data directory (auto-created)
-    └── accounts.json
-```
-
-### Configure environment variables
-
-Create a `.env` file:
-
-```env
-API_KEY=sk-your-api-key
-ADMIN_USERNAME=admin
-ADMIN_PASSWORD=admin123
-JWT_SECRET=your-jwt-secret-key-change-this-in-production
-# IMAGE_BASE_URL=http://your-domain.com
-# PROXY=http://127.0.0.1:7890
-```
-
-### Run
-
-**Windows:**
-```bash
-# Double-click the binary or run from the command line
-antigravity2api-win-x64.exe
-```
-
-**Linux/macOS:**
-```bash
-# Add execute permission
-chmod +x antigravity2api-linux-x64
-
-# Run
-./antigravity2api-linux-x64
-```
-
-### Binary deployment notes
-
-- **No Node.js required**: binaries include the Node.js runtime
-- **Auto config**: on first start, `config.json` is created from `config.json.example`
-- **Config files**: `config.json.example` must be in the same directory as the binary
-- **Static files**: `public/` must be in the same directory as the binary
-- **Data persistence**: `data/` is created automatically for token storage
-- **Cross-platform**: Windows/Linux/macOS (x64 and ARM64)
 
 ### Run as a system service (Linux)
 
@@ -340,61 +262,6 @@ docker logs -f antigravity2api
 - Port mapping: defaults to port 8045
 - Auto-restart: container will restart after unexpected exit
 
-## Zeabur Deployment
-
-### Deploy with prebuilt image
-
-1. **Create a service**
-
-Create a new service in the Zeabur console using the following image:
-
-```
-ghcr.io/Optimuspime123/antigravity2api-nodejs
-```
-
-2. **Configure environment variables**
-
-Add these variables in the service settings:
-
-| Environment variable | Description | Example |
-|--------|------|--------|
-| `API_KEY` | API authentication key | `sk-your-api-key` |
-| `ADMIN_USERNAME` | Admin username | `admin` |
-| `ADMIN_PASSWORD` | Admin password | `your-secure-password` |
-| `JWT_SECRET` | JWT secret | `your-jwt-secret-key` |
-| `IMAGE_BASE_URL` | Base URL for images | `https://your-domain.zeabur.app` |
-
-Optional variables:
-- `PROXY`: proxy URL
-- `SYSTEM_INSTRUCTION`: system prompt
-
-3. **Configure persistent storage**
-
-Add these volume mounts in the **Volumes** settings:
-
-| Mount path | Description |
-|---------|------|
-| `/app/data` | Token storage |
-| `/app/public/images` | Generated images |
-
-⚠️ **Important:**
-- Only mount `/app/data` and `/app/public/images`
-- Do not mount other paths (e.g., `/app/.env`, `/app/config.json`), or required config files will be cleared and the app will fail to start
-
-4. **Bind a domain**
-
-Bind a domain in **Networking**, then set it in `IMAGE_BASE_URL`.
-
-5. **Start the service**
-
-After saving, Zeabur will pull the image and start the service. Access it via the bound domain.
-
-### Zeabur deployment notes
-
-- Uses prebuilt Docker images; no manual build required
-- Configure all required parameters via environment variables
-- Persistent storage keeps token and image data safe
-
 ## Web Admin UI
 
 After startup, open `http://localhost:8045` to access the admin UI.
@@ -402,6 +269,7 @@ After startup, open `http://localhost:8045` to access the admin UI.
 ### Features
 
 - 🔐 **Secure login**: JWT Token authentication protects admin endpoints
+- **View cloudfared tunnel url if running** 
 - 📊 **Real-time stats**: total token count and enabled/disabled status
 - ➕ **Multiple ways to add tokens**:
   - OAuth login (recommended): completes Google OAuth flow automatically
