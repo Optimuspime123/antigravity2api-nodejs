@@ -91,7 +91,7 @@ router.get('/sd-models', async (req, res) => {
       }));
     res.json(imageModels);
   } catch (error) {
-    logger.error('获取SD模型列表失败:', error.message);
+    logger.error('Failed to fetch SD model list:', error.message);
     res.status(500).json({ error: error.message });
   }
 });
@@ -123,7 +123,7 @@ router.post('/img2img', async (req, res) => {
     
     const token = await tokenManager.getToken();
     if (!token) {
-      throw new Error('没有可用的token');
+      throw new Error('No available token');
     }
     
     // 构建包含图片的消息
@@ -143,7 +143,7 @@ router.post('/img2img', async (req, res) => {
     const images = await generateImageForSD(requestBody, token);
     
     if (images.length === 0) {
-      throw new Error('未生成图片');
+      throw new Error('No image generated');
     }
     
     res.json({
@@ -152,7 +152,7 @@ router.post('/img2img', async (req, res) => {
       info: JSON.stringify({ prompt })
     });
   } catch (error) {
-    logger.error('SD图生图失败:', error.message);
+    logger.error('SD img2img failed:', error.message);
     res.status(500).json({ error: error.message });
   }
 });
@@ -167,14 +167,14 @@ router.post('/txt2img', async (req, res) => {
     
     const token = await tokenManager.getToken();
     if (!token) {
-      throw new Error('没有可用的token');
+      throw new Error('No available token');
     }
     
     const requestBody = buildImageRequestBody(prompt, token);
     const images = await generateImageForSD(requestBody, token);
     
     if (images.length === 0) {
-      throw new Error('未生成图片');
+      throw new Error('No image generated');
     }
     
     res.json({
@@ -183,7 +183,7 @@ router.post('/txt2img', async (req, res) => {
       info: JSON.stringify({ prompt, seed: seed || -1 })
     });
   } catch (error) {
-    logger.error('SD生图失败:', error.message);
+    logger.error('SD txt2img failed:', error.message);
     res.status(500).json({ error: error.message });
   }
 });

@@ -187,7 +187,7 @@ class LogWebSocketServer {
             fs.appendFileSync(LOG_FILE, content, 'utf8');
             this.currentLogSize += contentSize;
         } catch (error) {
-            console.error('写入日志文件失败:', error.message);
+            console.error('Failed to write log file:', error.message);
         }
     }
 
@@ -216,7 +216,7 @@ class LogWebSocketServer {
 
             this.currentLogSize = 0;
         } catch (error) {
-            console.error('日志轮转失败:', error.message);
+            console.error('Log rotation failed:', error.message);
         }
     }
 

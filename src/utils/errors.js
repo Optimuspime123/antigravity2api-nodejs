@@ -46,7 +46,7 @@ export class AuthenticationError extends AppError {
   /**
    * @param {string} message - 错误消息
    */
-  constructor(message = '认证失败') {
+  constructor(message = 'Authentication failed') {
     super(message, 401, 'authentication_error');
     this.name = 'AuthenticationError';
   }
@@ -59,7 +59,7 @@ export class AuthorizationError extends AppError {
   /**
    * @param {string} message - 错误消息
    */
-  constructor(message = '无权限访问') {
+  constructor(message = 'Access denied') {
     super(message, 403, 'authorization_error');
     this.name = 'AuthorizationError';
   }
@@ -73,7 +73,7 @@ export class ValidationError extends AppError {
    * @param {string} message - 错误消息
    * @param {Object} details - 验证详情
    */
-  constructor(message = '请求参数无效', details = null) {
+  constructor(message = 'Invalid request parameters', details = null) {
     super(message, 400, 'validation_error');
     this.name = 'ValidationError';
     this.details = details;
@@ -87,7 +87,7 @@ export class NotFoundError extends AppError {
   /**
    * @param {string} message - 错误消息
    */
-  constructor(message = '资源未找到') {
+  constructor(message = 'Resource not found') {
     super(message, 404, 'not_found');
     this.name = 'NotFoundError';
   }
@@ -101,7 +101,7 @@ export class RateLimitError extends AppError {
    * @param {string} message - 错误消息
    * @param {number} retryAfter - 重试等待时间（秒）
    */
-  constructor(message = '请求过于频繁', retryAfter = null) {
+  constructor(message = 'Too many requests', retryAfter = null) {
     super(message, 429, 'rate_limit_error');
     this.name = 'RateLimitError';
     this.retryAfter = retryAfter;
@@ -255,7 +255,7 @@ export function errorHandler(err, req, res, next) {
   if (err.type === 'entity.too.large') {
     return res.status(413).json({
       error: {
-        message: '请求体过大',
+        message: 'Request body too large',
         type: 'payload_too_large',
         code: 413
       }

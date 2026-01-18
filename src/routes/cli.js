@@ -23,7 +23,7 @@ const checkGeminiCliEnabled = (req, res, next) => {
   if (config.geminicli?.enabled === false) {
     return res.status(503).json({
       error: {
-        message: 'Gemini CLI 功能未启用',
+        message: 'Gemini CLI is not enabled',
         type: 'service_unavailable',
         code: 'geminicli_disabled'
       }
@@ -48,7 +48,7 @@ function getGeminiCliModels() {
   ];
   
   const models = [];
-  const featurePrefixes = ['', '假流式/', '流式抗截断/'];
+  const featurePrefixes = ['', 'pseudo-stream/', 'stream-anti-truncate/'];
   const thinkingSuffixes = ['', '-maxthinking', '-nothinking'];
   const searchSuffix = '-search';
   
@@ -99,7 +99,7 @@ function handleModelsRequest(req, res) {
     
     res.json(modelList);
   } catch (error) {
-    logger.error('[GeminiCLI] 获取模型列表失败:', error.message);
+    logger.error('[GeminiCLI] Failed to fetch model list:', error.message);
     res.status(500).json({ error: error.message });
   }
 }

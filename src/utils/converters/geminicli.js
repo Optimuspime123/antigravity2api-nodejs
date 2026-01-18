@@ -26,7 +26,7 @@ import { getThoughtSignatureForModel, getToolSignatureForModel } from '../utils.
 /**
  * 功能前缀列表
  */
-const FEATURE_PREFIXES = ['假流式/', '流式抗截断/'];
+const FEATURE_PREFIXES = ['pseudo-stream/', 'stream-anti-truncate/'];
 
 /**
  * 检查是否是假流式模型
@@ -34,7 +34,7 @@ const FEATURE_PREFIXES = ['假流式/', '流式抗截断/'];
  * @returns {boolean}
  */
 export function isFakeStreamingModel(modelName) {
-  return modelName.startsWith('假流式/');
+  return modelName.startsWith('pseudo-stream/');
 }
 
 /**
@@ -43,7 +43,7 @@ export function isFakeStreamingModel(modelName) {
  * @returns {boolean}
  */
 export function isAntiTruncationModel(modelName) {
-  return modelName.startsWith('流式抗截断/');
+  return modelName.startsWith('stream-anti-truncate/');
 }
 
 /**

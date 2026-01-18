@@ -52,7 +52,7 @@ export const handleGeminiModelsList = async (req, res) => {
     const geminiModels = convertToGeminiModelList(openaiModels);
     res.json(geminiModels);
   } catch (error) {
-    logger.error('获取模型列表失败:', error.message);
+    logger.error('Failed to fetch model list:', error.message);
     res.status(500).json({ error: { code: 500, message: error.message, status: "INTERNAL" } });
   }
 };
@@ -86,7 +86,7 @@ export const handleGeminiModelDetail = async (req, res) => {
       res.status(404).json({ error: { code: 404, message: `Model ${modelId} not found`, status: "NOT_FOUND" } });
     }
   } catch (error) {
-    logger.error('获取模型详情失败:', error.message);
+    logger.error('Failed to fetch model detail:', error.message);
     res.status(500).json({ error: { code: 500, message: error.message, status: "INTERNAL" } });
   }
 };
@@ -110,7 +110,7 @@ export const handleGeminiRequest = async (req, res, modelName, isStream) => {
 
     const token = await tokenManager.getToken();
     if (!token) {
-      throw new Error('没有可用的token，请运行 npm run login 获取token');
+      throw new Error('No available token. Run npm run login to add one.');
     }
 
     const isImageModel = modelName.includes('-image');
@@ -179,7 +179,7 @@ export const handleGeminiRequest = async (req, res, modelName, isStream) => {
           writeStreamData(res, buildGeminiErrorPayload(error, statusCode));
           endStream(res, false);
         }
-        logger.error('Gemini 流式请求失败:', error.message);
+        logger.error('Gemini streaming request failed:', error.message);
         return;
       }
     } else if (config.fakeNonStream && !isImageModel) {
@@ -217,7 +217,7 @@ export const handleGeminiRequest = async (req, res, modelName, isStream) => {
         const response = createGeminiResponse(content, reasoningContent || null, reasoningSignature, toolCalls, finishReason, usageData, { passSignatureToClient: config.passSignatureToClient });
         res.json(response);
       } catch (error) {
-        logger.error('Gemini 假非流请求失败:', error.message);
+        logger.error('Gemini pseudo-non-stream request failed:', error.message);
         if (res.headersSent) return;
         const statusCode = error.statusCode || error.status || 500;
         res.status(statusCode).json(buildGeminiErrorPayload(error, statusCode));
@@ -238,7 +238,7 @@ export const handleGeminiRequest = async (req, res, modelName, isStream) => {
       res.json(response);
     }
   } catch (error) {
-    logger.error('Gemini 请求失败:', error.message);
+    logger.error('Gemini request failed:', error.message);
     if (res.headersSent) return;
     const statusCode = error.statusCode || error.status || 500;
     res.status(statusCode).json(buildGeminiErrorPayload(error, statusCode));
