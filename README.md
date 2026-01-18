@@ -40,22 +40,22 @@ This project converts the Google Antigravity API into an OpenAI-compatible proxy
 
 **Windows (cmd.exe):**
 ```bash
-curl -O https://raw.githubusercontent.com/liuw1535/antigravity2api-nodejs/main/setup.bat && setup.bat
+curl -O https://raw.githubusercontent.com/Optimuspime123/antigravity2api-nodejs/main/setup.bat && setup.bat
 ```
 
 **Windows (PowerShell):**
 ```powershell
-IwR -Uri https://raw.githubusercontent.com/liuw1535/antigravity2api-nodejs/main/setup.bat -OutFile setup.bat; .\setup.bat
+IwR -Uri https://raw.githubusercontent.com/Optimuspime123/antigravity2api-nodejs/main/setup.bat -OutFile setup.bat; .\setup.bat
 ```
 
 **Linux/macOS:**
 ```bash
-wget https://raw.githubusercontent.com/liuw1535/antigravity2api-nodejs/main/setup.sh && chmod +x setup.sh && ./setup.sh
+wget https://raw.githubusercontent.com/Optimuspime123/antigravity2api-nodejs/main/setup.sh && chmod +x setup.sh && ./setup.sh
 ```
 
 Or use curl:
 ```bash
-curl -O https://raw.githubusercontent.com/liuw1535/antigravity2api-nodejs/main/setup.sh && chmod +x setup.sh && ./setup.sh
+curl -O https://raw.githubusercontent.com/Optimuspime123/antigravity2api-nodejs/main/setup.sh && chmod +x setup.sh && ./setup.sh
 ```
 
 The script will automatically:
@@ -349,7 +349,7 @@ docker logs -f antigravity2api
 Create a new service in the Zeabur console using the following image:
 
 ```
-ghcr.io/liuw1535/antigravity2api-nodejs
+ghcr.io/Optimuspime123/antigravity2api-nodejs
 ```
 
 2. **Configure environment variables**

@@ -13,7 +13,7 @@ if [ -d "antigravity2api-nodejs" ]; then
     exit 1
 fi
 
-if ! git clone https://github.com/liuw1535/antigravity2api-nodejs.git; then
+if ! git clone https://github.com/Optimuspime123/antigravity2api-nodejs.git; then
     echo "Clone failed. Please check your network or whether Git is installed."
     exit 1
 fi
