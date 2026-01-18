@@ -13,31 +13,31 @@ import TokenStore from './token_store.js';
 import { TokenError } from '../utils/errors.js';
 import { getDataDir } from '../utils/paths.js';
 
-// Gemini CLI API 配置
+// Gemini CLI API configuration
 const GEMINICLI_API_CONFIG = {
   HOST: 'cloudcode-pa.googleapis.com',
   USER_AGENT: 'GeminiCLI/0.1.5 (Windows; AMD64)',
   BASE_URL: 'https://cloudcode-pa.googleapis.com'
 };
 
-// 轮询策略枚举（复用 token_manager.js 的定义）
+// Rotation strategy enum (reuse token_manager.js definition)
 const RotationStrategy = {
-  ROUND_ROBIN: 'round_robin',           // 均衡负载：每次请求切换
-  QUOTA_EXHAUSTED: 'quota_exhausted',   // 额度耗尽才切换
-  REQUEST_COUNT: 'request_count'        // 自定义次数后切换
+  ROUND_ROBIN: 'round_robin',           // Balanced load: rotate each request
+  QUOTA_EXHAUSTED: 'quota_exhausted',   // Rotate only when quota is exhausted
+  REQUEST_COUNT: 'request_count'        // Rotate after a custom request count
 };
 
 /**
- * Gemini CLI Token 管理器
- * 基于 TokenManager 简化实现，专门用于 Gemini CLI 反代
- * 主要区别：
- * 1. 使用 geminicli_accounts.json 存储
- * 2. 使用 GEMINICLI_OAUTH_CONFIG 刷新 token
- * 3. 不需要 projectId 和 sessionId
+ * Gemini CLI token manager
+ * Simplified TokenManager for Gemini CLI proxying
+ * Key differences:
+ * 1. Uses geminicli_accounts.json storage
+ * 2. Refreshes tokens with GEMINICLI_OAUTH_CONFIG
+ * 3. No projectId or sessionId required
  */
 class GeminiCliTokenManager {
   /**
-   * @param {string} filePath - Token 数据文件路径
+   * @param {string} filePath - token data file path
    */
   constructor(filePath = path.join(getDataDir(), 'geminicli_accounts.json')) {
     this.store = new TokenStore(filePath);
@@ -46,7 +46,7 @@ class GeminiCliTokenManager {
     /** @type {number} */
     this.currentIndex = 0;
 
-    // 轮询策略相关
+    // Rotation strategy state
     /** @type {string} */
     this.rotationStrategy = RotationStrategy.ROUND_ROBIN;
     /** @type {number} */
@@ -60,10 +60,10 @@ class GeminiCliTokenManager {
 
   async _initialize() {
     try {
-      log.info('[GeminiCLI] 正在初始化token管理器...');
+      log.info('[GeminiCLI] Initializing token manager...');
       const tokenArray = await this.store.readAll();
 
-      // Gemini CLI 不需要 sessionId
+      // Gemini CLI does not require sessionId
       this.tokens = tokenArray.filter(token => token.enable !== false).map(token => ({
         ...token
       }));
@@ -71,32 +71,32 @@ class GeminiCliTokenManager {
       this.currentIndex = 0;
       this.tokenRequestCounts.clear();
 
-      // 加载轮询策略配置
+      // Load rotation strategy config
       this.loadRotationConfig();
 
       if (this.tokens.length === 0) {
-        log.warn('[GeminiCLI] ⚠ 暂无可用账号，请使用以下方式添加：');
-        log.warn('[GeminiCLI]   方式1: 访问前端管理页面添加账号');
-        log.warn('[GeminiCLI]   方式2: 手动编辑 geminicli_accounts.json');
+        log.warn('[GeminiCLI] ⚠ No available accounts. Add one using:');
+        log.warn('[GeminiCLI]   Option 1: add via the admin UI');
+        log.warn('[GeminiCLI]   Option 2: edit geminicli_accounts.json manually');
       } else {
-        log.info(`[GeminiCLI] 成功加载 ${this.tokens.length} 个可用token`);
+        log.info(`[GeminiCLI] Loaded ${this.tokens.length} available tokens`);
         if (this.rotationStrategy === RotationStrategy.REQUEST_COUNT) {
-          log.info(`[GeminiCLI] 轮询策略: ${this.rotationStrategy}, 每token请求 ${this.requestCountPerToken} 次后切换`);
+          log.info(`[GeminiCLI] Rotation strategy: ${this.rotationStrategy}, rotate every ${this.requestCountPerToken} requests`);
         } else {
-          log.info(`[GeminiCLI] 轮询策略: ${this.rotationStrategy}`);
+          log.info(`[GeminiCLI] Rotation strategy: ${this.rotationStrategy}`);
         }
 
-        // 并发刷新所有过期的 token
+        // Refresh all expired tokens concurrently
         await this._refreshExpiredTokensConcurrently();
       }
     } catch (error) {
-      log.error('[GeminiCLI] 初始化token失败:', error.message);
+      log.error('[GeminiCLI] Failed to initialize tokens:', error.message);
       this.tokens = [];
     }
   }
 
   /**
-   * 并发刷新所有过期的 token
+   * Refresh all expired tokens concurrently
    * @private
    */
   async _refreshExpiredTokensConcurrently() {
@@ -108,7 +108,7 @@ class GeminiCliTokenManager {
     const salt = await this.store.getSalt();
     const tokenIds = expiredTokens.map(token => generateTokenId(token.refresh_token, salt));
 
-    log.info(`[GeminiCLI] 正在批量刷新 ${tokenIds.length} 个token: ${tokenIds.join(', ')}`);
+    log.info(`[GeminiCLI] Refreshing ${tokenIds.length} tokens: ${tokenIds.join(', ')}`);
     const startTime = Date.now();
 
     const results = await Promise.allSettled(
@@ -137,23 +137,23 @@ class GeminiCliTokenManager {
       }
     });
 
-    // 批量禁用失效的 token
+    // Disable invalid tokens in batch
     for (const token of tokensToDisable) {
       this.disableToken(token);
     }
 
     const elapsed = Date.now() - startTime;
     if (failCount > 0) {
-      log.warn(`[GeminiCLI] 刷新完成: 成功 ${successCount}, 失败 ${failCount} (${failedTokenIds.join(', ')}), 耗时 ${elapsed}ms`);
+      log.warn(`[GeminiCLI] Refresh complete: ${successCount} succeeded, ${failCount} failed (${failedTokenIds.join(', ')}), elapsed ${elapsed}ms`);
     } else {
-      log.info(`[GeminiCLI] 刷新完成: 成功 ${successCount}, 耗时 ${elapsed}ms`);
+      log.info(`[GeminiCLI] Refresh complete: ${successCount} succeeded, elapsed ${elapsed}ms`);
     }
   }
 
   /**
-   * 安全刷新单个 token（不抛出异常）
-   * @param {Object} token - Token 对象
-   * @returns {Promise<'success'|'disable'|'skip'>} 刷新结果
+   * Safely refresh a single token (no throw)
+   * @param {Object} token - token object
+   * @returns {Promise<'success'|'disable'|'skip'>} refresh result
    * @private
    */
   async _refreshTokenSafe(token) {
@@ -175,22 +175,22 @@ class GeminiCliTokenManager {
     return this._initPromise;
   }
 
-  // 加载轮询策略配置
+  // Load rotation strategy config
   loadRotationConfig() {
     try {
       const jsonConfig = getConfigJson();
-      // 优先使用 geminicli 专属配置，否则使用全局配置
+      // Prefer geminicli config; fallback to global config
       const rotationConfig = jsonConfig.geminicli?.rotation || jsonConfig.rotation;
       if (rotationConfig) {
         this.rotationStrategy = rotationConfig.strategy || RotationStrategy.ROUND_ROBIN;
         this.requestCountPerToken = rotationConfig.requestCount || 10;
       }
     } catch (error) {
-      log.warn('[GeminiCLI] 加载轮询配置失败，使用默认值:', error.message);
+      log.warn('[GeminiCLI] Failed to load rotation config; using defaults:', error.message);
     }
   }
 
-  // 更新轮询策略（热更新）
+  // Update rotation strategy (hot reload)
   updateRotationConfig(strategy, requestCount) {
     if (strategy && Object.values(RotationStrategy).includes(strategy)) {
       this.rotationStrategy = strategy;
@@ -200,16 +200,16 @@ class GeminiCliTokenManager {
     }
     this.tokenRequestCounts.clear();
     if (this.rotationStrategy === RotationStrategy.REQUEST_COUNT) {
-      log.info(`[GeminiCLI] 轮询策略已更新: ${this.rotationStrategy}, 每token请求 ${this.requestCountPerToken} 次后切换`);
+      log.info(`[GeminiCLI] Rotation strategy updated: ${this.rotationStrategy}, rotate every ${this.requestCountPerToken} requests`);
     } else {
-      log.info(`[GeminiCLI] 轮询策略已更新: ${this.rotationStrategy}`);
+      log.info(`[GeminiCLI] Rotation strategy updated: ${this.rotationStrategy}`);
     }
   }
 
   /**
-   * 检查 Token 是否过期
-   * @param {Object} token - Token 对象
-   * @returns {boolean} 是否过期
+   * Check if token is expired
+   * @param {Object} token - token object
+   * @returns {boolean} true if expired
    */
   isExpired(token) {
     if (!token.timestamp || !token.expires_in) return true;
@@ -218,14 +218,14 @@ class GeminiCliTokenManager {
   }
 
   /**
-   * 刷新 Token
-   * 使用 GEMINICLI_OAUTH_CONFIG 而非 OAUTH_CONFIG
+   * Refresh token
+   * Uses GEMINICLI_OAUTH_CONFIG instead of OAUTH_CONFIG
    */
   async refreshToken(token, silent = false) {
     const salt = await this.store.getSalt();
     const tokenId = generateTokenId(token.refresh_token, salt);
     if (!silent) {
-      log.info(`[GeminiCLI] 正在刷新token: ${tokenId}`);
+      log.info(`[GeminiCLI] Refreshing token: ${tokenId}`);
     }
 
     const body = new URLSearchParams({
@@ -256,19 +256,19 @@ class GeminiCliTokenManager {
     } catch (error) {
       const statusCode = error.response?.status;
       const rawBody = error.response?.data;
-      const message = typeof rawBody === 'string' ? rawBody : (rawBody?.error?.message || error.message || '刷新 token 失败');
+      const message = typeof rawBody === 'string' ? rawBody : (rawBody?.error?.message || error.message || 'Token refresh failed');
       throw new TokenError(message, tokenId, statusCode || 500);
     }
   }
 
   saveToFile(tokenToUpdate = null) {
     this.store.mergeActiveTokens(this.tokens, tokenToUpdate).catch((error) => {
-      log.error('[GeminiCLI] 保存账号配置文件失败:', error.message);
+      log.error('[GeminiCLI] Failed to save accounts config file:', error.message);
     });
   }
 
   disableToken(token) {
-    log.warn(`[GeminiCLI] 禁用token ...${token.access_token.slice(-8)}`);
+    log.warn(`[GeminiCLI] Disabling token ...${token.access_token.slice(-8)}`);
     token.enable = false;
     this.saveToFile();
     this.tokenRequestCounts.delete(token.refresh_token);
@@ -276,7 +276,7 @@ class GeminiCliTokenManager {
     this.currentIndex = this.currentIndex % Math.max(this.tokens.length, 1);
   }
 
-  // 原子操作：获取并递增请求计数
+  // Atomic operation: increment request count
   incrementRequestCount(tokenKey) {
     const current = this.tokenRequestCounts.get(tokenKey) || 0;
     const newCount = current + 1;
@@ -284,20 +284,20 @@ class GeminiCliTokenManager {
     return newCount;
   }
 
-  // 原子操作：重置请求计数
+  // Atomic operation: reset request count
   resetRequestCount(tokenKey) {
     this.tokenRequestCounts.set(tokenKey, 0);
   }
 
   /**
-   * 通过 loadCodeAssist API 获取 projectId
-   * @param {Object} token - Token 对象
-   * @returns {Promise<string|null>} projectId 或 null
+   * Fetch projectId via loadCodeAssist API
+   * @param {Object} token - token object
+   * @returns {Promise<string|null>} projectId or null
    */
   async fetchProjectId(token) {
     const salt = await this.store.getSalt();
     const tokenId = generateTokenId(token.refresh_token, salt);
-    log.info(`[GeminiCLI] 正在获取 projectId: ${tokenId}`);
+    log.info(`[GeminiCLI] Fetching projectId: ${tokenId}`);
 
     const geminicliConfig = config.geminicli?.api || {};
     const baseUrl = geminicliConfig.baseUrl || GEMINICLI_API_CONFIG.BASE_URL;
@@ -330,36 +330,36 @@ class GeminiCliTokenManager {
 
       const data = response.data;
       
-      // 检查是否有 currentTier（表示用户已激活）
+      // Check for currentTier (user activated)
       if (data.currentTier) {
         const projectId = data.cloudaicompanionProject;
         if (projectId) {
-          log.info(`[GeminiCLI] 成功获取 projectId: ${projectId}`);
+          log.info(`[GeminiCLI] Retrieved projectId: ${projectId}`);
           return projectId;
         }
-        log.warn('[GeminiCLI] loadCodeAssist 响应中无 projectId');
+        log.warn('[GeminiCLI] loadCodeAssist response missing projectId');
         return null;
       }
 
-      // 用户未激活，尝试 onboardUser
-      log.info('[GeminiCLI] 用户未激活，尝试 onboardUser...');
+      // User not activated, try onboardUser
+      log.info('[GeminiCLI] User not activated; trying onboardUser...');
       return await this._tryOnboardUser(token, data);
     } catch (error) {
       const status = error.response?.status || error.status || 500;
-      log.error(`[GeminiCLI] 获取 projectId 失败 (${status}):`, error.message);
+      log.error(`[GeminiCLI] Failed to fetch projectId (${status}):`, error.message);
       
       if (status === 403 || status === 401) {
-        throw new TokenError('Token 无权限获取 projectId', tokenId, status);
+        throw new TokenError('Token has no permission to fetch projectId', tokenId, status);
       }
-      throw new TokenError(`获取 projectId 失败: ${error.message}`, tokenId, status);
+      throw new TokenError(`Failed to fetch projectId: ${error.message}`, tokenId, status);
     }
   }
 
   /**
-   * 尝试通过 onboardUser 获取 projectId（长时间运行操作）
-   * @param {Object} token - Token 对象
-   * @param {Object} loadCodeAssistData - loadCodeAssist 的响应数据
-   * @returns {Promise<string|null>} projectId 或 null
+   * Try to fetch projectId via onboardUser (long-running operation)
+   * @param {Object} token - token object
+   * @param {Object} loadCodeAssistData - loadCodeAssist response data
+   * @returns {Promise<string|null>} projectId or null
    * @private
    */
   async _tryOnboardUser(token, loadCodeAssistData) {
@@ -375,7 +375,7 @@ class GeminiCliTokenManager {
       'Accept-Encoding': 'gzip'
     };
 
-    // 从 loadCodeAssist 响应中获取默认 tier
+    // Get default tier from loadCodeAssist response
     let tierId = 'LEGACY';
     const allowedTiers = loadCodeAssistData?.allowedTiers || [];
     for (const tier of allowedTiers) {
@@ -394,10 +394,10 @@ class GeminiCliTokenManager {
       }
     };
 
-    // onboardUser 是长时间运行操作，需要轮询
+    // onboardUser is long-running; requires polling
     const maxAttempts = 5;
     for (let attempt = 1; attempt <= maxAttempts; attempt++) {
-      log.debug(`[GeminiCLI] onboardUser 轮询 ${attempt}/${maxAttempts}`);
+      log.debug(`[GeminiCLI] onboardUser poll ${attempt}/${maxAttempts}`);
 
       try {
         const response = await httpRequest({
@@ -422,42 +422,42 @@ class GeminiCliTokenManager {
           }
 
           if (projectId) {
-            log.info(`[GeminiCLI] onboardUser 成功获取 projectId: ${projectId}`);
+            log.info(`[GeminiCLI] onboardUser retrieved projectId: ${projectId}`);
             return projectId;
           }
-          log.warn('[GeminiCLI] onboardUser 完成但响应中无 projectId');
+          log.warn('[GeminiCLI] onboardUser completed but response missing projectId');
           return null;
         }
 
-        // 操作未完成，等待后重试
+        // Operation not complete; wait and retry
         await new Promise(resolve => setTimeout(resolve, 2000));
       } catch (error) {
-        log.error(`[GeminiCLI] onboardUser 失败:`, error.message);
+        log.error(`[GeminiCLI] onboardUser failed:`, error.message);
         throw error;
       }
     }
 
-    log.error('[GeminiCLI] onboardUser 超时');
+    log.error('[GeminiCLI] onboardUser timed out');
     return null;
   }
 
   /**
-   * 准备单个 token（刷新 + 获取 projectId）
-   * @param {Object} token - Token 对象
-   * @returns {Promise<'ready'|'disable'>} 处理结果
+   * Prepare a single token (refresh + projectId)
+   * @param {Object} token - token object
+   * @returns {Promise<'ready'|'disable'>} result
    * @private
    */
   async _prepareToken(token) {
-    // 刷新过期的 token
+    // Refresh expired token
     if (this.isExpired(token)) {
       await this.refreshToken(token);
     }
 
-    // 获取 projectId（如果没有）
+    // Fetch projectId (if missing)
     if (!token.projectId) {
       const projectId = await this.fetchProjectId(token);
       if (!projectId) {
-        log.warn(`[GeminiCLI] 无法获取 projectId，禁用账号`);
+        log.warn('[GeminiCLI] Unable to fetch projectId; disabling account');
         return 'disable';
       }
       token.projectId = projectId;
@@ -468,25 +468,25 @@ class GeminiCliTokenManager {
   }
 
   /**
-   * 处理 token 准备过程中的错误
-   * @param {Error} error - 错误对象
-   * @param {Object} token - Token 对象
-   * @returns {'disable'|'skip'} 处理结果
+   * Handle errors during token preparation
+   * @param {Error} error - error object
+   * @param {Object} token - token object
+   * @returns {'disable'|'skip'} result
    * @private
    */
   _handleTokenError(error, token) {
     const suffix = token.access_token?.slice(-8) || 'unknown';
     if (error.statusCode === 403 || error.statusCode === 400) {
-      log.warn(`[GeminiCLI] ...${suffix}: Token 已失效或错误，已自动禁用该账号`);
+      log.warn(`[GeminiCLI] ...${suffix}: token invalid or errored; account disabled`);
       return 'disable';
     }
-    log.error(`[GeminiCLI] ...${suffix} 操作失败:`, error.message);
+    log.error(`[GeminiCLI] ...${suffix} operation failed:`, error.message);
     return 'skip';
   }
 
   /**
-   * 获取可用的 token
-   * @returns {Promise<Object|null>} token 对象
+   * Get an available token
+   * @returns {Promise<Object|null>} token object
    */
   async getToken() {
     await this._ensureInitialized();
@@ -507,10 +507,10 @@ class GeminiCliTokenManager {
           continue;
         }
 
-        // 更新当前索引
+        // Update current index
         this.currentIndex = index;
 
-        // 根据策略决定是否切换
+        // Rotate based on strategy
         if (this.rotationStrategy === RotationStrategy.ROUND_ROBIN) {
           this.currentIndex = (this.currentIndex + 1) % this.tokens.length;
         } else if (this.rotationStrategy === RotationStrategy.REQUEST_COUNT) {
@@ -529,7 +529,7 @@ class GeminiCliTokenManager {
           this.disableToken(token);
           if (this.tokens.length === 0) return null;
         }
-        // skip: 继续尝试下一个 token
+        // skip: continue with next token
       }
     }
 
@@ -543,11 +543,11 @@ class GeminiCliTokenManager {
     }
   }
 
-  // API管理方法
+  // API management methods
   async reload() {
     this._initPromise = this._initialize();
     await this._initPromise;
-    log.info('[GeminiCLI] Token已热重载');
+    log.info('[GeminiCLI] Tokens hot reloaded');
   }
 
   async addToken(tokenData) {
@@ -574,9 +574,9 @@ class GeminiCliTokenManager {
       await this.store.writeAll(allTokens);
 
       await this.reload();
-      return { success: true, message: 'Token添加成功' };
+      return { success: true, message: 'Token added successfully' };
     } catch (error) {
-      log.error('[GeminiCLI] 添加Token失败:', error.message);
+      log.error('[GeminiCLI] Failed to add token:', error.message);
       return { success: false, message: error.message };
     }
   }
@@ -587,16 +587,16 @@ class GeminiCliTokenManager {
 
       const index = allTokens.findIndex(t => t.refresh_token === refreshToken);
       if (index === -1) {
-        return { success: false, message: 'Token不存在' };
+        return { success: false, message: 'Token not found' };
       }
 
       allTokens[index] = { ...allTokens[index], ...updates };
       await this.store.writeAll(allTokens);
 
       await this.reload();
-      return { success: true, message: 'Token更新成功' };
+      return { success: true, message: 'Token updated successfully' };
     } catch (error) {
-      log.error('[GeminiCLI] 更新Token失败:', error.message);
+      log.error('[GeminiCLI] Failed to update token:', error.message);
       return { success: false, message: error.message };
     }
   }
@@ -607,15 +607,15 @@ class GeminiCliTokenManager {
 
       const filteredTokens = allTokens.filter(t => t.refresh_token !== refreshToken);
       if (filteredTokens.length === allTokens.length) {
-        return { success: false, message: 'Token不存在' };
+        return { success: false, message: 'Token not found' };
       }
 
       await this.store.writeAll(filteredTokens);
 
       await this.reload();
-      return { success: true, message: 'Token删除成功' };
+      return { success: true, message: 'Token deleted successfully' };
     } catch (error) {
-      log.error('[GeminiCLI] 删除Token失败:', error.message);
+      log.error('[GeminiCLI] Failed to delete token:', error.message);
       return { success: false, message: error.message };
     }
   }
@@ -634,36 +634,36 @@ class GeminiCliTokenManager {
         projectId: token.projectId || null
       }));
     } catch (error) {
-      log.error('[GeminiCLI] 获取Token列表失败:', error.message);
+      log.error('[GeminiCLI] Failed to fetch token list:', error.message);
       return [];
     }
   }
 
   /**
-   * 根据 tokenId 获取并更新 projectId
-   * @param {string} tokenId - 安全的 token ID
-   * @returns {Promise<Object>} 包含 projectId 的结果
+   * Fetch and update projectId by tokenId
+   * @param {string} tokenId - secure token ID
+   * @returns {Promise<Object>} result containing projectId
    */
   async fetchProjectIdForToken(tokenId) {
     const tokenData = await this.findTokenById(tokenId);
     if (!tokenData) {
-      throw new TokenError('Token不存在', null, 404);
+      throw new TokenError('Token not found', null, 404);
     }
 
-    // 确保 token 未过期
+    // Ensure token is not expired
     if (this.isExpired(tokenData)) {
       await this.refreshToken(tokenData);
     }
 
     const projectId = await this.fetchProjectId(tokenData);
     if (!projectId) {
-      throw new TokenError('无法获取 projectId，该账号可能无资格', null, 400);
+      throw new TokenError('Unable to fetch projectId; account may be ineligible', null, 400);
     }
 
-    // 更新并保存
+    // Update and save
     tokenData.projectId = projectId;
     
-    // 更新文件
+    // Update file
     const allTokens = await this.store.readAll();
     const salt = await this.store.getSalt();
     const index = allTokens.findIndex(t =>
@@ -674,7 +674,7 @@ class GeminiCliTokenManager {
       await this.store.writeAll(allTokens);
     }
 
-    // 更新内存中的 token
+    // Update in-memory token
     const memoryToken = this.tokens.find(t => t.refresh_token === tokenData.refresh_token);
     if (memoryToken) {
       memoryToken.projectId = projectId;
@@ -684,9 +684,9 @@ class GeminiCliTokenManager {
   }
 
   /**
-   * 根据 tokenId 查找完整的 token 对象
-   * @param {string} tokenId - 安全的 token ID
-   * @returns {Promise<Object|null>} token 对象或 null
+   * Find full token object by tokenId
+   * @param {string} tokenId - secure token ID
+   * @returns {Promise<Object|null>} token object or null
    */
   async findTokenById(tokenId) {
     try {
@@ -697,16 +697,16 @@ class GeminiCliTokenManager {
         generateTokenId(token.refresh_token, salt) === tokenId
       ) || null;
     } catch (error) {
-      log.error('[GeminiCLI] 查找Token失败:', error.message);
+      log.error('[GeminiCLI] Failed to find token:', error.message);
       return null;
     }
   }
 
   /**
-   * 根据 tokenId 更新 token
-   * @param {string} tokenId - 安全的 token ID
-   * @param {Object} updates - 更新内容
-   * @returns {Promise<Object>} 操作结果
+   * Update token by tokenId
+   * @param {string} tokenId - secure token ID
+   * @param {Object} updates - updates
+   * @returns {Promise<Object>} result
    */
   async updateTokenById(tokenId, updates) {
     try {
@@ -718,24 +718,24 @@ class GeminiCliTokenManager {
       );
 
       if (index === -1) {
-        return { success: false, message: 'Token不存在' };
+        return { success: false, message: 'Token not found' };
       }
 
       allTokens[index] = { ...allTokens[index], ...updates };
       await this.store.writeAll(allTokens);
 
       await this.reload();
-      return { success: true, message: 'Token更新成功' };
+      return { success: true, message: 'Token updated successfully' };
     } catch (error) {
-      log.error('[GeminiCLI] 更新Token失败:', error.message);
+      log.error('[GeminiCLI] Failed to update token:', error.message);
       return { success: false, message: error.message };
     }
   }
 
   /**
-   * 根据 tokenId 删除 token
-   * @param {string} tokenId - 安全的 token ID
-   * @returns {Promise<Object>} 操作结果
+   * Delete token by tokenId
+   * @param {string} tokenId - secure token ID
+   * @returns {Promise<Object>} result
    */
   async deleteTokenById(tokenId) {
     try {
@@ -747,28 +747,28 @@ class GeminiCliTokenManager {
       );
 
       if (filteredTokens.length === allTokens.length) {
-        return { success: false, message: 'Token不存在' };
+        return { success: false, message: 'Token not found' };
       }
 
       await this.store.writeAll(filteredTokens);
 
       await this.reload();
-      return { success: true, message: 'Token删除成功' };
+      return { success: true, message: 'Token deleted successfully' };
     } catch (error) {
-      log.error('[GeminiCLI] 删除Token失败:', error.message);
+      log.error('[GeminiCLI] Failed to delete token:', error.message);
       return { success: false, message: error.message };
     }
   }
 
   /**
-   * 根据 tokenId 刷新 token
-   * @param {string} tokenId - 安全的 token ID
-   * @returns {Promise<Object>} 刷新后的 token 信息（不含敏感数据）
+   * Refresh token by tokenId
+   * @param {string} tokenId - secure token ID
+   * @returns {Promise<Object>} refreshed token info (no sensitive data)
    */
   async refreshTokenById(tokenId) {
     const tokenData = await this.findTokenById(tokenId);
     if (!tokenData) {
-      throw new TokenError('Token不存在', null, 404);
+      throw new TokenError('Token not found', null, 404);
     }
 
     const refreshedToken = await this.refreshToken(tokenData);
@@ -779,14 +779,14 @@ class GeminiCliTokenManager {
   }
 
   /**
-   * 获取盐值
-   * @returns {Promise<string>} 盐值
+   * Get salt
+   * @returns {Promise<string>} salt
    */
   async getSalt() {
     return this.store.getSalt();
   }
 
-  // 获取当前轮询配置
+  // Get current rotation config
   getRotationConfig() {
     return {
       strategy: this.rotationStrategy,
@@ -797,7 +797,7 @@ class GeminiCliTokenManager {
   }
 }
 
-// 导出策略枚举
+// Export strategy enum
 export { RotationStrategy };
 
 const geminicliTokenManager = new GeminiCliTokenManager();

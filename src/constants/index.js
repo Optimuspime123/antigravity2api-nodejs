@@ -1,105 +1,106 @@
 /**
- * 应用常量定义
+ * Application constants
  * @module constants
  */
 
-// ==================== 缓存相关常量 ====================
+// ==================== Cache constants ====================
 
 /**
- * 文件缓存有效期（毫秒）
+ * File cache TTL (ms)
  * @type {number}
  */
 export const FILE_CACHE_TTL = 5000;
 
 /**
- * 文件保存延迟（毫秒）- 用于 debounce
+ * File save delay (ms) - used for debounce
  * @type {number}
  */
 export const FILE_SAVE_DELAY = 1000;
 
 /**
- * 额度缓存有效期（毫秒）- 5分钟
+ * Quota cache TTL (ms) - 5 minutes
  * @type {number}
  */
 export const QUOTA_CACHE_TTL = 5 * 60 * 1000;
 
 /**
- * 额度清理间隔（毫秒）- 1小时
+ * Quota cleanup interval (ms) - 1 hour
  * @type {number}
  */
 export const QUOTA_CLEANUP_INTERVAL = 60 * 60 * 1000;
 
 /**
- * 模型列表缓存默认有效期（毫秒）- 1小时
+ * Model list cache default TTL (ms) - 1 hour
  * @type {number}
  */
 export const MODEL_LIST_CACHE_TTL = 60 * 60 * 1000;
 
-// ==================== 内存管理常量 ====================
+// ==================== Memory management constants ====================
 
 /**
- * 默认内存清理间隔（毫秒）
- * 在该间隔内，即使处于 MEDIUM/HIGH，也不会重复触发清理回调，避免频繁扫描与释放带来的性能损耗。
+ * Default memory cleanup interval (ms)
+ * Within this interval, cleanup callbacks won't be triggered repeatedly even at MEDIUM/HIGH,
+ * avoiding performance loss from frequent scans and releases.
  * @type {number}
  */
 export const MEMORY_CLEANUP_INTERVAL = 30 * 60 * 1000;
 
-// ==================== 服务器相关常量 ====================
+// ==================== Server constants ====================
 
 /**
- * 默认心跳间隔（毫秒）
+ * Default heartbeat interval (ms)
  * @type {number}
  */
 export const DEFAULT_HEARTBEAT_INTERVAL = 15000;
 
 /**
- * 默认服务器端口
+ * Default server port
  * @type {number}
  */
 export const DEFAULT_SERVER_PORT = 8045;
 
 /**
- * 默认服务器主机
+ * Default server host
  * @type {string}
  */
 export const DEFAULT_SERVER_HOST = '0.0.0.0';
 
 /**
- * 默认请求超时（毫秒）
+ * Default request timeout (ms)
  * @type {number}
  */
 export const DEFAULT_TIMEOUT = 300000;
 
 /**
- * 默认重试次数
+ * Default retry attempts
  * @type {number}
  */
 export const DEFAULT_RETRY_TIMES = 3;
 
 /**
- * 默认最大请求体大小
+ * Default max request body size
  * @type {string}
  */
 export const DEFAULT_MAX_REQUEST_SIZE = '50mb';
 
-// ==================== Token 轮询相关常量 ====================
+// ==================== Token rotation constants ====================
 
 /**
- * 默认每个 Token 请求次数后切换
+ * Default requests per token before rotating
  * @type {number}
  */
 export const DEFAULT_REQUEST_COUNT_PER_TOKEN = 50;
 
 /**
- * Token 过期提前刷新时间（毫秒）- 5分钟
+ * Token refresh buffer before expiry (ms) - 5 minutes
  * @type {number}
  */
 export const TOKEN_REFRESH_BUFFER = 300000;
 
-// ==================== 生成参数默认值 ====================
+// ==================== Generation defaults ====================
 
 /**
- * 默认生成参数
+ * Default generation parameters
  */
 export const DEFAULT_GENERATION_PARAMS = {
   temperature: 1,
@@ -110,7 +111,7 @@ export const DEFAULT_GENERATION_PARAMS = {
 };
 
 /**
- * reasoning_effort 到 thinkingBudget 的映射
+ * Map reasoning_effort to thinkingBudget
  */
 export const REASONING_EFFORT_MAP = {
   low: 1024,
@@ -118,16 +119,16 @@ export const REASONING_EFFORT_MAP = {
   high: 32000
 };
 
-// ==================== 图片相关常量 ====================
+// ==================== Image constants ====================
 
 /**
- * 默认最大保留图片数量
+ * Default max image retention
  * @type {number}
  */
 export const DEFAULT_MAX_IMAGES = 10;
 
 /**
- * MIME 类型到文件扩展名映射
+ * MIME type to file extension map
  */
 export const MIME_TO_EXT = {
   'image/jpeg': 'jpg',
@@ -136,10 +137,10 @@ export const MIME_TO_EXT = {
   'image/webp': 'webp'
 };
 
-// ==================== 停止序列 ====================
+// ==================== Stop sequences ====================
 
 /**
- * 默认停止序列
+ * Default stop sequences
  * @type {string[]}
  */
 export const DEFAULT_STOP_SEQUENCES = [
@@ -150,8 +151,8 @@ export const DEFAULT_STOP_SEQUENCES = [
   '<|end_of_turn|>'
 ];
 
-// ==================== 管理员默认配置 ====================
+// ==================== Admin defaults ====================
 
-// 注意：管理员凭据（用户名、密码、JWT密钥）现在由 config.js 自动生成随机值
-// 如果用户未配置，启动时会在控制台显示生成的凭据
-// 不再使用硬编码的默认值，提高安全性
+// Note: admin credentials (username, password, JWT secret) are now generated
+// randomly by config.js. If not configured, the generated credentials will be
+// printed at startup. Hard-coded defaults are no longer used for security.

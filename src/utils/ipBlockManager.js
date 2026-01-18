@@ -4,12 +4,12 @@ import { getDataDir } from './paths.js';
 import logger from './logger.js';
 
 const BLOCKLIST_FILE = 'ip-blocklist.json';
-const TEMP_BLOCK_DURATION = 60 * 60 * 1000; // 1小时
-const MAX_VIOLATIONS_BEFORE_TEMP_BLOCK = 20; // 20次违规触发临时封禁 (稍微放宽一点，避免誤伤)
-const MAX_TEMP_BLOCKS_BEFORE_PERMANENT = 3; // 3次临时封禁触发永久封禁
-const VIOLATION_WINDOW = 60 * 1000; // 1分钟内的违规计数窗口
+const TEMP_BLOCK_DURATION = 60 * 60 * 1000; // 1 hour
+const MAX_VIOLATIONS_BEFORE_TEMP_BLOCK = 20; // 20 violations trigger a temp block (slightly lenient to avoid false positives)
+const MAX_TEMP_BLOCKS_BEFORE_PERMANENT = 3; // 3 temp blocks trigger a permanent block
+const VIOLATION_WINDOW = 60 * 1000; // violation window within 1 minute
 
-// 本地白名单 IP
+// Local whitelist IPs
 const WHITELISTED_IPS = new Set(['127.0.0.1', '::1', '::ffff:127.0.0.1', 'localhost']);
 
 class IpBlockManager {
@@ -36,7 +36,7 @@ class IpBlockManager {
 
   async load() {
     try {
-      // 确保目录存在
+      // Ensure directory exists
       await fs.mkdir(path.dirname(this.filePath), { recursive: true });
       
       try {
@@ -44,23 +44,23 @@ class IpBlockManager {
         this.data = JSON.parse(content);
       } catch (e) {
         if (e.code !== 'ENOENT') {
-          logger.error('加载封禁列表失败:', e.message);
+          logger.error('Failed to load block list:', e.message);
         }
-        // 文件不存在则使用默认值
+        // Use defaults if file does not exist
         this.data = { blocked_ips: {} };
       }
     } catch (e) {
-      logger.error('初始化封禁管理器失败:', e.message);
+      logger.error('Failed to initialize block manager:', e.message);
     }
   }
 
   async save() {
-    // 串行写入防止冲突
+    // Serialize writes to avoid conflicts
     this.savePromise = this.savePromise.then(async () => {
       try {
         await fs.writeFile(this.filePath, JSON.stringify(this.data, null, 2), 'utf8');
       } catch (e) {
-        logger.error('保存封禁列表失败:', e.message);
+        logger.error('Failed to save block list:', e.message);
       }
     });
     return this.savePromise;
@@ -86,7 +86,7 @@ class IpBlockManager {
   async recordViolation(ip, type) {
     if (!ip || this.isWhitelisted(ip)) return;
     
-    // 确保已初始化
+    // Ensure initialized
     if (!this.initialized) await this.init();
 
     let info = this.data.blocked_ips[ip];
@@ -103,10 +103,10 @@ class IpBlockManager {
       this.data.blocked_ips[ip] = info;
     }
 
-    // 如果已经在封禁中，不记录
+    // Skip if already blocked
     if (info.permanent || (info.expiresAt && now < info.expiresAt)) return;
 
-    // 检查违规窗口：如果距离上次违规超过窗口期，重置计数
+    // Violation window: reset count if last violation is outside the window
     if (now - info.lastViolation > VIOLATION_WINDOW) {
       info.violations = 0;
     }
@@ -115,17 +115,17 @@ class IpBlockManager {
     info.lastViolation = now;
 
     if (info.violations >= MAX_VIOLATIONS_BEFORE_TEMP_BLOCK) {
-      // 触发封禁
+      // Trigger block
       info.tempBlockCount++;
-      info.violations = 0; // 重置违规计数
+      info.violations = 0; // Reset violation count
 
       if (info.tempBlockCount >= MAX_TEMP_BLOCKS_BEFORE_PERMANENT) {
         info.permanent = true;
         info.expiresAt = 0;
-        logger.warn(`IP ${ip} 因频繁违规(${type})被永久封禁`);
+        logger.warn(`IP ${ip} permanently blocked due to frequent violations (${type})`);
       } else {
         info.expiresAt = now + TEMP_BLOCK_DURATION;
-        logger.warn(`IP ${ip} 因频繁违规(${type})被临时封禁 1 小时 (累计封禁 ${info.tempBlockCount} 次)`);
+        logger.warn(`IP ${ip} temporarily blocked for 1 hour due to frequent violations (${type}) (temp blocks: ${info.tempBlockCount})`);
       }
       
       await this.save();
