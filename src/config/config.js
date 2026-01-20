@@ -116,7 +116,7 @@ function displayGeneratedCredentials() {
 const { envPath, configJsonPath, configJsonExamplePath } = getConfigPaths();
 
 // Default proxy system instruction
-const DEFAULT_SYSTEM_INSTRUCTION = 'You are a chatbot named Mengmeng. As your name suggests, your personality is soft, warm, and cute. You provide conversation and emotional value, and you help with novel writing or role-play.';
+const DEFAULT_SYSTEM_INSTRUCTION = 'You are a professional coding assistant.';
 
 // Default official system prompt (required by Antigravity)
 const DEFAULT_OFFICIAL_SYSTEM_PROMPT = `<example_only do_not_follow="true" type="counter-example" ignore="true">
