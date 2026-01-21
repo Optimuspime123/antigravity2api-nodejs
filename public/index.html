@@ -3,33 +3,35 @@
 
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>Token Management</title>
-    <!-- Prevent flicker: set initial state based on tab before render -->
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=5.0">
+    <meta name="description" content="Antigravity - Modern Token Management Dashboard">
+    <meta name="theme-color" content="#09090b">
+    <meta name="color-scheme" content="dark">
+    <title>Antigravity | Token Management</title>
+
+    <!-- Preconnect to font servers -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link
+        href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=Ubuntu+Mono:wght@400;700&family=Monoton&family=Zen+Dots&display=swap"
+        rel="stylesheet">
+
+    <!-- Anti-flicker: Set initial state -->
     <script>
         (function () {
-            // Initial state: auth-checking means login status is being verified
-            // After verification: auth-ready + logged-in or auth-ready
             var currentTab = localStorage.getItem('currentTab') || 'tokens';
             var classes = ['auth-checking'];
             if (currentTab === 'settings') classes.push('tab-settings');
             if (currentTab === 'logs') classes.push('tab-logs');
+            if (currentTab === 'geminicli') classes.push('tab-geminicli');
+            if (currentTab === 'tokens') classes.push('tab-tokens');
             document.documentElement.className = classes.join(' ');
-            // Detect font loading
-            if ('fonts' in document) {
-                document.fonts.ready.then(function () {
-                    document.documentElement.classList.add('fonts-loaded');
-                });
-            } else {
-                // Fallback: add after delay
-                setTimeout(function () {
-                    document.documentElement.classList.add('fonts-loaded');
-                }, 1000);
-            }
         })();
     </script>
+
+    <!-- Critical Functional Styles (Anti-flicker) -->
     <style>
-        /* Verifying: hide login and main content, show loading indicator */
+        /* Auth Visibility */
         html.auth-checking #loginForm,
         html.auth-checking #mainContent {
             display: none !important;
@@ -39,17 +41,15 @@
             display: flex !important;
         }
 
-        /* After verification: hide loading indicator */
         html.auth-ready #authLoading {
             display: none !important;
         }
 
-        /* Login state display control */
-        .logged-in #loginForm {
+        html.logged-in #loginForm {
             display: none !important;
         }
 
-        .logged-in #mainContent {
+        html.logged-in #mainContent {
             display: flex !important;
         }
 
@@ -61,650 +61,502 @@
             display: none !important;
         }
 
-        /* Tab state management */
-        html.tab-settings #tokensPage {
-            display: none !important;
-        }
-
-        html.tab-settings #settingsPage {
-            display: block !important;
-        }
-
-        html.tab-settings #logsPage {
-            display: none !important;
-        }
-
-        html.tab-settings .tab[data-tab="tokens"] {
-            background: transparent !important;
-            color: var(--text-light, #888) !important;
-        }
-
-        html.tab-settings .tab[data-tab="settings"] {
-            background: var(--primary, #4f46e5) !important;
-            color: white !important;
-        }
-
-        html.tab-settings .tab[data-tab="logs"] {
-            background: transparent !important;
-            color: var(--text-light, #888) !important;
-        }
-
-        html.tab-logs #tokensPage {
-            display: none !important;
-        }
-
-        html.tab-logs #settingsPage {
-            display: none !important;
-        }
-
-        html.tab-logs #logsPage {
-            display: flex !important;
-        }
-
-        html.tab-logs #geminicliPage {
-            display: none !important;
-        }
-
-        html.tab-logs .tab[data-tab="tokens"] {
-            background: transparent !important;
-            color: var(--text-light, #888) !important;
-        }
-
-        html.tab-logs .tab[data-tab="settings"] {
-            background: transparent !important;
-            color: var(--text-light, #888) !important;
-        }
-
-        html.tab-logs .tab[data-tab="logs"] {
-            background: var(--primary, #4f46e5) !important;
-            color: white !important;
-        }
-
-        html.tab-logs .tab[data-tab="geminicli"] {
-            background: transparent !important;
-            color: var(--text-light, #888) !important;
-        }
-
-        /* Gemini CLI tab state */
-        html.tab-geminicli #tokensPage {
-            display: none !important;
-        }
-
-        html.tab-geminicli #settingsPage {
-            display: none !important;
-        }
-
-        html.tab-geminicli #logsPage {
-            display: none !important;
-        }
-
-        html.tab-geminicli #geminicliPage {
-            display: block !important;
-        }
-
-        html.tab-geminicli .tab[data-tab="tokens"] {
-            background: transparent !important;
-            color: var(--text-light, #888) !important;
-        }
-
-        html.tab-geminicli .tab[data-tab="settings"] {
-            background: transparent !important;
-            color: var(--text-light, #888) !important;
-        }
-
-        html.tab-geminicli .tab[data-tab="logs"] {
-            background: transparent !important;
-            color: var(--text-light, #888) !important;
-        }
-
-        html.tab-geminicli .tab[data-tab="geminicli"] {
-            background: var(--primary, #4f46e5) !important;
-            color: white !important;
-        }
-
+        /* Tab Visibility */
+        html.tab-settings #tokensPage,
+        html.tab-settings #logsPage,
         html.tab-settings #geminicliPage {
             display: none !important;
         }
 
-        html.tab-settings .tab[data-tab="geminicli"] {
-            background: transparent !important;
-            color: var(--text-light, #888) !important;
+        html.tab-logs #tokensPage,
+        html.tab-logs #settingsPage,
+        html.tab-logs #geminicliPage {
+            display: none !important;
         }
 
-        /* Loading indicator styles */
+        html.tab-geminicli #tokensPage,
+        html.tab-geminicli #settingsPage,
+        html.tab-geminicli #logsPage {
+            display: none !important;
+        }
+
+        /* Note: ui.js adds .hidden to pages, but this handles initial render */
+
+        /* Loading Overlay Default */
         #authLoading {
-            display: none;
             position: fixed;
             inset: 0;
+            background: #09090b;
+            z-index: 9999;
+            display: none;
+            flex-direction: column;
             align-items: center;
             justify-content: center;
-            flex-direction: column;
-            gap: 1rem;
-            background: var(--bg, #f8fafc);
-        }
-
-        #authLoading .spinner {
-            width: 40px;
-            height: 40px;
-            border: 3px solid var(--border, #e2e8f0);
-            border-top-color: var(--primary, #0891b2);
-            border-radius: 50%;
-            animation: spin 0.7s linear infinite;
-        }
-
-        #authLoading .loading-text {
-            color: var(--text-light, #64748b);
-            font-size: 0.875rem;
-        }
-
-        @keyframes spin {
-            to {
-                transform: rotate(360deg);
-            }
         }
     </style>
-    <!-- Main stylesheet - load first -->
+
     <link rel="stylesheet" href="style.css">
-    <!-- Preconnect font servers -->
-    <link rel="preconnect" href="https://font.sec.miui.com" crossorigin>
-    <link rel="preconnect" href="https://fonts.googleapis.com" crossorigin>
-    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-    <!-- Async font loading - non-blocking -->
-    <link rel="stylesheet"
-        href="https://font.sec.miui.com/font/css?family=MiSans:400,500,600,700:Chinese_Simplify,Latin&display=swap"
-        media="print" onload="this.media='all'">
-    <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Ubuntu+Mono:wght@400;700&display=swap"
-        media="print" onload="this.media='all'">
-    <noscript>
-        <link rel="stylesheet"
-            href="https://font.sec.miui.com/font/css?family=MiSans:400,500,600,700:Chinese_Simplify,Latin&display=swap">
-        <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Ubuntu+Mono:wght@400;700&display=swap">
-    </noscript>
 </head>
 
 <body>
-    <!-- Loading indicator while verifying login -->
+    <!-- Initial Loading Screen -->
     <div id="authLoading">
         <div class="spinner"></div>
-        <div class="loading-text">Verifying login status...</div>
+        <div class="loading-text" style="color:#666; margin-top:20px; font-weight:500;">Initializing Antigravity...
+        </div>
     </div>
 
     <div class="container">
-        <!-- Login form -->
+        <!-- Login Form -->
         <div id="loginForm" class="login-form">
-            <h2>Token Management</h2>
+            <h2>Antigravity</h2>
             <form id="login">
                 <div class="form-group">
-                    <label>👤 Username</label>
-                    <input type="text" id="username" required autocomplete="username">
+                    <label>Username</label>
+                    <input type="text" id="username" required autocomplete="username" placeholder="Enter username">
                 </div>
                 <div class="form-group">
-                    <label>🔑 Password</label>
-                    <input type="password" id="password" required autocomplete="current-password">
+                    <label>Password</label>
+                    <input type="password" id="password" required autocomplete="current-password"
+                        placeholder="Enter password">
                 </div>
                 <button type="submit">Sign in</button>
             </form>
         </div>
 
-        <!-- Main content -->
+        <!-- Main Content -->
         <div id="mainContent" class="main-content hidden">
-            <div id="tunnelBanner" class="tunnel-banner hidden" role="status" aria-live="polite">
-                <div class="tunnel-banner-content">
-                    <span class="tunnel-icon" aria-hidden="true">🛰️</span>
-                    <div class="tunnel-text">
-                        <div class="tunnel-title">Cloudflared tunnel active</div>
-                        <div class="tunnel-url-row">
-                            <span class="tunnel-label">Public URL</span>
-                            <a id="tunnelUrlLink" href="#" target="_blank" rel="noopener noreferrer"></a>
-                        </div>
+            <!-- Tunnel Banner -->
+            <div id="tunnelBanner" class="tunnel-banner hidden" role="status">
+                <div class="tunnel-text">
+                    <div>
+                        <span style="margin-right:8px; font-size:1.1em;">📡</span>
+                        <strong style="color:var(--text-primary);">Cloudflared Tunnel Active</strong>
+                    </div>
+                    <div style="margin-top:4px;">
+                        <span
+                            style="color:var(--text-muted); font-size:0.8em; text-transform:uppercase; letter-spacing:1px; margin-right:8px;">Public
+                            URL</span>
+                        <a id="tunnelUrlLink" href="#" target="_blank"
+                            style="color:var(--g-blue); text-decoration:none;">...</a>
                     </div>
                 </div>
-                <button type="button" id="copyTunnelUrl" class="tunnel-copy">Copy</button>
+                <button type="button" id="copyTunnelUrl" class="btn btn-sm btn-info"
+                    style="border-radius:20px;">Copy</button>
             </div>
+
+            <!-- Header -->
             <div class="header">
-            <div class="tabs">
-                <button class="tab active" data-tab="tokens" onclick="switchTab('tokens')"><span
-                        class="tab-icon">🎯</span><span class="tab-text">Antigravity</span></button>
-                <button class="tab" data-tab="geminicli" onclick="switchTab('geminicli')"><span
-                        class="tab-icon">💎</span><span class="tab-text">Gemini CLI</span></button>
-                <button class="tab" data-tab="settings" onclick="switchTab('settings')"><span
-                        class="tab-icon">⚙️</span><span class="tab-text">Settings</span></button>
-                <button class="tab" data-tab="logs" onclick="switchTab('logs')"><span
-                        class="tab-icon">📋</span><span class="tab-text">Logs</span></button>
-            </div>
+                <div class="tabs">
+                    <button class="tab" data-tab="tokens" onclick="switchTab('tokens')">
+                        <span class="tab-icon">🎯</span> <span class="tab-text">All Tokens</span>
+                    </button>
+                    <button class="tab" data-tab="geminicli" onclick="switchTab('geminicli')">
+                        <span class="tab-icon">💎</span> <span class="tab-text">Gemini CLI</span>
+                    </button>
+                    <button class="tab" data-tab="settings" onclick="switchTab('settings')">
+                        <span class="tab-icon">⚙️</span> <span class="tab-text">Settings</span>
+                    </button>
+                    <button class="tab" data-tab="logs" onclick="switchTab('logs')">
+                        <span class="tab-icon">📋</span> <span class="tab-text">Logs</span>
+                    </button>
+                </div>
                 <div class="header-right">
                     <button onclick="logout()">🚪 Sign out</button>
                 </div>
             </div>
+
+            <!-- Content Pages -->
             <div class="content">
-                <!-- Token management page -->
+
+                <!-- Tokens Page -->
                 <div id="tokensPage">
-                    <!-- Stats + actions -->
                     <div class="top-bar">
                         <div class="stats-inline">
-                            <div class="stat-item clickable active" onclick="filterTokens('all')">
+                            <div class="stat-item active" onclick="filterTokens('all')">
                                 <span class="stat-num" id="totalTokens">0</span>
                                 <span class="stat-text">Total</span>
                             </div>
-                            <div class="stat-item success clickable" onclick="filterTokens('enabled')">
+                            <div class="stat-item success" onclick="filterTokens('enabled')">
                                 <span class="stat-num" id="enabledTokens">0</span>
                                 <span class="stat-text">Enabled</span>
                             </div>
-                            <div class="stat-item danger clickable" onclick="filterTokens('disabled')">
+                            <div class="stat-item danger" onclick="filterTokens('disabled')">
                                 <span class="stat-num" id="disabledTokens">0</span>
                                 <span class="stat-text">Disabled</span>
                             </div>
-                            <button type="button" class="action-toggle-btn" id="actionToggleBtn"
-                                onclick="toggleActionBar()" title="Collapse action buttons">▾</button>
+                            <button type="button" class="btn btn-icon" id="actionToggleBtn" onclick="toggleActionBar()"
+                                title="Toggle Actions">▾</button>
                         </div>
                         <div class="action-btns" id="actionBar">
-                            <button type="button" onclick="showOAuthModal()" class="btn btn-success btn-sm">🔐
-                                OAuth</button>
-                            <button type="button" onclick="toggleSensitiveInfo()" class="btn btn-secondary btn-sm"
-                                id="toggleSensitiveBtn" title="Click to show sensitive info">🙈 Hide</button>
-                            <button type="button" onclick="refreshAllQuotas()" class="btn btn-info btn-sm"
-                                id="refreshQuotasBtn">📊 Refresh quotas</button>
-                            <button type="button" onclick="batchFetchProjectIds()" class="btn btn-info btn-sm"
-                                title="Batch fetch Project IDs for enabled Tokens">🔍 Batch fetch</button>
-                            <button type="button" onclick="loadTokens()" class="btn btn-warning btn-sm">🔄 Reload</button>
-                            <button type="button" onclick="exportTokens()" class="btn btn-sm"
-                                style="background: var(--primary);" title="Export Tokens">📤 Export</button>
-                            <button type="button" onclick="importTokens()" class="btn btn-sm"
-                                style="background: var(--primary);" title="Add/Import Tokens">📥 Import</button>
+                            <button onclick="showOAuthModal()" class="btn btn-success">🔐 OAuth</button>
+                            <button onclick="toggleSensitiveInfo()" class="btn btn-warning" id="toggleSensitiveBtn">🙈
+                                Hide</button>
+                            <button onclick="refreshAllQuotas()" class="btn btn-info" id="refreshQuotasBtn">📊 Refresh
+                                Quotas</button>
+                            <button onclick="batchFetchProjectIds()" class="btn btn-info">🔍 Batch Fetch</button>
+                            <button onclick="loadTokens()" class="btn btn-icon" title="Reload">🔄</button>
+                            <button onclick="exportTokens()" class="btn btn-icon" title="Export">📤</button>
+                            <button onclick="importTokens()" class="btn btn-icon" title="Import">📥</button>
                         </div>
                     </div>
 
-                    <!-- Token grid -->
                     <div id="tokenList" class="token-grid">
                         <div class="empty-state">
                             <div class="empty-state-icon">📦</div>
-                            <div class="empty-state-text">No Tokens yet</div>
-                            <div class="empty-state-hint">Click OAuth above to add a Token</div>
+                            <div>No tokens found.</div>
+                            <div class="empty-state-hint">Click OAuth to generate one.</div>
                         </div>
                     </div>
                 </div>
 
-                <!-- Gemini CLI page -->
+                <!-- Gemini CLI Page -->
                 <div id="geminicliPage" class="hidden">
-                    <!-- Stats + actions -->
                     <div class="top-bar">
                         <div class="stats-inline">
-                            <div class="stat-item clickable active" onclick="filterGeminiCliTokens('all')">
+                            <div class="stat-item active" onclick="filterGeminiCliTokens('all')">
                                 <span class="stat-num" id="geminicliTotalTokens">0</span>
                                 <span class="stat-text">Total</span>
                             </div>
-                            <div class="stat-item success clickable" onclick="filterGeminiCliTokens('enabled')">
+                            <div class="stat-item success" onclick="filterGeminiCliTokens('enabled')">
                                 <span class="stat-num" id="geminicliEnabledTokens">0</span>
                                 <span class="stat-text">Enabled</span>
                             </div>
-                            <div class="stat-item danger clickable" onclick="filterGeminiCliTokens('disabled')">
+                            <div class="stat-item danger" onclick="filterGeminiCliTokens('disabled')">
                                 <span class="stat-num" id="geminicliDisabledTokens">0</span>
                                 <span class="stat-text">Disabled</span>
                             </div>
                         </div>
                         <div class="action-btns">
-                            <button type="button" onclick="showGeminiCliOAuthModal()" class="btn btn-success btn-sm">🔐
-                                OAuth</button>
-                            <button type="button" onclick="toggleSensitiveInfo()" class="btn btn-secondary btn-sm"
-                                title="Click to show sensitive info">🙈 Hide</button>
-                            <button type="button" onclick="reloadGeminiCliTokens()" class="btn btn-warning btn-sm">🔄 Reload</button>
-                            <button type="button" onclick="exportGeminiCliTokens()" class="btn btn-sm"
-                                style="background: var(--primary);" title="Export Tokens">📤 Export</button>
-                            <button type="button" onclick="importGeminiCliTokens()" class="btn btn-sm"
-                                style="background: var(--primary);" title="Add/Import Tokens">📥 Import</button>
+                            <button onclick="showGeminiCliOAuthModal()" class="btn btn-success">🔐 OAuth</button>
+                            <button onclick="toggleSensitiveInfo()" class="btn btn-warning">🙈 Hide</button>
+                            <button onclick="reloadGeminiCliTokens()" class="btn btn-icon">🔄</button>
+                            <button onclick="exportGeminiCliTokens()" class="btn btn-icon">📤</button>
+                            <button onclick="importGeminiCliTokens()" class="btn btn-icon">📥</button>
                         </div>
                     </div>
 
-                    <!-- Token grid -->
                     <div id="geminicliTokenList" class="token-grid">
                         <div class="empty-state">
-                            <div class="empty-state-icon">📦</div>
-                            <div class="empty-state-text">No Gemini CLI Tokens yet</div>
-                            <div class="empty-state-hint">Click OAuth above to add a Token</div>
+                            <div class="empty-state-icon">💎</div>
+                            <div>No Gemini CLI tokens yet.</div>
                         </div>
                     </div>
                 </div>
 
-                <!-- Logs page -->
+                <!-- Logs Page -->
                 <div id="logsPage" class="hidden">
-                    <div class="logs-top-bar">
-                        <div class="logs-top-row">
-                            <div id="logStats" class="log-stats">
-                                <!-- Log stats are rendered by JS -->
-                            </div>
-                        </div>
-                        <div class="logs-second-row">
-                            <div class="log-search">
+                    <div class="top-bar" style="flex-direction: column; align-items: stretch; gap:16px;">
+                        <div style="display:flex; justify-content:space-between; align-items:center;">
+                            <div id="logStats" class="stats-inline"
+                                style="transform:scale(0.9); transform-origin:left;"></div>
+                            <div class="action-btns">
                                 <input type="text" id="logSearchInput" placeholder="Search logs..."
-                                    oninput="searchLogs(this.value)">
-                            </div>
-                            <div class="log-action-btns">
-                                <button id="autoRefreshBtn" class="btn btn-sm btn-secondary"
-                                    onclick="toggleAutoRefresh()" title="Auto refresh logs every 3 seconds">🔄 Auto refresh</button>
-                                <button class="btn btn-sm btn-info" onclick="loadLogs(); loadLogStats();"
-                                    title="Refresh logs manually">↻ Refresh</button>
-                                <button class="btn btn-sm" style="background: var(--primary);" onclick="exportLogs()"
-                                    title="Export logs as a text file">📤 Export</button>
-                                <button class="btn btn-sm btn-danger" onclick="clearLogs()" title="Clear all logs">🗑️
-                                    Clear</button>
+                                    oninput="searchLogs(this.value)" style="width:240px;">
+                                <button id="autoRefreshBtn" class="btn" onclick="toggleAutoRefresh()">🔄 Auto</button>
+                                <button class="btn" onclick="loadLogs(); loadLogStats();">↻ Refresh</button>
+                                <button class="btn" onclick="exportLogs()">📤 Export</button>
+                                <button class="btn btn-danger" onclick="clearLogs()">🗑️ Clear</button>
                             </div>
                         </div>
                     </div>
                     <div class="log-container">
-                        <div id="logList" class="log-list">
-                            <div class="log-empty">
-                                <div class="log-empty-icon">📋</div>
-                                <div class="log-empty-text">Loading...</div>
+                        <div id="logList" style="padding:16px; height:100%; overflow-y:auto;">
+                            <div class="empty-state">
+                                <div class="empty-state-icon" style="font-size:2rem;">📋</div>
+                                <div class="empty-state-text">Loading logs...</div>
                             </div>
                         </div>
                     </div>
-                    <button id="loadMoreLogsBtn" class="btn btn-secondary load-more-btn" onclick="loadMoreLogs()"
-                        style="display: none;">Load more</button>
+                    <button id="loadMoreLogsBtn" class="btn" onclick="loadMoreLogs()"
+                        style="margin-top:12px; display:none; background:rgba(255,255,255,0.05);">Load more
+                        logs</button>
                 </div>
 
-                <!-- Settings page -->
+                <!-- Settings Page -->
                 <div id="settingsPage" class="hidden">
-                    <form id="configForm" class="config-form">
+                    <form id="configForm">
                         <div class="settings-layout">
                             <aside class="settings-nav">
-                                <div class="settings-search">
+                                <div style="margin-bottom:16px;">
                                     <input type="text" id="settingsSearch" placeholder="Search settings..."
                                         oninput="filterSettings(this.value)">
                                 </div>
-                                <select class="settings-section-select" id="settingsSectionSelect"
-                                    onchange="setActiveSettingSection(this.value, true)">
-                                    <option value="section-server">🖥️ Server</option>
-                                    <option value="section-model">🎛️ Model settings</option>
-                                    <option value="section-rotation">🔄 Rotation & performance</option>
+                                <select id="settingsSectionSelect" onchange="setActiveSettingSection(this.value, true)"
+                                    class="hidden" style="margin-bottom:16px;">
+                                    <option value="section-server">Server Configuration</option>
+                                    <option value="section-model">Model Settings</option>
+                                    <option value="section-rotation">Rotation & Perf</option>
                                 </select>
                                 <div class="settings-nav-list">
-                                    <button type="button" class="settings-nav-item" data-target="section-server"
-                                        onclick="setActiveSettingSection('section-server', true)">🖥️ Server</button>
+                                    <button type="button" class="settings-nav-item active" data-target="section-server"
+                                        onclick="setActiveSettingSection('section-server', true)">🖥️ Server
+                                        Configuration</button>
                                     <button type="button" class="settings-nav-item" data-target="section-model"
-                                        onclick="setActiveSettingSection('section-model', true)">🎛️ Model settings</button>
+                                        onclick="setActiveSettingSection('section-model', true)">🎛️ Model
+                                        Settings</button>
                                     <button type="button" class="settings-nav-item" data-target="section-rotation"
-                                        onclick="setActiveSettingSection('section-rotation', true)">🔄 Rotation & performance</button>
+                                        onclick="setActiveSettingSection('section-rotation', true)">🔄 Rotation &
+                                        Performance</button>
                                 </div>
                             </aside>
+
                             <div class="settings-content">
-                                <div class="config-grid">
-                                    <!-- Server configuration -->
-                                    <div class="config-section" id="section-server">
-                                        <h4>🖥️ Server</h4>
-                                        <div class="form-row-inline">
-                                            <div class="form-group compact">
-                                                <label>Port</label>
-                                                <input type="number" name="PORT" placeholder="8045">
-                                            </div>
-                                            <div class="form-group compact">
-                                                <label>Host</label>
-                                                <input type="text" name="HOST" placeholder="0.0.0.0">
-                                            </div>
+                                <!-- Server Section -->
+                                <div class="config-section" id="section-server">
+                                    <h4>🖥️ Server Configuration</h4>
+                                    <div
+                                        style="display:grid; grid-template-columns:1fr 1fr; gap:16px; margin-bottom:16px;">
+                                        <div class="form-group">
+                                            <label>Port</label>
+                                            <input type="number" name="PORT" placeholder="8045">
                                         </div>
-                                        <div class="form-group compact">
-                                            <label>API environment <span class="help-tip"
-                                                    data-tooltip="Choose sandbox or production API endpoints">?</span></label>
-                                            <select name="API_USE" id="apiUseSelect">
-                                                <option value="sandbox">Sandbox (test)</option>
-                                                <option value="production">Production</option>
-                                            </select>
-                                        </div>
-                                        <div class="form-row-inline">
-                                            <div class="form-group compact">
-                                                <label>Max request size</label>
-                                                <input type="text" name="MAX_REQUEST_SIZE" placeholder="500mb">
-                                            </div>
-                                            <div class="form-group compact">
-                                                <label>API key</label>
-                                                <input type="password" name="API_KEY" placeholder="Leave empty to skip validation">
-                                            </div>
-                                        </div>
-                                        <div class="form-row-inline switch-row">
-                                            <div class="form-group compact switch-group">
-                                                <label>Skip validation <span class="help-tip"
-                                                        data-tooltip="Skip ProjectId fetch and generate randomly (Pro accounts only)">?</span></label>
-                                                <label class="switch">
-                                                    <input type="checkbox" name="SKIP_PROJECT_ID_FETCH">
-                                                    <span class="slider"></span>
-                                                </label>
-                                            </div>
-                                            <div class="form-group compact switch-group">
-                                                <label>Native Axios <span class="help-tip"
-                                                        data-tooltip="Use native axios instead of the TLS fingerprint requester">?</span></label>
-                                                <label class="switch">
-                                                    <input type="checkbox" name="USE_NATIVE_AXIOS">
-                                                    <span class="slider"></span>
-                                                </label>
-                                            </div>
-                                        </div>
-                                        <div class="form-group compact">
-                                            <label>Image base URL</label>
-                                            <input type="text" name="IMAGE_BASE_URL"
-                                                placeholder="https://your-domain.zeabur.app">
-                                        </div>
-                                        <div class="form-group compact">
-                                            <label>Proxy URL</label>
-                                            <input type="text" name="PROXY" placeholder="http://127.0.0.1:7890">
+                                        <div class="form-group">
+                                            <label>Host</label>
+                                            <input type="text" name="HOST" placeholder="0.0.0.0">
                                         </div>
                                     </div>
+                                    <div class="form-group">
+                                        <label>API Environment <span class="help-tip"
+                                                data-tooltip="Choose between Sandbox or Production">?</span></label>
+                                        <select name="API_USE" id="apiUseSelect">
+                                            <option value="sandbox">Sandbox (Test)</option>
+                                            <option value="production">Production</option>
+                                        </select>
+                                    </div>
+                                    <div
+                                        style="display:grid; grid-template-columns:1fr 1fr; gap:16px; margin-bottom:16px;">
+                                        <div class="form-group">
+                                            <label>Max Request Size</label>
+                                            <input type="text" name="MAX_REQUEST_SIZE" placeholder="500mb">
+                                        </div>
+                                        <div class="form-group">
+                                            <label>API Key (Optional)</label>
+                                            <input type="password" name="API_KEY" placeholder="Leave empty for public">
+                                        </div>
+                                    </div>
+                                    <div style="display:flex; gap:32px; margin-bottom:24px;">
+                                        <div class="form-group">
+                                            <label style="margin-bottom:8px; display:block;">Skip Validation <span
+                                                    class="help-tip"
+                                                    data-tooltip="Skip ProjectId check">?</span></label>
+                                            <label class="switch"><input type="checkbox"
+                                                    name="SKIP_PROJECT_ID_FETCH"><span class="slider"></span></label>
+                                        </div>
+                                        <div class="form-group">
+                                            <label style="margin-bottom:8px; display:block;">Native Axios <span
+                                                    class="help-tip"
+                                                    data-tooltip="Use native axios instead of TLS fingerprinting">?</span></label>
+                                            <label class="switch"><input type="checkbox" name="USE_NATIVE_AXIOS"><span
+                                                    class="slider"></span></label>
+                                        </div>
+                                    </div>
+                                    <div class="form-group">
+                                        <label>Image Base URL</label>
+                                        <input type="text" name="IMAGE_BASE_URL" placeholder="https://your-domain.app">
+                                    </div>
+                                    <div class="form-group">
+                                        <label>Proxy URL</label>
+                                        <input type="text" name="PROXY" placeholder="http://127.0.0.1:7890">
+                                    </div>
+                                </div>
 
-                                    <!-- Model defaults -->
-                                    <div class="config-section" id="section-model">
-                                        <h4>🎛️ Model settings</h4>
-                                        <div class="form-row-inline">
-                                            <div class="form-group compact">
-                                                <label>Temperature</label>
-                                                <input type="number" step="0.1" name="DEFAULT_TEMPERATURE"
-                                                    placeholder="1">
-                                            </div>
-                                            <div class="form-group compact">
-                                                <label>Top P</label>
-                                                <input type="number" step="0.01" name="DEFAULT_TOP_P" placeholder="1">
-                                            </div>
+                                <!-- Model Section -->
+                                <div class="config-section" id="section-model">
+                                    <h4>🎛️ Model Settings</h4>
+                                    <div style="display:grid; grid-template-columns:1fr 1fr; gap:16px;">
+                                        <div class="form-group">
+                                            <label>Temperature</label>
+                                            <input type="number" step="0.1" name="DEFAULT_TEMPERATURE"
+                                                placeholder="1.0">
                                         </div>
-                                        <div class="form-row-inline">
-                                            <div class="form-group compact">
-                                                <label>Top K</label>
-                                                <input type="number" name="DEFAULT_TOP_K" placeholder="50">
-                                            </div>
-                                            <div class="form-group compact">
-                                                <label>Max tokens</label>
-                                                <input type="number" name="DEFAULT_MAX_TOKENS" placeholder="32000">
-                                            </div>
+                                        <div class="form-group">
+                                            <label>Top P</label>
+                                            <input type="number" step="0.01" name="DEFAULT_TOP_P" placeholder="1.0">
                                         </div>
-                                        <div class="form-group compact highlight">
-                                            <label>Thinking budget <span class="help-tip"
-                                                    data-tooltip="Thinking token budget for reasoning depth">?</span></label>
-                                            <input type="number" name="DEFAULT_THINKING_BUDGET" placeholder="16000">
+                                        <div class="form-group">
+                                            <label>Top K</label>
+                                            <input type="number" name="DEFAULT_TOP_K" placeholder="50">
                                         </div>
-                                        <div class="form-row-inline switch-row">
-                                            <div class="form-group compact switch-group">
-                                                <label>Context system <span class="help-tip"
-                                                        data-tooltip="When enabled, append request system messages to the proxy prompt">?</span></label>
-                                                <label class="switch">
-                                                    <input type="checkbox" name="USE_CONTEXT_SYSTEM_PROMPT"
-                                                        id="useContextSystemPrompt"
-                                                        onchange="handleContextSystemChange()">
-                                                    <span class="slider"></span>
-                                                </label>
-                                            </div>
-                                            <div class="form-group compact switch-group">
-                                                <label>Merge system prompts <span class="help-tip"
-                                                        data-tooltip="Merge all system prompts into a single part (requires Context system)">?</span></label>
-                                                <label class="switch">
-                                                    <input type="checkbox" name="MERGE_SYSTEM_PROMPT"
-                                                        id="mergeSystemPrompt" checked>
-                                                    <span class="slider"></span>
-                                                </label>
-                                            </div>
-                                            <div class="form-group compact switch-group">
-                                                <label>Simulated non-stream <span class="help-tip"
-                                                        data-tooltip="Use streaming internally for non-stream requests and return non-stream JSON (faster)">?</span></label>
-                                                <label class="switch">
-                                                    <input type="checkbox" name="FAKE_NON_STREAM" checked>
-                                                    <span class="slider"></span>
-                                                </label>
-                                            </div>
+                                        <div class="form-group">
+                                            <label>Max Tokens</label>
+                                            <input type="number" name="DEFAULT_MAX_TOKENS" placeholder="32000">
                                         </div>
-                                        <div class="form-row-inline">
-                                            <div class="form-group compact">
-                                                <label>Official prompt position <span class="help-tip"
-                                                        data-tooltip="Position of the official prompt relative to the proxy prompt">?</span></label>
-                                                <select name="OFFICIAL_PROMPT_POSITION">
-                                                    <option value="before">Before proxy prompt</option>
-                                                    <option value="after">After proxy prompt</option>
-                                                </select>
-                                            </div>
-                                        </div>
-                                        <div class="form-group compact">
-                                            <label>Proxy system prompt <span class="restore-default"
-                                                    onclick="restoreDefaultSystemInstruction()" title="Restore default">↻
-                                                    Restore default</span></label>
-                                            <textarea name="SYSTEM_INSTRUCTION" rows="3"
-                                                placeholder="Proxy system prompt (leave empty to disable)"></textarea>
-                                        </div>
-                                        <div class="form-group compact">
-                                            <label>
-                                                Official system prompt <span class="help-tip" data-tooltip="Required official system prompt for Antigravity">?</span>
-                                                <span class="restore-default"
-                                                    onclick="restoreDefaultOfficialSystemPrompt()" title="Restore default"
-                                                    id="restoreOfficialBtn" style="display:none;">↻ Restore default</span>
+                                    </div>
+                                    <div class="form-group"
+                                        style="background:rgba(66,133,244,0.1); padding:16px; border-radius:12px; margin-top:16px;">
+                                        <label style="color:var(--g-blue);">Thinking Budget</label>
+                                        <input type="number" name="DEFAULT_THINKING_BUDGET" placeholder="16000">
+                                    </div>
+
+                                    <div style="display:flex; gap:24px; margin-top:24px; flex-wrap:wrap;">
+                                        <div class="form-group">
+                                            <label style="margin-bottom:8px; display:block;">Context System <span
+                                                    class="help-tip"
+                                                    data-tooltip="Append request system messages">?</span></label>
+                                            <label class="switch">
+                                                <input type="checkbox" name="USE_CONTEXT_SYSTEM_PROMPT"
+                                                    id="useContextSystemPrompt" onchange="handleContextSystemChange()">
+                                                <span class="slider"></span>
                                             </label>
-                                            <div class="textarea-wrapper">
-                                                <textarea name="OFFICIAL_SYSTEM_PROMPT" id="officialSystemPrompt"
-                                                    rows="5" placeholder="Official system prompt (leave empty to disable)" readonly></textarea>
-                                                <div class="textarea-lock-btn" id="unlockOfficialBtn"
-                                                    onclick="unlockOfficialSystemPrompt()" title="Click to unlock editing">🔒</div>
-                                            </div>
+                                        </div>
+                                        <div class="form-group">
+                                            <label style="margin-bottom:8px; display:block;">Merge Prompts <span
+                                                    class="help-tip"
+                                                    data-tooltip="Merge system prompts into a single part">?</span></label>
+                                            <label class="switch">
+                                                <input type="checkbox" name="MERGE_SYSTEM_PROMPT"
+                                                    id="mergeSystemPrompt">
+                                                <span class="slider"></span>
+                                            </label>
+                                        </div>
+                                        <div class="form-group">
+                                            <label style="margin-bottom:8px; display:block;">Fake Non-Stream <span
+                                                    class="help-tip"
+                                                    data-tooltip="Use streaming internally for non-stream requests">?</span></label>
+                                            <label class="switch">
+                                                <input type="checkbox" name="FAKE_NON_STREAM">
+                                                <span class="slider"></span>
+                                            </label>
                                         </div>
                                     </div>
 
-                                    <!-- Rotation strategy & performance -->
-                                    <div class="config-section" id="section-rotation">
-                                        <h4>🔄 Rotation & performance</h4>
-                                        <div class="form-row-inline switch-row">
-                                            <div class="form-group compact switch-group">
-                                                <label>Signature passthrough <span class="help-tip"
-                                                        data-tooltip="Pass thoughtSignature to the client">?</span></label>
-                                                <label class="switch">
-                                                    <input type="checkbox" name="PASS_SIGNATURE_TO_CLIENT">
-                                                    <span class="slider"></span>
-                                                </label>
-                                            </div>
-                                            <div class="form-group compact switch-group">
-                                                <label>Fallback signature <span class="help-tip"
-                                                        data-tooltip="Use built-in signature when no cached signature exists">?</span></label>
-                                                <label class="switch">
-                                                    <input type="checkbox" name="USE_FALLBACK_SIGNATURE">
-                                                    <span class="slider"></span>
-                                                </label>
-                                            </div>
-                                        </div>
-                                        <div class="form-row-inline switch-row">
-                                            <div class="form-group compact switch-group">
-                                                <label>Cache all signatures <span class="help-tip"
-                                                        data-tooltip="Cache all signatures when enabled">?</span></label>
-                                                <label class="switch">
-                                                    <input type="checkbox" name="CACHE_ALL_SIGNATURES">
-                                                    <span class="slider"></span>
-                                                </label>
-                                            </div>
-                                            <div class="form-group compact switch-group">
-                                                <label>Tool signatures <span class="help-tip"
-                                                        data-tooltip="Cache signatures when using tools">?</span></label>
-                                                <label class="switch">
-                                                    <input type="checkbox" name="CACHE_TOOL_SIGNATURES" checked>
-                                                    <span class="slider"></span>
-                                                </label>
-                                            </div>
-                                            <div class="form-group compact switch-group">
-                                                <label>Image signatures <span class="help-tip"
-                                                        data-tooltip="Cache signatures when using image models">?</span></label>
-                                                <label class="switch">
-                                                    <input type="checkbox" name="CACHE_IMAGE_SIGNATURES" checked>
-                                                    <span class="slider"></span>
-                                                </label>
-                                            </div>
-                                            <div class="form-group compact switch-group">
-                                                <label>Cache thinking <span class="help-tip"
-                                                        data-tooltip="Cache reasoning content alongside the signature">?</span></label>
-                                                <label class="switch">
-                                                    <input type="checkbox" name="CACHE_THINKING" checked>
-                                                    <span class="slider"></span>
-                                                </label>
-                                            </div>
-                                        </div>
-                                        <div class="form-row-inline">
-                                            <div class="form-group compact">
-                                                <label>Strategy <span class="help-tip"
-                                                        data-tooltip="Round robin: switch Token every request&#10;Quota exhausted: switch when quota runs out&#10;Request count: switch after N requests">?</span></label>
-                                                <select name="ROTATION_STRATEGY" id="rotationStrategy"
-                                                    onchange="toggleRequestCountInput()">
-                                                    <option value="round_robin">Round robin</option>
-                                                    <option value="quota_exhausted">Switch on quota exhausted</option>
-                                                    <option value="request_count">Request count</option>
-                                                </select>
-                                            </div>
-                                            <div class="form-group compact" id="requestCountGroup">
-                                                <label>Requests per Token <span class="help-tip"
-                                                        data-tooltip="In request count mode, switch after this many requests per Token">?</span></label>
-                                                <input type="number" name="ROTATION_REQUEST_COUNT" min="1"
-                                                    placeholder="10">
-                                            </div>
-                                        </div>
-                                        <div class="rotation-status" id="rotationStatus">
-                                            <span class="rotation-label">Current status:</span>
-                                            <span id="currentRotationInfo">Loading...</span>
-                                        </div>
-                                        <div class="form-row-inline">
-                                            <div class="form-group compact">
-                                                <label>Timeout (ms)</label>
-                                                <input type="number" name="TIMEOUT" placeholder="300000">
-                                            </div>
-                                            <div class="form-group compact">
-                                                <label>429 retry count</label>
-                                                <input type="number" name="RETRY_TIMES" placeholder="0">
-                                            </div>
-                                        </div>
+                                    <div class="form-group" style="margin-top:24px;">
+                                        <label>Official Prompt Position</label>
+                                        <select name="OFFICIAL_PROMPT_POSITION">
+                                            <option value="before">Before proxy prompt</option>
+                                            <option value="after">After proxy prompt</option>
+                                        </select>
+                                    </div>
 
-                                        <div class="form-row-inline">
-                                            <div class="form-group compact">
-                                                <label>Heartbeat interval (ms) <span class="help-tip"
-                                                        data-tooltip="SSE heartbeat interval to prevent CF timeouts">?</span></label>
-                                                <input type="number" name="HEARTBEAT_INTERVAL" placeholder="15000">
-                                            </div>
-                                            <div class="form-group compact">
-                                                <label>Memory cleanup interval (ms) <span class="help-tip"
-                                                        data-tooltip="Trigger cache/object pool cleanup at a fixed interval">?</span></label>
-                                                <input type="number" name="MEMORY_CLEANUP_INTERVAL"
-                                                    placeholder="1800000">
-                                            </div>
-                                        </div>
-                                        <div class="form-group compact">
-                                            <label>🔤 UI font size (px)</label>
-                                            <div class="font-size-control">
-                                                <input type="range" id="fontSizeRange" min="10" max="24" value="18"
-                                                    oninput="changeFontSize(this.value)">
-                                                <input type="number" id="fontSizeInput" min="10" max="24" value="18"
-                                                    onchange="changeFontSize(this.value)" style="width: 60px;">
+                                    <div class="form-group">
+                                        <label>Proxy System Prompt <span class="restore-default"
+                                                onclick="restoreDefaultSystemInstruction()">↺ Restore</span></label>
+                                        <textarea name="SYSTEM_INSTRUCTION" rows="3"
+                                            placeholder="Leave empty to disable"></textarea>
+                                    </div>
+                                    <div class="form-group">
+                                        <label>Official System Prompt <span class="restore-default"
+                                                id="restoreOfficialBtn" onclick="restoreDefaultOfficialSystemPrompt()"
+                                                style="display:none;">↺ Restore</span></label>
+                                        <div class="textarea-wrapper" style="position:relative;">
+                                            <textarea name="OFFICIAL_SYSTEM_PROMPT" id="officialSystemPrompt" rows="5"
+                                                readonly placeholder="System prompt..."></textarea>
+                                            <div class="textarea-lock-btn" id="unlockOfficialBtn"
+                                                onclick="unlockOfficialSystemPrompt()" title="Unlock"
+                                                style="position:absolute; top:10px; right:10px; cursor:pointer;">🔒
                                             </div>
                                         </div>
                                     </div>
                                 </div>
+
+                                <!-- Rotation Section -->
+                                <div class="config-section" id="section-rotation">
+                                    <h4>🔄 Rotation & Performance</h4>
+                                    <div style="display:flex; gap:24px; flex-wrap:wrap; margin-bottom:24px;">
+                                        <div class="form-group">
+                                            <label style="margin-bottom:8px; display:block;">Pass Signature</label>
+                                            <label class="switch"><input type="checkbox"
+                                                    name="PASS_SIGNATURE_TO_CLIENT"><span class="slider"></span></label>
+                                        </div>
+                                        <div class="form-group">
+                                            <label style="margin-bottom:8px; display:block;">Fallback Sig</label>
+                                            <label class="switch"><input type="checkbox"
+                                                    name="USE_FALLBACK_SIGNATURE"><span class="slider"></span></label>
+                                        </div>
+                                        <div class="form-group">
+                                            <label style="margin-bottom:8px; display:block;">Cache All Sigs</label>
+                                            <label class="switch"><input type="checkbox"
+                                                    name="CACHE_ALL_SIGNATURES"><span class="slider"></span></label>
+                                        </div>
+                                    </div>
+                                    <div style="display:flex; gap:24px; flex-wrap:wrap; margin-bottom:24px;">
+                                        <div class="form-group">
+                                            <label style="margin-bottom:8px; display:block;">Tool Sigs</label>
+                                            <label class="switch"><input type="checkbox"
+                                                    name="CACHE_TOOL_SIGNATURES"><span class="slider"></span></label>
+                                        </div>
+                                        <div class="form-group">
+                                            <label style="margin-bottom:8px; display:block;">Image Sigs</label>
+                                            <label class="switch"><input type="checkbox"
+                                                    name="CACHE_IMAGE_SIGNATURES"><span class="slider"></span></label>
+                                        </div>
+                                        <div class="form-group">
+                                            <label style="margin-bottom:8px; display:block;">Cache Thinking</label>
+                                            <label class="switch"><input type="checkbox" name="CACHE_THINKING"><span
+                                                    class="slider"></span></label>
+                                        </div>
+                                    </div>
+
+                                    <div style="display:grid; grid-template-columns:1fr 1fr; gap:16px;">
+                                        <div class="form-group">
+                                            <label>Strategy</label>
+                                            <select name="ROTATION_STRATEGY" id="rotationStrategy"
+                                                onchange="toggleRequestCountInput()">
+                                                <option value="round_robin">Round Robin</option>
+                                                <option value="quota_exhausted">Quota Exhausted</option>
+                                                <option value="request_count">Request Count</option>
+                                            </select>
+                                        </div>
+                                        <div class="form-group" id="requestCountGroup">
+                                            <label>Requests per Token</label>
+                                            <input type="number" name="ROTATION_REQUEST_COUNT" min="1" placeholder="10">
+                                        </div>
+                                    </div>
+                                    <div class="rotation-status" id="rotationStatus"
+                                        style="padding:12px; background:rgba(255,255,255,0.05); border-radius:8px; margin:16px 0;">
+                                        <span class="rotation-label">Current: </span>
+                                        <span id="currentRotationInfo"
+                                            style="font-weight:700; color:var(--g-green);">...</span>
+                                    </div>
+
+                                    <div style="display:grid; grid-template-columns:1fr 1fr; gap:16px;">
+                                        <div class="form-group">
+                                            <label>Timeout (ms)</label>
+                                            <input type="number" name="TIMEOUT" placeholder="300000">
+                                        </div>
+                                        <div class="form-group">
+                                            <label>429 Retry Count</label>
+                                            <input type="number" name="RETRY_TIMES" placeholder="0">
+                                        </div>
+                                    </div>
+                                    <div
+                                        style="display:grid; grid-template-columns:1fr 1fr; gap:16px; margin-top:16px;">
+                                        <div class="form-group">
+                                            <label>Heartbeat (ms)</label>
+                                            <input type="number" name="HEARTBEAT_INTERVAL" placeholder="15000">
+                                        </div>
+                                        <div class="form-group">
+                                            <label>Memory Cleanup (ms)</label>
+                                            <input type="number" name="MEMORY_CLEANUP_INTERVAL" placeholder="1800000">
+                                        </div>
+                                    </div>
+                                    <div class="form-group" style="margin-top:24px;">
+                                        <label>UI Font Size (px)</label>
+                                        <div class="font-size-control"
+                                            style="display:flex; gap:16px; align-items:center;">
+                                            <input type="range" id="fontSizeRange" min="10" max="24" value="18"
+                                                oninput="changeFontSize(this.value)" style="flex:1;">
+                                            <input type="number" id="fontSizeInput" min="10" max="24" value="18"
+                                                onchange="changeFontSize(this.value)" style="width:70px;">
+                                        </div>
+                                    </div>
+                                </div>
+
                                 <div class="config-actions">
-                                    <button type="button" onclick="loadConfig()" class="btn btn-secondary">🔄
-                                        Reload</button>
-                                    <button type="submit" class="btn btn-success">💾 Save configuration</button>
+                                    <button type="button" onclick="loadConfig()" class="btn">🔄 Reload</button>
+                                    <button type="submit" class="btn btn-success">💾 Save Configuration</button>
                                 </div>
                             </div>
                         </div>
                     </form>
                 </div>
+
             </div>
         </div>
     </div>
 
-    <!-- Load modules in dependency order -->
+    <!-- Load modules -->
     <script src="js/utils.js" defer></script>
     <script src="js/ui.js" defer></script>
     <script src="js/auth.js" defer></script>

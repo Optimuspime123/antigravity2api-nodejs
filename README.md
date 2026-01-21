@@ -611,11 +611,11 @@ The service merges consecutive `system` messages at the start of a request into 
 ```
 Request messages:
 [system] You are an assistant
-[system] Please reply in Chinese
+[system] Please reply in English
 [user] Hello
 
 After merge:
-SystemInstruction = global system prompt + "\n\n" + "You are an assistant\n\nPlease reply in Chinese"
+SystemInstruction = global system prompt + "\n\n" + "You are an assistant\n\nPlease reply in English"
 messages = [{role: user, content: Hello}]
 ```
 

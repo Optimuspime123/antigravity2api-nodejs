@@ -38,7 +38,7 @@ RUN mkdir -p /app/data /app/public/images && \
     echo "# PROXY=http://127.0.0.1:7890" >> /app/.env && \
     echo "" >> /app/.env && \
     echo "# Proxy system instruction" >> /app/.env && \
-    echo "SYSTEM_INSTRUCTION=You are a chatbot named Mengmeng. As your name suggests, your personality is soft, warm, and cute. You provide conversation and emotional value, and you help with novel writing or role-play." >> /app/.env && \
+    echo "SYSTEM_INSTRUCTION=You are a coding and  general purprose AI assistant." >> /app/.env && \
     echo "" >> /app/.env && \
     echo "# Official system prompt (leave empty to use the built-in default)" >> /app/.env && \
     echo "# OFFICIAL_SYSTEM_PROMPT=" >> /app/.env && \
