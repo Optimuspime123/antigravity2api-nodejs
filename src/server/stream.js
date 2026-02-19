@@ -1,21 +1,24 @@
 /**
- * SSE streaming responses and heartbeat utilities
- * Provides unified streaming handling, heartbeat keepalive, 429 retries, etc.
+ * SSE 流式响应和心跳机制工具模块
+ * 提供统一的流式响应处理、心跳保活、429/503重试等功能
  */
 
 import config from '../config/config.js';
 import logger from '../utils/logger.js';
 import memoryManager, { registerMemoryPoolCleanup } from '../utils/memoryManager.js';
-import { DEFAULT_HEARTBEAT_INTERVAL } from '../constants/index.js';
+import { DEFAULT_HEARTBEAT_INTERVAL, LONG_COOLDOWN_THRESHOLD } from '../constants/index.js';
+import tokenCooldownManager from '../auth/token_cooldown_manager.js';
+import quotaManager from '../auth/quota_manager.js';
+import { getGroupKey } from '../utils/modelGroups.js';
 
-// ==================== Heartbeat (prevent CF timeouts) ====================
+// ==================== 心跳机制（防止 CF 超时） ====================
 const HEARTBEAT_INTERVAL = config.server.heartbeatInterval || DEFAULT_HEARTBEAT_INTERVAL;
 const SSE_HEARTBEAT = Buffer.from(': heartbeat\n\n');
 
 /**
- * Create heartbeat timer
- * @param {Response} res - Express response
- * @returns {NodeJS.Timeout} timer
+ * 创建心跳定时器
+ * @param {Response} res - Express响应对象
+ * @returns {NodeJS.Timeout} 定时器
  */
 export const createHeartbeat = (res) => {
   const timer = setInterval(() => {
@@ -26,20 +29,20 @@ export const createHeartbeat = (res) => {
     }
   }, HEARTBEAT_INTERVAL);
 
-  // Cleanup when response ends
+  // 响应结束时清理
   res.on('close', () => clearInterval(timer));
   res.on('finish', () => clearInterval(timer));
 
   return timer;
 };
 
-// ==================== Precompiled constants (avoid reallocations) ====================
+// ==================== 预编译的常量字符串（避免重复创建） ====================
 const SSE_PREFIX = Buffer.from('data: ');
 const SSE_SUFFIX = Buffer.from('\n\n');
 const SSE_DONE = Buffer.from('data: [DONE]\n\n');
 
 /**
- * Generate response metadata
+ * 生成响应元数据
  * @returns {{id: string, created: number}}
  */
 export const createResponseMeta = () => ({
@@ -48,29 +51,29 @@ export const createResponseMeta = () => ({
 });
 
 /**
- * Set streaming headers
- * @param {Response} res - Express response
+ * 设置流式响应头
+ * @param {Response} res - Express响应对象
  */
 export const setStreamHeaders = (res) => {
   res.setHeader('Content-Type', 'text/event-stream');
   res.setHeader('Cache-Control', 'no-cache');
   res.setHeader('Connection', 'keep-alive');
-  res.setHeader('X-Accel-Buffering', 'no'); // Disable nginx buffering
-  // Flush headers immediately so clients connect quickly
+  res.setHeader('X-Accel-Buffering', 'no'); // 禁用 nginx 缓冲
+  // 立即发送响应头，确保客户端尽快建立连接
   res.flushHeaders();
 };
 
-// ==================== Object pool (reduce GC) ====================
+// ==================== 对象池（减少 GC） ====================
 const chunkPool = [];
 
 /**
- * Get chunk object from pool
+ * 从对象池获取 chunk 对象
  * @returns {Object}
  */
 export const getChunkObject = () => chunkPool.pop() || { choices: [{ index: 0, delta: {}, finish_reason: null }] };
 
 /**
- * Release chunk object back to pool
+ * 释放 chunk 对象回对象池
  * @param {Object} obj 
  */
 export const releaseChunkObject = (obj) => {
@@ -78,41 +81,41 @@ export const releaseChunkObject = (obj) => {
   if (chunkPool.length < maxSize) chunkPool.push(obj);
 };
 
-// Register memory cleanup callback
+// 注册内存清理回调
 registerMemoryPoolCleanup(chunkPool, () => memoryManager.getPoolSizes().chunk);
 
 /**
- * Get current pool size (for monitoring)
+ * 获取当前对象池大小（用于监控）
  * @returns {number}
  */
 export const getChunkPoolSize = () => chunkPool.length;
 
 /**
- * Clear object pool
+ * 清空对象池
  */
 export const clearChunkPool = () => {
   chunkPool.length = 0;
 };
 
 /**
- * Zero-copy write streamed data
- * @param {Response} res - Express response
- * @param {Object} data - data to send
+ * 零拷贝写入流式数据
+ * @param {Response} res - Express响应对象
+ * @param {Object} data - 要发送的数据
  */
 export const writeStreamData = (res, data) => {
   const json = JSON.stringify(data);
   res.write(SSE_PREFIX);
   res.write(json);
   res.write(SSE_SUFFIX);
-  // Flush buffer immediately to send data in real time
+  // 立即刷新缓冲区，确保数据实时发送给客户端
   if (typeof res.flush === 'function') {
     res.flush();
   }
 };
 
 /**
- * End streaming response
- * @param {Response} res - Express response
+ * 结束流式响应
+ * @param {Response} res - Express响应对象
  */
 export const endStream = (res, isWriteDone = true) => {
   if (res.writableEnded) return;
@@ -120,7 +123,7 @@ export const endStream = (res, isWriteDone = true) => {
   res.end();
 };
 
-// ==================== Retry helper (handles 429) ====================
+// ==================== 通用重试工具（处理 429/503） ====================
 
 function sleep(ms) {
   return new Promise(resolve => setTimeout(resolve, ms));
@@ -242,38 +245,162 @@ function computeBackoffMs(attempt, explicitDelayMs) {
 }
 
 /**
- * Executor with 429 retries
- * @param {Function} fn - async function to execute, receives attempt index
- * @param {number} maxRetries - max retry count
- * @param {string} loggerPrefix - log prefix
- * @param {Function} onAttempt - optional callback for each attempt (request counting)
+ * 从 429 错误中提取恢复时间戳（毫秒）
+ * @param {Error} error - 错误对象
+ * @returns {number|null} 恢复时间戳，如果无法解析返回 null
+ */
+function getUpstreamResetTimestamp(error) {
+  const body = extractUpstreamErrorBody(error);
+  const root = (body && typeof body === 'object') ? body : null;
+  const inner = root?.error || root;
+  const details = Array.isArray(inner?.details) ? inner.details : [];
+
+  for (const d of details) {
+    if (!d || typeof d !== 'object') continue;
+    const meta = d.metadata && typeof d.metadata === 'object' ? d.metadata : null;
+    const ts = meta?.quotaResetTimeStamp;
+    if (typeof ts === 'string') {
+      const t = Date.parse(ts);
+      if (Number.isFinite(t)) {
+        return t;
+      }
+    }
+  }
+  return null;
+}
+
+/**
+ * 判断错误是否为可重试的临时性错误（429 或 503 容量不足）
+ * @param {number} status - HTTP 状态码
+ * @param {Error} error - 错误对象
+ * @returns {boolean}
+ */
+function isRetryableError(status, error) {
+  // 429 Rate Limit 总是可重试
+  if (status === 429) return true;
+
+  // 503 需要检查是否为容量不足错误
+  if (status === 503) {
+    const body = extractUpstreamErrorBody(error);
+    const root = (body && typeof body === 'object') ? body : null;
+    const inner = root?.error || root;
+    const details = Array.isArray(inner?.details) ? inner.details : [];
+    
+    // 检查是否包含 MODEL_CAPACITY_EXHAUSTED
+    for (const d of details) {
+      if (d?.reason === 'MODEL_CAPACITY_EXHAUSTED') {
+        return true;
+      }
+    }
+  }
+
+  return false;
+}
+
+/**
+ * 带 429/503 重试的执行器
+ * @param {Function} fn - 要执行的异步函数，接收 attempt 参数
+ * @param {number} maxRetries - 最大重试次数
+ * @param {Object} options - 可选参数
+ * @param {string} options.loggerPrefix - 日志前缀
+ * @param {Function} options.onAttempt - 每次尝试时的回调（用于记录请求次数）
+ * @param {string} options.tokenId - Token ID（用于模型系列禁用）
+ * @param {string} options.modelId - 模型 ID（用于模型系列禁用）
+ * @param {Function} options.refreshQuota - 刷新额度的回调函数（当需要获取准确恢复时间时调用）
  * @returns {Promise<any>}
  */
-export const with429Retry = async (fn, maxRetries, loggerPrefix = '', onAttempt = null) => {
+export async function with429Retry(fn, maxRetries, options = {}, legacyOnAttempt = null) {
+  // 兼容旧版调用方式：with429Retry(fn, maxRetries, loggerPrefix, onAttempt)
+  let loggerPrefix = '';
+  let onAttempt = null;
+  let tokenId = null;
+  let modelId = null;
+  let refreshQuota = null;
+
+  if (typeof options === 'string') {
+    // 旧版调用方式
+    loggerPrefix = options;
+    onAttempt = legacyOnAttempt;
+  } else if (typeof options === 'object' && options !== null) {
+    loggerPrefix = options.loggerPrefix || '';
+    onAttempt = options.onAttempt || null;
+    tokenId = options.tokenId || null;
+    modelId = options.modelId || null;
+    refreshQuota = options.refreshQuota || null;
+  }
+
   const retries = Number.isFinite(maxRetries) && maxRetries > 0 ? Math.floor(maxRetries) : 0;
+  const cooldownThreshold = config.quota?.longCooldownThreshold || LONG_COOLDOWN_THRESHOLD;
   let attempt = 0;
-  // First call + up to retries attempts
+
+  // 首次执行 + 最多 retries 次重试
   while (true) {
     try {
-      // Call callback on each attempt (for request counting)
+      // 每次尝试时调用回调（用于记录请求次数）
       if (typeof onAttempt === 'function') {
         onAttempt(attempt);
       }
       return await fn(attempt);
     } catch (error) {
-      // Support multiple error shapes: error.status, error.statusCode, error.response?.status
+      // 兼容多种错误格式：error.status, error.statusCode, error.response?.status
       const status = Number(error.status || error.statusCode || error.response?.status);
-      if (status === 429 && attempt < retries) {
-        const nextAttempt = attempt + 1;
+
+      if (isRetryableError(status, error)) {
         const explicitDelayMs = getUpstreamRetryDelayMs(error);
-        const waitMs = computeBackoffMs(nextAttempt, explicitDelayMs);
-        logger.warn(
-          `${loggerPrefix}Received 429; waiting ${waitMs}ms before retry ${nextAttempt} (total ${retries})` +
-          (explicitDelayMs !== null ? ` (upstream hint ≈${explicitDelayMs}ms)` : '')
-        );
-        await sleep(waitMs);
-        attempt = nextAttempt;
-        continue;
+        const upstreamResetTimestamp = getUpstreamResetTimestamp(error);
+        const errorType = status === 503 ? '503 (容量不足)' : '429';
+
+        // 检查是否是长时间冷却（额度耗尽）- 仅 429 触发模型系列禁用
+        if (status === 429 && explicitDelayMs !== null && explicitDelayMs >= cooldownThreshold && tokenId && modelId) {
+          // 恢复时间超过阈值，触发模型系列禁用
+          let finalResetTimestamp = upstreamResetTimestamp;
+
+          // 尝试从 quotas.json 获取更准确的恢复时间
+          const { resetTime: quotaResetTime, hasData } = quotaManager.getModelGroupResetTime(tokenId, modelId);
+
+          if (!hasData && typeof refreshQuota === 'function') {
+            // 没有额度数据，尝试刷新
+            logger.info(`${loggerPrefix}正在获取最新额度数据以确定准确恢复时间...`);
+            try {
+              await refreshQuota();
+              const refreshed = quotaManager.getModelGroupResetTime(tokenId, modelId);
+              if (refreshed.resetTime) {
+                finalResetTimestamp = refreshed.resetTime;
+              }
+            } catch (e) {
+              logger.warn(`${loggerPrefix}获取额度数据失败: ${e.message}`);
+            }
+          } else if (quotaResetTime) {
+            // 使用 quotas.json 中的恢复时间（通常更准确）
+            finalResetTimestamp = quotaResetTime;
+          }
+
+          if (finalResetTimestamp && finalResetTimestamp > Date.now()) {
+            const groupKey = getGroupKey(modelId);
+            const resetDate = new Date(finalResetTimestamp);
+          logger.warn(
+            `${loggerPrefix}收到 ${errorType}，恢复时间 ${Math.round(explicitDelayMs / 1000 / 60)} 分钟后，` +
+              `超过阈值(${Math.round(cooldownThreshold / 1000 / 60)}分钟)，` +
+              `禁用 ${groupKey} 系列直到 ${resetDate.toLocaleString('zh-CN', { timeZone: 'Asia/Shanghai' })}`
+            );
+            tokenCooldownManager.setCooldown(tokenId, modelId, finalResetTimestamp);
+            // 不重试，直接抛出错误
+            throw error;
+          }
+        }
+
+        // 短时间等待，正常重试
+        if (attempt < retries) {
+          const nextAttempt = attempt + 1;
+          const waitMs = computeBackoffMs(nextAttempt, explicitDelayMs);
+          logger.warn(
+            `${loggerPrefix}收到 ${errorType}，等待 ${waitMs}ms 后进行第 ${nextAttempt} 次重试（共 ${retries} 次）` +
+            (explicitDelayMs !== null ? `（上游提示≈${explicitDelayMs}ms）` : '')
+          );
+          await sleep(waitMs);
+          attempt = nextAttempt;
+          continue;
+        }
       }
       throw error;
     }

@@ -5,7 +5,7 @@ Need help using or understanding it? Just [![Ask DeepWiki](https://deepwiki.com/
 ## Features
 
 - ✅ OpenAI API compatible format
-- ✅ automatic tunneling to cloudfared for remote access
+- ✅ Automatic tunneling to cloudfared for remote access
 - ✅ Streaming and non-streaming responses
 - ✅ Structured JSON output support (`response_format`)
 - ✅ Tool calling (Function Calling) support
@@ -30,6 +30,13 @@ Need help using or understanding it? Just [![Ask DeepWiki](https://deepwiki.com/
 - ✅ Multiple API formats (OpenAI, Gemini, Claude)
 - ✅ Converter reuse (shared modules, less duplication)
 - ✅ Dynamic memory thresholds (calculated from user config)
+- ✅ Claude 4.6 Opus non-thinking model support (4.5 mapped to 4.6)
+- ✅ Token cooldown manager (priority queue with per-token rate limiting)
+- ✅ Retry on 503 "no capacity" errors
+- ✅ Trajectory analysis interface
+- ✅ Telemetry support
+- ✅ Backend admin interface calls
+- ✅ Security configuration (`security.json`)
 
 ## Requirements
 
@@ -261,6 +268,120 @@ docker logs -f antigravity2api
 - Config files: mount `.env` and `config.json` for hot reloads
 - Port mapping: defaults to port 8045
 - Auto-restart: container will restart after unexpected exit
+
+## Zeabur Deployment
+
+### Deploy via pre-built Docker image
+
+1. **Create service**
+
+In your Zeabur project, create a new service and use this image:
+
+```
+ghcr.io/liuw1535/antigravity2api-nodejs
+```
+
+2. **Configure environment variables**
+
+Set the following environment variables in the service settings:
+
+| Variable | Description | Example |
+|--------|------|--------|
+| `API_KEY` | API authentication key | `sk-your-api-key` |
+| `ADMIN_USERNAME` | Admin username | `admin` |
+| `ADMIN_PASSWORD` | Admin password | `your-secure-password` |
+| `JWT_SECRET` | JWT secret | `your-jwt-secret-key` |
+| `IMAGE_BASE_URL` | Image service base URL | `https://your-domain.zeabur.app` |
+
+Optional variables:
+- `PROXY`: Proxy URL
+- `SYSTEM_INSTRUCTION`: Default system prompt
+
+3. **Configure volume mounts**
+
+In the service "Volumes" settings, add these mounts:
+
+| Mount path | Purpose |
+|---------|------|
+| `/app/data` | Token storage |
+| `/app/public/images` | Generated image storage |
+
+> ⚠️ **Important**: Only mount `/app/data` and `/app/public/images` as directories. Mounting other paths (e.g., `/app/.env`, `/app/config.json`) may overwrite required config files and prevent the service from starting.
+
+4. **Configure domain**
+
+In the service "Networking" settings, configure a domain. Then set this domain as the `IMAGE_BASE_URL` environment variable.
+
+5. **Start service**
+
+After saving the config, Zeabur will automatically pull the image and start the service. Access it via the configured domain.
+
+### Zeabur deployment notes
+
+- Uses the pre-built Docker image; no manual build required
+- Supports environment variable configuration for all settings
+- Volume mounts ensure Token and image data persistence
+
+## Binary Deployment (No Node.js Required)
+
+Download a pre-built binary from [GitHub Releases](https://github.com/ZhaoShanGeng/antigravity2api-nodejs/releases):
+
+| Platform | Binary name |
+|------|--------|
+| Windows x64 | `antigravity2api-win-x64.exe` |
+| Linux x64 | `antigravity2api-linux-x64` |
+| Linux ARM64 | `antigravity2api-linux-arm64` |
+| macOS x64 | `antigravity2api-macos-x64` |
+| macOS ARM64 | `antigravity2api-macos-arm64` |
+
+### Recommended directory layout
+
+```
+├── antigravity2api-win-x64.exe  # binary
+├── .env                          # env config (optional; auto-generated on first run)
+├── config.json.example           # config example (reference)
+├── public/                       # frontend files (required)
+│   ├── index.html
+│   ├── style.css
+│   ├── assets/
+│   │   └── bg.jpg
+│   └── js/
+│       ├── auth.js
+│       ├── config.js
+│       ├── main.js
+│       ├── quota.js
+│       ├── tokens.js
+│       ├── ui.js
+│       └── utils.js
+└── data/                         # data directory (auto-generated)
+    └── accounts.json
+```
+
+### Running the binary
+
+**Windows:**
+```bash
+# Double-click or run from Command Prompt
+antigravity2api-win-x64.exe
+```
+
+**Linux/macOS:**
+```bash
+# Make executable
+chmod +x antigravity2api-linux-x64
+
+# Run
+./antigravity2api-linux-x64
+```
+
+### Binary deployment notes
+
+- **No Node.js required**: the binary includes the full Node.js runtime
+- **Auto-config**: on first run, `config.json` is created from `config.json.example`
+- **Config file**: `config.json.example` must be in the same directory as the binary
+- **Frontend files**: the `public/` directory must be in the same directory as the binary
+- **Data storage**: the `data/` directory is auto-created to store Tokens
+- **Cross-platform**: supports Windows, Linux, and macOS (x64 and ARM64)
 
 ## Web Admin UI
 
@@ -514,9 +635,10 @@ npm run docker:build
 │   │   ├── token_store.js  # Token file storage (async read/write)
 │   │   └── quota_manager.js # Quota cache management
 │   ├── bin/
-│   │   ├── antigravity_requester_android_arm64   # Android ARM64 TLS requester
-│   │   ├── antigravity_requester_linux_amd64     # Linux AMD64 TLS requester
-│   │   └── antigravity_requester_windows_amd64.exe # Windows AMD64 TLS requester
+│   │   ├── fingerprint_android_arm64      # Android ARM64 TLS requester binary
+│   │   ├── fingerprint_linux_amd64        # Linux AMD64 TLS requester binary
+│   │   ├── fingerprint_windows_amd64.exe  # Windows AMD64 TLS requester binary
+│   │   └── tls_config.json                # TLS configuration
 │   ├── config/
 │   │   ├── config.js       # Config loading
 │   │   └── init-env.js     # Environment initialization
@@ -543,6 +665,7 @@ npm run docker:build
 │   │   │   ├── common.js
 │   │   │   ├── gemini.js
 │   │   │   └── openai.js
+│   │   ├── createTelemetry.js # Telemetry creation
 │   │   ├── deepMerge.js    # Deep merge utility
 │   │   ├── envParser.js    # Env parser
 │   │   ├── errors.js       # Unified error handling
@@ -552,13 +675,20 @@ npm run docker:build
 │   │   ├── ipBlockManager.js # IP block management
 │   │   ├── logger.js       # Logger
 │   │   ├── memoryManager.js # Smart memory management
+│   │   ├── modelGroups.js  # Model grouping utilities
 │   │   ├── parameterNormalizer.js # Parameter normalization
 │   │   ├── paths.js        # Path utilities (pkg aware)
+│   │   ├── proto/
+│   │   │   └── telemetry.proto # Telemetry protobuf schema
+│   │   ├── recordCodeAssistMetrics.js # Code assist metrics
 │   │   ├── thoughtSignatureCache.js # Signature cache
 │   │   ├── toolConverter.js # Tool definition conversion
 │   │   ├── toolNameCache.js # Tool name cache
+│   │   ├── trajectory.js   # Trajectory analysis
+│   │   ├── unleash.js      # Feature flags
 │   │   └── utils.js        # Utility exports
-│   └── AntigravityRequester.js # TLS fingerprint requester wrapper
+│   ├── requester.js        # New unified TLS fingerprint requester
+│   └── AntigravityRequester.js # Legacy TLS requester wrapper (kept for compatibility)
 ├── test/
 │   ├── test-request.js     # Request tests
 │   ├── test-image-generation.js # Image generation tests
@@ -682,27 +812,59 @@ This service supports three API formats, each with full parameter coverage:
 
 ```json
 {
-  "contents": [
-    {
-      "role": "user",
-      "parts": [{ "text": "Hello" }]
-    }
-  ],
+  "contents": [...],
   "generationConfig": {
+    "maxOutputTokens": 16000,
     "temperature": 0.7,
     "topP": 0.9,
     "topK": 40,
-    "maxOutputTokens": 16000
+    "thinkingConfig": {
+      "includeThoughts": true,
+      "thinkingBudget": 10000
+    }
   }
 }
 ```
 
 | Parameter | Description | Default |
 |------|------|--------|
-| `generationConfig.maxOutputTokens` | Max output tokens | 8192 |
-| `generationConfig.temperature` | Temperature | 1 |
-| `generationConfig.topP` | Top-P sampling | 1 |
-| `generationConfig.topK` | Top-K sampling | 50 |
+| `maxOutputTokens` | Max output tokens | 32000 |
+| `temperature` | Temperature (0.0–1.0) | 1 |
+| `topP` | Top-P sampling | 1 |
+| `topK` | Top-K sampling | 50 |
+| `thinkingConfig.includeThoughts` | Include thinking tokens | true |
+| `thinkingConfig.thinkingBudget` | Thinking budget (1024–32000) | 1024 |
+
+### Parameter priority
+
+Parameters from the request take priority over config file defaults, which guarantee a safe baseline:
+
+1. **Parameter priority**: request parameter > config file default
+2. **Thinking budget priority**: `thinking_budget`/`budget_tokens`/`thinkingBudget` > `reasoning_effort` > config default
+3. **Disable thinking**: set `thinking_budget=0`, `thinking.type="disabled"`, or `thinkingConfig.includeThoughts=false`
+
+### DeepSeek `reasoning_content` compatibility
+
+The service automatically outputs thinking tokens in DeepSeek's `reasoning_content` format, allowing upstream clients that expect DeepSeek-style responses to read thinking without extra parsing:
+
+```json
+{
+  "choices": [{
+    "message": {
+      "content": "Final answer",
+      "reasoning_content": "Internal thought process..."
+    }
+  }]
+}
+```
+
+### `reasoning_effort` mapping
+
+| Value | Thinking token budget |
+|---|----------------|
+| `low` | 1024 |
+| `medium` | 16000 |
+| `high` | 32000 |
 
 ## Streaming responses
 
@@ -711,6 +873,67 @@ Streaming uses Server-Sent Events (SSE) with heartbeat to prevent timeouts. The 
 ## SD WebUI compatibility
 
 The service exposes SD WebUI compatible endpoints and supports txt2img and img2img generation. See [API.md](API.md) for details.
+
+## Memory Optimization
+
+The service includes multi-layer memory optimization:
+
+### At a glance
+
+| Metric | Before | After |
+|------|--------|--------|
+| Process count | 8+ | 2 |
+| Memory usage | 100MB+ | 50MB+ |
+| GC frequency | High | Low |
+
+### Optimization techniques
+
+1. **Object pool reuse**: streaming response object pools reduce temporary object creation by 50%+
+2. **Pool-based constants**: parser states, format adapters, etc. reuse pooled instances to avoid repeated allocation
+3. **LineBuffer optimization**: reduces frequent slice operations during streaming
+4. **Auto memory management**: triggers GC automatically when memory exceeds threshold
+5. **Process reduction**: eliminates unnecessary spawned processes; centralizes request handling
+
+### Dynamic memory thresholds
+
+GC behavior scales with the `memoryThreshold` (MB) set in config:
+
+| Level | Threshold % | Default (100MB config) | Action |
+|---------|---------|---------------------|------|
+| LOW | 30% | 30MB | Normal operation |
+| MEDIUM | 60% | 60MB | Mild cleanup |
+| HIGH | 100% | 100MB | Aggressive cleanup + GC |
+| CRITICAL | >100% | >100MB | Emergency cleanup + forced GC |
+
+### Configuration
+
+```json
+{
+  "server": {
+    "memoryThreshold": 100
+  }
+}
+```
+
+## Heartbeat Mechanism
+
+To prevent Cloudflare and CDN proxies from closing idle streaming connections, the service sends periodic SSE heartbeats:
+
+- During streaming pauses, sends a heartbeat event (`: heartbeat\n\n`)
+- Default interval: 15 seconds (configurable)
+- Heartbeat events follow SSE spec and are silently ignored by clients
+
+### Configuration
+
+```json
+{
+  "server": {
+    "heartbeatInterval": 15000
+  }
+}
+```
+
+- `heartbeatInterval`: heartbeat interval in milliseconds; set to `0` to disable
 
 ## License
 

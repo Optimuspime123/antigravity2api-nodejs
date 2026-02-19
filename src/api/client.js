@@ -1,22 +1,24 @@
 import tokenManager from '../auth/token_manager.js';
 import config from '../config/config.js';
-import AntigravityRequester from '../AntigravityRequester.js';
+import fingerprintRequester from '../requester.js';
 import { saveBase64Image } from '../utils/imageStorage.js';
 import logger from '../utils/logger.js';
 import memoryManager from '../utils/memoryManager.js';
 import { httpRequest, httpStreamRequest } from '../utils/httpClient.js';
-import { MODEL_LIST_CACHE_TTL } from '../constants/index.js';
+import { generateTrajectorybody } from '../utils/trajectory.js';
+import { buildRecordCodeAssistMetricsBody } from '../utils/recordCodeAssistMetrics.js';
+import { createTelemetryBatch, serializeTelemetryBatch } from "../utils/createTelemetry.js"
+import { buildClientRegister, buildFrontEnd, buildClientFeatrueHeaders, buildClientRegisterHeaders, buildFrontEndHeaders } from "../utils/unleash.js"
+import { MODEL_LIST_CACHE_TTL, QA_PAIRS } from '../constants/index.js';
 import { createApiError } from '../utils/errors.js';
-import fs from 'fs/promises';
-import fsSync from 'fs';
 import path from 'path';
+import { fileURLToPath } from 'url';
 import {
   convertToToolCall,
   registerStreamMemoryCleanup
 } from './stream_parser.js';
 import { setSignature, shouldCacheSignature, isImageModel } from '../utils/thoughtSignatureCache.js';
 import {
-  DEBUG_DUMP_FILE,
   isDebugDumpEnabled,
   createDumpId,
   createStreamCollector,
@@ -29,27 +31,85 @@ import { getUpstreamStatus, readUpstreamErrorBody, isCallerDoesNotHavePermission
 import { createStreamLineProcessor } from './streamLineProcessor.js';
 import { runAxiosSseStream, runNativeSseStream, postJsonAndParse } from './geminiTransport.js';
 import { parseGeminiCandidateParts, toOpenAIUsage } from './geminiResponseParser.js';
+import { randomBytes, randomUUID } from 'crypto';
 
-// Request client: prefer AntigravityRequester, fallback to axios on failure
+const __dirname = path.dirname(fileURLToPath(import.meta.url));
+
+// ==================== Token 计时器管理 ====================
+const tokenTimers = new Map(); // { tokenKey: { lastUsed: timestamp, intervalId: intervalId } }
+const TOKEN_TIMEOUT = 3 * 60 * 1000; // 3分钟
+const BACKEND_CALL_INTERVAL = 60 * 1000; // 60秒
+
+function getTokenKey(token) {
+  return token.access_token;
+}
+
+function startTokenTimer(token) {
+  const key = getTokenKey(token);
+  const now = Date.now();
+  sendClientRegister(token).catch(err => logger.warn('定时调用ClientRegister失败:', err.message));
+  sendClientFeature(token).catch(err => logger.warn('定时调用ClientFeature失败:', err.message));
+  sendFrontEnd(token).catch(err => logger.warn('定时调用FrontEnd失败:', err.message));
+
+  if (tokenTimers.has(key)) {
+    tokenTimers.get(key).lastUsed = now;
+    return;
+  }
+
+  const intervalId = setInterval(() => {
+    sendClientRegister(token).catch(err => logger.warn('定时调用ClientRegister失败:', err.message));
+    sendClientFeature(token).catch(err => logger.warn('定时调用ClientFeature失败:', err.message));
+    sendFrontEnd(token).catch(err => logger.warn('定时调用FrontEnd失败:', err.message));
+  }, BACKEND_CALL_INTERVAL);
+
+  tokenTimers.set(key, { lastUsed: now, intervalId });
+}
+
+function checkTokenTimeout() {
+  const now = Date.now();
+  for (const [key, data] of tokenTimers.entries()) {
+    if (now - data.lastUsed > TOKEN_TIMEOUT) {
+      clearInterval(data.intervalId);
+      tokenTimers.delete(key);
+    }
+  }
+}
+
+setInterval(checkTokenTimeout, 30 * 1000); // 每30秒检查一次超时
+
+// 请求客户端：优先使用 FingerprintRequester，失败则自动降级到 axios
 let requester = null;
 let useAxios = false;
 
-// Initialize request client
+// 初始化请求客户端
 if (config.useNativeAxios === true) {
   useAxios = true;
-  logger.info('Using native axios requests');
+  logger.info('使用原生 axios 请求');
 } else {
   try {
-    requester = new AntigravityRequester();
+    // 使用 src/bin/config.json 作为 TLS 指纹配置文件
+    // 检测是否在 pkg 环境中
+    const isPkg = typeof process.pkg !== 'undefined';
+
+    // 根据环境选择配置文件路径
+    const configPath = isPkg
+      ? path.join(path.dirname(process.execPath), 'bin', 'tls_config.json')  // pkg 打包环境
+      : path.join(__dirname, '..', 'bin', 'tls_config.json');  // 开发环境
+    requester = fingerprintRequester.create({
+      configPath,
+      timeout: config.timeout ? Math.ceil(config.timeout / 1000) : 30,
+      proxy: config.proxy || null,
+    });
+    logger.info('使用 FingerprintRequester 请求');
   } catch (error) {
-    logger.warn('Failed to initialize AntigravityRequester; falling back to axios:', error.message);
+    logger.warn('FingerprintRequester 初始化失败，自动降级使用 axios:', error.message);
     useAxios = true;
   }
 }
 
-// ==================== Debug: full request/raw response dump (single-file append) ====================
+// ==================== 调试：最终请求/原始响应完整输出（单文件追加模式） ====================
 
-// ==================== Model list cache (smart management) ====================
+// ==================== 模型列表缓存（智能管理） ====================
 const getModelCacheTTL = () => {
   return config.cache?.modelListTTL || MODEL_LIST_CACHE_TTL;
 };
@@ -57,11 +117,12 @@ const getModelCacheTTL = () => {
 let modelListCache = null;
 let modelListCacheTime = 0;
 
-// Default model list (used when API requests fail)
-// Use Object.freeze to prevent accidental mutation and help V8 optimize
+// 默认模型列表（当 API 请求失败时使用）
+// 使用 Object.freeze 防止意外修改，并帮助 V8 优化
 const DEFAULT_MODELS = Object.freeze([
+  'claude-opus-4-6',
   'claude-opus-4-5',
-  'claude-opus-4-5-thinking',
+  'claude-opus-4-6-thinking',
   'claude-sonnet-4-5-thinking',
   'claude-sonnet-4-5',
   'gemini-3-pro-high',
@@ -79,7 +140,7 @@ const DEFAULT_MODELS = Object.freeze([
   'chat_23310'
 ]);
 
-// Build default model list response
+// 生成默认模型列表响应
 function getDefaultModelList() {
   const created = Math.floor(Date.now() / 1000);
   return {
@@ -94,12 +155,12 @@ function getDefaultModelList() {
 }
 
 
-// Register memory cleanup callbacks for object pool and model cache
+// 注册对象池与模型缓存的内存清理回调
 function registerMemoryCleanup() {
-  // Stream parser manages its own object pool size
+  // 由流式解析模块管理自身对象池大小
   registerStreamMemoryCleanup();
 
-  // Memory cleaner triggers periodically: only remove expired model list cache
+  // 统一由内存清理器定时触发：仅清理“已过期”的模型列表缓存
   memoryManager.registerCleanup(() => {
     const ttl = getModelCacheTTL();
     const now = Date.now();
@@ -110,10 +171,10 @@ function registerMemoryCleanup() {
   });
 }
 
-// Register cleanup callback on init
+// 初始化时注册清理回调
 registerMemoryCleanup();
 
-// ==================== Helpers ====================
+// ==================== 辅助函数 ====================
 
 function buildHeaders(token) {
   return {
@@ -125,19 +186,26 @@ function buildHeaders(token) {
   };
 }
 
-function buildRequesterConfig(headers, body = null) {
+function buildRequesterConfig(headers, body = null, method = "POST") {
   const reqConfig = {
-    method: 'POST',
+    method: method,
     headers,
     timeout_ms: config.timeout,
     proxy: config.proxy
   };
-  if (body !== null) reqConfig.body = JSON.stringify(body);
+  if (body !== null) {
+    // 判断是否为二进制数据
+    if (Buffer.isBuffer(body) || body instanceof Uint8Array) {
+      reqConfig.body = body;  // 直接传递
+    } else {
+      reqConfig.body = JSON.stringify(body);  // JSON 对象才序列化
+    }
+  }
   return reqConfig;
 }
 
 
-// Unified error handling
+// 统一错误处理
 async function handleApiError(error, token, dumpId = null) {
   const status = getUpstreamStatus(error);
   const errorBody = await readUpstreamErrorBody(error);
@@ -145,31 +213,33 @@ async function handleApiError(error, token, dumpId = null) {
   if (dumpId) {
     await dumpFinalRawResponse(dumpId, String(errorBody ?? ''));
   }
-  
+
   if (status === 403) {
     if (isCallerDoesNotHavePermission(errorBody)) {
-      throw createApiError(`Exceeded model max context. Details: ${errorBody}`, status, errorBody);
+      throw createApiError(`超出模型最大上下文。错误详情: ${errorBody}`, status, errorBody);
     }
     tokenManager.disableCurrentToken(token);
-    throw createApiError(`Account lacks permission and was disabled. Details: ${errorBody}`, status, errorBody);
+    throw createApiError(`该账号没有使用权限，已自动禁用。错误详情: ${errorBody}`, status, errorBody);
   }
-  
-  throw createApiError(`API request failed (${status}): ${errorBody}`, status, errorBody);
+
+  throw createApiError(`API请求失败 (${status}): ${errorBody}`, status, errorBody);
 }
 
 
-// ==================== Exported functions ====================
+// ==================== 导出函数 ====================
 
 export async function generateAssistantResponse(requestBody, token, callback) {
-  
+  startTokenTimer(token);
+  const trajectoryId = requestBody.requestId.split('/')[2];
   const headers = buildHeaders(token);
   const dumpId = isDebugDumpEnabled() ? createDumpId('stream') : null;
   const streamCollector = dumpId ? createStreamCollector() : null;
+  let num = Math.floor(Math.random() * QA_PAIRS.length);
   if (dumpId) {
     await dumpFinalRequest(dumpId, requestBody);
   }
 
-  // Temporarily cache reasoning signatures in state for streaming reuse, with session/model for global cache
+  // 在 state 中临时缓存思维链签名，供流式多片段复用，并携带 session 与 model 信息以写入全局缓存
   const state = {
     toolCalls: [],
     reasoningSignature: null,
@@ -181,7 +251,7 @@ export async function generateAssistantResponse(requestBody, token, callback) {
     onEvent: callback,
     onRawChunk: (chunk) => collectStreamChunk(streamCollector, chunk)
   });
-  
+
   try {
     if (useAxios) {
       await runAxiosSseStream({
@@ -200,17 +270,20 @@ export async function generateAssistantResponse(requestBody, token, callback) {
       });
     }
 
-    // Write JSON log after streaming completes
+    // 流式响应结束后，以 JSON 格式写入日志
     if (dumpId) {
       await dumpStreamResponse(dumpId, streamCollector);
     }
+    sendRecordCodeAssistMetrics(token, trajectoryId).catch(err => logger.warn('发送RecordCodeAssistMetrics失败:', err.message));
+    sendRecordTrajectoryAnalytics(token, num, trajectoryId).catch(err => logger.warn('发送轨迹分析失败:', err.message));
+    //sendLog(token,num,trajectoryId).catch(err => logger.warn('发送log失败:', err.message))
   } catch (error) {
     try { processor.close(); } catch { }
     await handleApiError(error, token, dumpId);
   }
 }
 
-// Internal: fetch full raw model data from upstream
+// 内部工具：从远端拉取完整模型原始数据
 async function fetchRawModels(headers, token) {
   try {
     if (useAxios) {
@@ -234,24 +307,24 @@ async function fetchRawModels(headers, token) {
 }
 
 export async function getAvailableModels() {
-  // Check cache validity (dynamic TTL)
+  // 检查缓存是否有效（动态 TTL）
   const now = Date.now();
   const ttl = getModelCacheTTL();
   if (modelListCache && (now - modelListCacheTime) < ttl) {
     return modelListCache;
   }
-  
+
   const token = await tokenManager.getToken();
   if (!token) {
-    // Return default list if no token is available
-    logger.warn('No available token; returning default model list');
+    // 没有 token 时返回默认模型列表
+    logger.warn('没有可用的 token，返回默认模型列表');
     return getDefaultModelList();
   }
-  
+
   const headers = buildHeaders(token);
   const data = await fetchRawModels(headers, token);
   if (!data) {
-    // fetchRawModels already handles errors; fallback to default list here
+    // fetchRawModels 里已经做了统一错误处理，这里兜底为默认列表
     return getDefaultModelList();
   }
 
@@ -262,8 +335,8 @@ export async function getAvailableModels() {
     created,
     owned_by: 'google'
   }));
-  
-  // Add default model if missing in API list
+
+  // 添加默认模型（如果 API 返回的列表中没有）
   const existingIds = new Set(modelList.map(m => m.id));
   for (const defaultModel of DEFAULT_MODELS) {
     if (!existingIds.has(defaultModel)) {
@@ -275,26 +348,26 @@ export async function getAvailableModels() {
       });
     }
   }
-  
+
   const result = {
     object: 'list',
     data: modelList
   };
-  
-  // Update cache
+
+  // 更新缓存
   modelListCache = result;
   modelListCacheTime = now;
   const currentTTL = getModelCacheTTL();
-  logger.info(`Model list cached (TTL: ${currentTTL / 1000}s, count: ${modelList.length})`);
-  
+  logger.info(`模型列表已缓存 (有效期: ${currentTTL / 1000}秒, 模型数量: ${modelList.length})`);
+
   return result;
 }
 
-// Clear model list cache (useful for manual refresh)
+// 清除模型列表缓存（可用于手动刷新）
 export function clearModelListCache() {
   modelListCache = null;
   modelListCacheTime = 0;
-  logger.info('Model list cache cleared');
+  logger.info('模型列表缓存已清除');
 }
 
 export async function getModelsWithQuotas(token) {
@@ -311,14 +384,17 @@ export async function getModelsWithQuotas(token) {
       };
     }
   });
-  
+
   return quotas;
 }
 
 export async function generateAssistantResponseNoStream(requestBody, token) {
-  
+  startTokenTimer(token);
+  const trajectoryId = requestBody.requestId.split('/')[2];
   const headers = buildHeaders(token);
   const dumpId = isDebugDumpEnabled() ? createDumpId('no_stream') : null;
+  let num = Math.floor(Math.random() * QA_PAIRS.length);
+
   if (dumpId) await dumpFinalRequest(dumpId, requestBody);
   let data;
   try {
@@ -334,6 +410,10 @@ export async function generateAssistantResponseNoStream(requestBody, token) {
       dumpFinalRawResponse,
       rawFormat: 'json'
     });
+    sendRecordCodeAssistMetrics(token, trajectoryId).catch(err => logger.warn('发送RecordCodeAssistMetrics失败:', err.message));
+    sendRecordTrajectoryAnalytics(token, num, trajectoryId).catch(err => logger.warn('发送轨迹分析失败:', err.message));
+
+    //sendLog(token,num).catch(err => logger.warn('发送log失败:', err.message))
   } catch (error) {
     await handleApiError(error, token, dumpId);
   }
@@ -348,19 +428,19 @@ export async function generateAssistantResponseNoStream(requestBody, token) {
   });
 
   const usageData = toOpenAIUsage(data.response?.usageMetadata);
-  
-  // Write new signatures and reasoning content to global cache (by model) for fallback use
+
+  // 将新的签名和思考内容写入全局缓存（按 model），供后续请求兜底使用
   const sessionId = requestBody.request?.sessionId;
   const model = requestBody.model;
   const hasTools = parsed.toolCalls.length > 0;
   const isImage = isImageModel(model);
-  
-  // Determine whether to cache signature
+
+  // 判断是否应该缓存签名
   if (sessionId && model && shouldCacheSignature({ hasTools, isImageModel: isImage })) {
-    // Get final signature (prefer tool signature, fallback to reasoning signature)
+    // 获取最终使用的签名（优先使用工具签名，回退到思维签名）
     let finalSignature = parsed.reasoningSignature;
-    
-    // Tool signature: use the last tool with thoughtSignature as cache source
+
+    // 工具签名：取最后一个带 thoughtSignature 的工具作为缓存源（更接近"最新"）
     if (hasTools) {
       for (let i = parsed.toolCalls.length - 1; i >= 0; i--) {
         const sig = parsed.toolCalls[i]?.thoughtSignature;
@@ -370,28 +450,32 @@ export async function generateAssistantResponseNoStream(requestBody, token) {
         }
       }
     }
-    
+
     if (finalSignature) {
       const cachedContent = parsed.reasoningContent || ' ';
       setSignature(sessionId, model, finalSignature, cachedContent, { hasTools, isImageModel: isImage });
     }
   }
 
-  // Image generation models: convert to markdown format
+  // 生图模型：转换为 markdown 格式
   if (parsed.imageUrls.length > 0) {
     let markdown = parsed.content ? parsed.content + '\n\n' : '';
     markdown += parsed.imageUrls.map(url => `![image](${url})`).join('\n\n');
     return { content: markdown, reasoningContent: parsed.reasoningContent, reasoningSignature: parsed.reasoningSignature, toolCalls: parsed.toolCalls, usage: usageData };
   }
-  
+
   return { content: parsed.content, reasoningContent: parsed.reasoningContent, reasoningSignature: parsed.reasoningSignature, toolCalls: parsed.toolCalls, usage: usageData };
 }
 
 export async function generateImageForSD(requestBody, token) {
+  startTokenTimer(token);
+  const trajectoryId = requestBody.requestId.split('/')[2];
   const headers = buildHeaders(token);
   let data;
+  let num = Math.floor(Math.random() * QA_PAIRS.length);
+
   //console.log(JSON.stringify(requestBody,null,2));
-  
+
   try {
     if (useAxios) {
       data = (await httpRequest({
@@ -400,6 +484,9 @@ export async function generateImageForSD(requestBody, token) {
         headers,
         data: requestBody
       })).data;
+      sendRecordCodeAssistMetrics(token, trajectoryId).catch(err => logger.warn('发送RecordCodeAssistMetrics失败:', err.message));
+      sendRecordTrajectoryAnalytics(token, num, trajectoryId).catch(err => logger.warn('发送轨迹分析失败:', err.message));
+      //sendLog(token,num).catch(err => logger.warn('发送log失败:', err.message));
     } else {
       const response = await requester.antigravity_fetch(config.api.noStreamUrl, buildRequesterConfig(headers, requestBody));
       if (response.status !== 200) {
@@ -407,20 +494,165 @@ export async function generateImageForSD(requestBody, token) {
         throw { status: response.status, message: errorBody };
       }
       data = await response.json();
+      sendRecordCodeAssistMetrics(token, trajectoryId).catch(err => logger.warn('发送RecordCodeAssistMetrics失败:', err.message));
+      sendRecordTrajectoryAnalytics(token, num, trajectoryId).catch(err => logger.warn('发送轨迹分析失败:', err.message));
+      //sendLog(token,num).catch(err => logger.warn('发送log失败:', err.message));
     }
   } catch (error) {
     await handleApiError(error, token);
   }
-  
+
   const parts = data.response?.candidates?.[0]?.content?.parts || [];
   const images = parts.filter(p => p.inlineData).map(p => p.inlineData.data);
-  
+
   return images;
+}
+
+export async function sendRecordTrajectoryAnalytics(token, num, trajectoryId) {
+  const trajectorybody = generateTrajectorybody(num, trajectoryId);
+  const headers = buildHeaders(token);
+  try {
+    if (useAxios) {
+      await httpRequest({
+        method: 'POST',
+        url: config.api.recordTrajectory,
+        headers,
+        data: trajectorybody
+      });
+    } else {
+      const response = await requester.antigravity_fetch(config.api.recordTrajectory, buildRequesterConfig(headers, trajectorybody));
+      if (response.status !== 200) {
+        const errorBody = await response.text();
+        throw new Error(`轨迹分析请求失败 (${response.status}): ${errorBody}`);
+      }
+    }
+  } catch (error) {
+    throw error;
+  }
+}
+export async function sendLog(token, num, trajectoryId) {
+  const Logbody = createTelemetryBatch(num, trajectoryId);
+  const serializeData = serializeTelemetryBatch(Logbody);
+  const serializeLogBody = serializeData.data;
+  const headers = buildHeaders(token);
+  headers["Host"] = "play.googleapis.com";
+  headers["User-Agent"] = "Go-http-client/1.1";
+  headers["Content-Type"] = "application/octet-stream";
+  headers["Accept-Encoding"] = "gzip";
+  try {
+    if (useAxios) {
+      await httpRequest({
+        method: 'POST',
+        url: "https://play.googleapis.com/log",
+        headers,
+        data: serializeLogBody
+      });
+    } else {
+      const response = await requester.antigravity_fetch("https://play.googleapis.com/log", buildRequesterConfig(headers, serializeLogBody));
+      if (response.status !== 200) {
+        const errorBody = await response.text();
+        throw new Error(`log请求失败 (${response.status}): ${errorBody}`);
+      }
+    }
+  } catch (error) {
+    throw error;
+  }
+}
+
+export async function sendRecordCodeAssistMetrics(token, trajectoryId) {
+  const requestBody = buildRecordCodeAssistMetricsBody(token, trajectoryId);
+  const headers = buildHeaders(token);
+  try {
+    if (useAxios) {
+      await httpRequest({
+        method: 'POST',
+        url: "https://daily-cloudcode-pa.googleapis.com/v1internal:recordCodeAssistMetrics",
+        headers,
+        data: requestBody
+      });
+    } else {
+      const response = await requester.antigravity_fetch("https://daily-cloudcode-pa.googleapis.com/v1internal:recordCodeAssistMetrics", buildRequesterConfig(headers, requestBody));
+      if (response.status !== 200) {
+        const errorBody = await response.text();
+        throw new Error(`RecordCodeAssistMetrics请求失败 (${response.status}): ${errorBody}`);
+      }
+    }
+  } catch (error) {
+    throw error;
+  }
+}
+
+export async function sendClientRegister(token) {
+  const requestBody = buildClientRegister(token);
+  const headers = buildClientRegisterHeaders(token);
+  try {
+    if (useAxios) {
+      await httpRequest({
+        method: 'POST',
+        url: "https://antigravity-unleash.goog/api/client/register",
+        headers,
+        data: requestBody
+      });
+    } else {
+      const response = await requester.antigravity_fetch("https://antigravity-unleash.goog/api/client/register", buildRequesterConfig(headers, requestBody));
+      if (response.status !== 200 && response.status !== 202) {
+        const errorBody = await response.text();
+        throw new Error(`ClientRegister请求失败 (${response.status}): ${errorBody}`);
+      }
+    }
+  } catch (error) {
+    throw error;
+  }
+}
+
+export async function sendClientFeature(token) {
+  const headers = buildClientFeatrueHeaders(token);
+  //console.log(headers);
+  try {
+    if (useAxios) {
+      await httpRequest({
+        method: 'GET',
+        url: "https://antigravity-unleash.goog/api/client/features",
+        headers
+      });
+    } else {
+      const response = await requester.antigravity_fetch("https://antigravity-unleash.goog/api/client/features", buildRequesterConfig(headers, null, "GET"));
+      if (response.status !== 200 && response.status !== 202) {
+        const errorBody = await response.text();
+        throw new Error(`ClientFeature请求失败 (${response.status}): ${errorBody}`);
+      }
+    }
+  } catch (error) {
+    throw error;
+  }
+}
+
+export async function sendFrontEnd(token) {
+  const requestBody = buildFrontEnd(token);
+  const headers = buildFrontEndHeaders(token);
+  try {
+    if (useAxios) {
+      await httpRequest({
+        method: 'POST',
+        url: "https://antigravity-unleash.goog/api/frontend",
+        headers,
+        data: requestBody
+      });
+    } else {
+      const response = await requester.antigravity_fetch("https://antigravity-unleash.goog/api/frontend", buildRequesterConfig(headers, requestBody));
+      if (response.status !== 200 && response.status !== 202) {
+        const errorBody = await response.text();
+        throw new Error(`FrontEnd请求失败 (${response.status}): ${errorBody}`);
+      }
+    }
+  } catch (error) {
+    throw error;
+  }
 }
 
 export function closeRequester() {
   if (requester) requester.close();
 }
 
-// Export memory cleanup registration (for external use)
+// 导出内存清理注册函数（供外部调用）
 export { registerMemoryCleanup };

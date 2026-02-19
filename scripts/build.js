@@ -9,10 +9,10 @@ const rootDir = path.join(__dirname, '..');
 const distDir = path.join(rootDir, 'dist');
 const bundleDir = path.join(distDir, 'bundle');
 
-// Convert to forward-slash paths (cross-platform compatibility)
+// 转换为正斜杠路径（跨平台兼容）
 const toSlash = (p) => p.replace(/\\/g, '/');
 
-// Ensure directories exist
+// 确保目录存在
 if (!fs.existsSync(distDir)) {
   fs.mkdirSync(distDir, { recursive: true });
 }
@@ -20,12 +20,12 @@ if (!fs.existsSync(bundleDir)) {
   fs.mkdirSync(bundleDir, { recursive: true });
 }
 
-// Read CLI args
+// 获取命令行参数
 const args = process.argv.slice(2);
 const targetArg = args.find(arg => arg.startsWith('--target='));
 const target = targetArg ? targetArg.split('=')[1] : 'node18-win-x64';
 
-// Resolve target platform
+// 解析目标平台
 const targetMap = {
   'win': 'node18-win-x64',
   'win-x64': 'node18-win-x64',
@@ -40,7 +40,7 @@ const targetMap = {
 
 const resolvedTarget = targetMap[target] || target;
 
-// Output filename map
+// 输出文件名映射
 const outputNameMap = {
   'node18-win-x64': 'antigravity-win-x64.exe',
   'node18-linux-x64': 'antigravity-linux-x64',
@@ -49,18 +49,18 @@ const outputNameMap = {
   'node18-macos-arm64': 'antigravity-macos-arm64'
 };
 
-// Bin file map per platform
+// 平台对应的 bin 文件映射
 const binFileMap = {
-  'node18-win-x64': 'antigravity_requester_windows_amd64.exe',
-  'node18-linux-x64': 'antigravity_requester_linux_amd64',
-  'node18-linux-arm64': 'antigravity_requester_android_arm64',  // ARM64 uses the Android build
-  'node18-macos-x64': 'antigravity_requester_linux_amd64',      // macOS x64 temporarily uses Linux build
-  'node18-macos-arm64': 'antigravity_requester_android_arm64'   // macOS ARM64 temporarily uses Android build
+  'node18-win-x64': 'fingerprint_windows_amd64.exe',
+  'node18-linux-x64': 'fingerprint_linux_amd64',
+  'node18-linux-arm64': 'fingerprint_android_arm64',
+  'node18-macos-x64': 'fingerprint_linux_amd64',
+  'node18-macos-arm64': 'fingerprint_android_arm64'
 };
 
 console.log('📦 Step 1: Bundling with esbuild...');
 
-// Bundle with esbuild into CommonJS
+// 使用 esbuild 打包成 CommonJS
 await esbuild.build({
   entryPoints: ['src/server/index.js'],
   bundle: true,
@@ -71,7 +71,7 @@ await esbuild.build({
   external: [],
   minify: false,
   sourcemap: false,
-  // Handle __dirname and __filename
+  // 处理 __dirname 和 __filename
   define: {
     'import.meta.url': 'importMetaUrl'
   },
@@ -81,7 +81,7 @@ const importMetaUrl = require('url').pathToFileURL(__filename).href;
 const __importMetaDirname = __dirname;
 `
   },
-  // Copy static assets
+  // 复制静态资源
   loader: {
     '.node': 'copy'
   }
@@ -89,8 +89,8 @@ const __importMetaDirname = __dirname;
 
 console.log('✅ Bundle created: dist/bundle/server.cjs');
 
-// Create a temporary package.json for pkg
-// Use absolute paths for asset references
+// 创建临时 package.json 用于 pkg
+// 使用绝对路径引用资源文件
 const pkgJson = {
   name: 'antigravity-to-openai',
   version: '1.0.0',
@@ -114,9 +114,9 @@ fs.writeFileSync(
 
 console.log('📦 Step 2: Building executable with pkg...');
 
-// Helper to run the pkg command
+// 执行 pkg 命令的辅助函数
 function runPkg(args) {
-  // Convert paths in args to forward slashes
+  // 将参数中的路径转换为正斜杠格式
   const quotedArgs = args.map(arg => {
     if (arg.includes(' ') || arg.includes('\\')) {
       return `"${arg.replace(/\\/g, '/')}"`;
@@ -138,14 +138,14 @@ function runPkg(args) {
   }
 }
 
-// Build the pkg command
+// 构建 pkg 命令
 const targets = resolvedTarget.split(',');
 const isMultiTarget = targets.length > 1;
 
 try {
   const pkgJsonPath = path.join(bundleDir, 'package.json');
   
-  // Remove old executables (avoid EPERM errors)
+  // 删除旧的可执行文件（避免 EPERM 错误）
   if (isMultiTarget) {
     for (const t of targets) {
       const oldFile = path.join(distDir, outputNameMap[t] || 'antigravity');
@@ -164,14 +164,14 @@ try {
   }
   
   if (isMultiTarget) {
-    // Multi-target build
+    // 多目标构建
     runPkg([pkgJsonPath, '--target', resolvedTarget, '--compress', 'GZip', '--out-path', distDir]);
   } else {
-    // Single-target build
+    // 单目标构建
     const outputName = outputNameMap[resolvedTarget] || 'antigravity';
     const outputPath = path.join(distDir, outputName);
     
-    // Disable compression when cross-compiling ARM64 on Windows (avoid spawn UNKNOWN errors)
+    // ARM64 在 Windows 上交叉编译时禁用压缩（避免 spawn UNKNOWN 错误）
     const isArm64 = resolvedTarget.includes('arm64');
     const isWindows = process.platform === 'win32';
     const compressArgs = (isArm64 && isWindows) ? [] : ['--compress', 'GZip'];
@@ -181,10 +181,10 @@ try {
 
   console.log('✅ Build complete!');
   
-  // Copy runtime files into dist
+  // 复制运行时需要的文件到 dist 目录
   console.log('📁 Copying runtime files...');
   
-  // Copy public directory (exclude images)
+  // 复制 public 目录（排除 images）
   const publicSrcDir = path.join(rootDir, 'public');
   const publicDestDir = path.join(distDir, 'public');
   console.log(`  Source: ${publicSrcDir}`);
@@ -197,7 +197,7 @@ try {
         console.log('  Removing existing public directory...');
         fs.rmSync(publicDestDir, { recursive: true, force: true });
       }
-      // Use system commands to copy directories (more reliable)
+      // 使用系统命令复制目录（更可靠）
       console.log('  Copying public directory...');
       if (process.platform === 'win32') {
         execSync(`xcopy /E /I /Y /Q "${publicSrcDir}" "${publicDestDir}"`, { stdio: 'pipe', shell: true });
@@ -205,7 +205,7 @@ try {
         fs.mkdirSync(publicDestDir, { recursive: true });
         execSync(`cp -r "${publicSrcDir}"/* "${publicDestDir}/"`, { stdio: 'pipe', shell: true });
       }
-      // Remove images directory (runtime-generated, not needed in bundle)
+      // 删除 images 目录（运行时生成，不需要打包）
       const imagesDir = path.join(publicDestDir, 'images');
       if (fs.existsSync(imagesDir)) {
         fs.rmSync(imagesDir, { recursive: true, force: true });
@@ -219,7 +219,7 @@ try {
     console.error('  ❌ Source public directory not found!');
   }
   
-  // Copy bin directory (only required files per platform)
+  // 复制 bin 目录（只复制对应平台的文件）
   const binSrcDir = path.join(rootDir, 'src', 'bin');
   const binDestDir = path.join(distDir, 'bin');
   if (fs.existsSync(binSrcDir)) {
@@ -228,10 +228,10 @@ try {
     }
     fs.mkdirSync(binDestDir, { recursive: true });
     
-    // Copy only bin files for the target platform
+    // 只复制对应平台的 bin 文件
     const targetBinFiles = isMultiTarget
-      ? [...new Set(targets.map(t => binFileMap[t]).filter(Boolean))]  // Multi-target: de-duplicated set
-      : [binFileMap[resolvedTarget]].filter(Boolean);  // Single-target: only one file
+      ? [...new Set(targets.map(t => binFileMap[t]).filter(Boolean))]  // 多目标：去重后的所有文件
+      : [binFileMap[resolvedTarget]].filter(Boolean);  // 单目标：只复制一个文件
     
     if (targetBinFiles.length > 0) {
       for (const binFile of targetBinFiles) {
@@ -244,8 +244,18 @@ try {
           console.warn(`  ⚠ Warning: bin/${binFile} not found`);
         }
       }
+    // 复制 tls_config.json
+    const configFile = 'tls_config.json';
+    const configSrcPath = path.join(binSrcDir, configFile);
+    const configDestPath = path.join(binDestDir, configFile);
+    if (fs.existsSync(configSrcPath)) {
+      fs.copyFileSync(configSrcPath, configDestPath);
+      console.log(`  ✓ Copied bin/${configFile}`);
+} else {
+  console.warn(`  ⚠ Warning: bin/${configFile} not found`);
+}
     } else {
-      // If no mapping exists, copy all files (legacy behavior)
+      // 如果没有映射，复制所有文件（兼容旧行为）
       try {
         if (process.platform === 'win32') {
           execSync(`xcopy /E /I /Y "${binSrcDir}" "${binDestDir}"`, { stdio: 'pipe', shell: true });
@@ -259,7 +269,7 @@ try {
     }
   }
   
-  // Copy config template (config.json only)
+  // 复制配置文件模板（只复制 config.json）
   const configSrcPath = path.join(rootDir, 'config.json');
   const configDestPath = path.join(distDir, 'config.json');
   if (fs.existsSync(configSrcPath)) {
@@ -280,7 +290,7 @@ try {
   console.error('❌ Build failed:', error.message);
   process.exit(1);
 } finally {
-  // Clean up temporary files
+  // 清理临时文件
   if (fs.existsSync(bundleDir)) {
     fs.rmSync(bundleDir, { recursive: true, force: true });
     console.log('🧹 Cleaned up temporary files');

@@ -3,12 +3,13 @@
  * Handles /v1/chat/completions with streaming and non-streaming responses
  */
 
-import { generateAssistantResponse, generateAssistantResponseNoStream } from '../../api/client.js';
+import { generateAssistantResponse, generateAssistantResponseNoStream, getModelsWithQuotas } from '../../api/client.js';
 import { generateRequestBody, prepareImageRequest } from '../../utils/utils.js';
 import { buildOpenAIErrorPayload } from '../../utils/errors.js';
 import logger from '../../utils/logger.js';
 import config from '../../config/config.js';
 import tokenManager from '../../auth/token_manager.js';
+import quotaManager from '../../auth/quota_manager.js';
 import {
   createOpenAIStreamChunk as createStreamChunk,
   createOpenAIChatCompletionResponse
@@ -47,6 +48,25 @@ export const handleOpenAIRequest = async (req, res) => {
       throw new Error('No available token. Run npm run login to add one.');
     }
 
+    // 获取 tokenId 用于冷却状态管理
+    const tokenId = tokenManager.getTokenId(token);
+
+    // 创建刷新额度的回调函数
+    const refreshQuota = async () => {
+      if (!tokenId) return;
+      const quotas = await getModelsWithQuotas(token);
+      quotaManager.updateQuota(tokenId, quotas);
+    };
+
+    // 创建 with429Retry 选项
+    const createRetryOptions = (prefix) => ({
+      loggerPrefix: prefix,
+      onAttempt: () => tokenManager.recordRequest(token, model),
+      tokenId,
+      modelId: model,
+      refreshQuota
+    });
+
     const isImageModel = model.includes('-image');
     const requestBody = generateRequestBody(messages, model, params, tools, token);
 
@@ -68,8 +88,7 @@ export const handleOpenAIRequest = async (req, res) => {
           const { content, usage, reasoningSignature } = await with429Retry(
             () => generateAssistantResponseNoStream(requestBody, token),
             safeRetries,
-            'chat.stream.image ',
-            () => tokenManager.recordRequest(token, model)
+            createRetryOptions('chat.stream.image ')
           );
           const delta = { content };
           if (reasoningSignature && config.passSignatureToClient) {
@@ -110,8 +129,7 @@ export const handleOpenAIRequest = async (req, res) => {
               }
             }),
             safeRetries,
-            'chat.stream ',
-            () => tokenManager.recordRequest(token, model)
+            createRetryOptions('chat.stream ')
           );
 
           writeStreamData(res, { ...createStreamChunk(id, created, model, {}, hasToolCall ? 'tool_calls' : 'stop'), usage: usageData });
@@ -157,8 +175,7 @@ export const handleOpenAIRequest = async (req, res) => {
             }
           }),
           safeRetries,
-          'chat.fake_no_stream ',
-          () => tokenManager.recordRequest(token, model)
+          createRetryOptions('chat.fake_no_stream ')
         );
 
         // Build non-stream response
@@ -201,8 +218,7 @@ export const handleOpenAIRequest = async (req, res) => {
       const { content, reasoningContent, reasoningSignature, toolCalls, usage } = await with429Retry(
         () => generateAssistantResponseNoStream(requestBody, token),
         safeRetries,
-        'chat.no_stream ',
-        () => tokenManager.recordRequest(token, model)
+        createRetryOptions('chat.no_stream ')
       );
 
       // DeepSeek format: reasoning_content precedes content

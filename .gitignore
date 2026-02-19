@@ -30,3 +30,5 @@ dist/
 # Reference documents
 gcli2api/
 plans/geminicli-implementation-plan.md
+
+security.json

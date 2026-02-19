@@ -186,6 +186,15 @@ async function loadConfig() {
             if (typeof setActiveSettingSection === 'function') {
                 setActiveSettingSection(activeSettingSectionId, false);
             }
+            
+            // 加载IP封禁列表
+            if (typeof loadBlockedIPs === 'function') {
+                loadBlockedIPs();
+            }
+            // 加载白名单
+            if (typeof loadWhitelistIPs === 'function') {
+                loadWhitelistIPs();
+            }
         }
     } catch (error) {
         showToast('Failed to load configuration: ' + error.message, 'error');
@@ -373,6 +382,25 @@ async function saveConfig(e) {
                 },
                 body: JSON.stringify(jsonConfig.rotation)
             });
+        }
+
+        // 保存安全配置
+        const blockingEnabled = document.getElementById('blockingEnabled')?.checked;
+        if (blockingEnabled !== undefined) {
+            try {
+                await authFetch('/admin/security-config', {
+                    method: 'PUT',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ 
+                        config: { 
+                            blocking: { enabled: blockingEnabled },
+                            whitelist: { ips: tempWhitelistIPs || [] }
+                        } 
+                    })
+                });
+            } catch (error) {
+                console.error('保存安全配置失败:', error);
+            }
         }
 
         hideLoading();
