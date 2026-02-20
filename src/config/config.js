@@ -268,7 +268,7 @@ function getActiveApiConfig(jsonConfig) {
     noStreamUrl: customConfig?.noStreamUrl || defaultConfig.noStreamUrl,
     recordTrajectory: customConfig?.recordTrajectory || defaultConfig.recordTrajectory,
     host: customConfig?.host || defaultConfig.host,
-    userAgent: 'antigravity/1.18.3 windows/amd64'
+    userAgent: jsonConfig.api?.userAgent || 'antigravity/1.18.3 windows/amd64'
   };
 }
 

@@ -21,7 +21,7 @@ class OAuthManager {
   generateAuthUrl(port, mode = 'antigravity') {
     const oauthConfig = mode === 'geminicli' ? GEMINICLI_OAUTH_CONFIG : OAUTH_CONFIG;
     const scopes = mode === 'geminicli' ? GEMINICLI_OAUTH_SCOPES : OAUTH_SCOPES;
-    
+
     const params = new URLSearchParams({
       access_type: 'offline',
       client_id: oauthConfig.CLIENT_ID,
@@ -42,7 +42,7 @@ class OAuthManager {
    */
   async exchangeCodeForToken(code, port, mode = 'antigravity') {
     const oauthConfig = mode === 'geminicli' ? GEMINICLI_OAUTH_CONFIG : OAUTH_CONFIG;
-    
+
     const postData = new URLSearchParams({
       code,
       client_id: oauthConfig.CLIENT_ID,
@@ -54,7 +54,12 @@ class OAuthManager {
     const response = await axios(buildAxiosRequestConfig({
       method: 'POST',
       url: oauthConfig.TOKEN_URL,
-      headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
+      headers: {
+        'Host': 'oauth2.googleapis.com',
+        'User-Agent': 'Go-http-client/1.1',
+        'Content-Type': 'application/x-www-form-urlencoded',
+        'Accept-Encoding': 'gzip'
+      },
       data: postData.toString(),
       timeout: config.timeout
     }));
@@ -140,7 +145,7 @@ class OAuthManager {
       account.projectId = projectId;
       account.hasQuota = hasQuota;
     }
-    
+
     account.enable = true;
 
     return account;
