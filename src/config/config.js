@@ -231,6 +231,7 @@ const DEFAULT_API_CONFIGS = {
     modelsUrl: 'https://daily-cloudcode-pa.sandbox.googleapis.com/v1internal:fetchAvailableModels',
     noStreamUrl: 'https://daily-cloudcode-pa.sandbox.googleapis.com/v1internal:generateContent',
     recordTrajectory: 'https://daily-cloudcode-pa.sandbox.googleapis.com/v1internal:recordTrajectoryAnalytics',
+    recordCodeAssistMetrics: "https://daily-cloudcode-pa.sandbox.googleapis.com/v1internal:recordCodeAssistMetrics",
     host: 'daily-cloudcode-pa.sandbox.googleapis.com'
   },
   production: {
@@ -238,9 +239,16 @@ const DEFAULT_API_CONFIGS = {
     modelsUrl: 'https://daily-cloudcode-pa.googleapis.com/v1internal:fetchAvailableModels',
     noStreamUrl: 'https://daily-cloudcode-pa.googleapis.com/v1internal:generateContent',
     recordTrajectory: 'https://daily-cloudcode-pa.googleapis.com/v1internal:recordTrajectoryAnalytics',
+    recordCodeAssistMetrics: "https://daily-cloudcode-pa.googleapis.com/v1internal:recordCodeAssistMetrics",
     host: 'daily-cloudcode-pa.googleapis.com'
   }
 };
+
+const DEFAULT_API_UNLEASH = {
+  register: "https://antigravity-unleash.goog/api/client/register",
+  features: "https://antigravity-unleash.goog/api/client/features",
+  frontend: "https://antigravity-unleash.goog/api/frontend"
+}
 
 // Gemini CLI API config (from gcli2api)
 // Uses v1internal endpoints; model name is specified in request body
@@ -257,9 +265,10 @@ const DEFAULT_GEMINICLI_API_CONFIG = {
  * @returns {Object} Active API config
  */
 function getActiveApiConfig(jsonConfig) {
-  const apiUse = jsonConfig.api?.use || 'sandbox';
+  const apiUse = jsonConfig.api?.use || 'production';
   const customConfig = jsonConfig.api?.[apiUse];
-  const defaultConfig = DEFAULT_API_CONFIGS[apiUse] || DEFAULT_API_CONFIGS.sandbox;
+  const defaultConfig = DEFAULT_API_CONFIGS[apiUse] || DEFAULT_API_CONFIGS.production;
+  const unleash = jsonConfig.api?.unleash || DEFAULT_API_UNLEASH
 
   return {
     use: apiUse,
@@ -267,8 +276,11 @@ function getActiveApiConfig(jsonConfig) {
     modelsUrl: customConfig?.modelsUrl || defaultConfig.modelsUrl,
     noStreamUrl: customConfig?.noStreamUrl || defaultConfig.noStreamUrl,
     recordTrajectory: customConfig?.recordTrajectory || defaultConfig.recordTrajectory,
+    recordCodeAssistMetrics: customConfig?.recordCodeAssistMetrics || defaultConfig.recordCodeAssistMetrics,
     host: customConfig?.host || defaultConfig.host,
-    userAgent: jsonConfig.api?.userAgent || 'antigravity/1.18.3 windows/amd64'
+    userAgent: `antigravity/${jsonConfig.api?.version || "1.19.5"} windows/amd64`,
+    ideVersion: jsonConfig.api?.version || "1.19.5",
+    unleash: unleash
   };
 }
 

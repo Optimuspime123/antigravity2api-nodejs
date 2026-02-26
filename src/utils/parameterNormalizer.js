@@ -60,7 +60,7 @@ export function normalizeOpenAIParameters(params = {}) {
  */
 export function normalizeClaudeParameters(params = {}) {
   const { max_tokens, temperature, top_p, top_k, thinking, ...rest } = params;
-  
+
   const normalized = {
     max_tokens: max_tokens ?? config.defaults.max_tokens,
     temperature: temperature ?? config.defaults.temperature,
@@ -148,6 +148,7 @@ export function toGenerationConfig(normalized, enableThinking, actualModelName) 
   const defaultThinkingBudget = config.defaults.thinking_budget ?? 1024;
   let thinkingBudget = 0;
   let actualEnableThinking = enableThinking;
+  let maxOutputTokens = normalized.max_tokens || normalized.max_completion_tokens;
   if (enableThinking) {
     if (normalized.thinking_budget !== undefined) {
       thinkingBudget = normalized.thinking_budget || normalized.thinkingBudget;
@@ -160,12 +161,22 @@ export function toGenerationConfig(normalized, enableThinking, actualModelName) 
     }
   }
 
+  if (actualEnableThinking && maxOutputTokens <= thinkingBudget) {
+    if (maxOutputTokens <= 1024) {
+      maxOutputTokens = 2048;
+      thinkingBudget = 1024;
+    } else {
+      thinkingBudget = Math.max(1024, Math.floor(maxOutputTokens * 0.8));
+    }
+  }
+
+
   const generationConfig = {
     topP: normalized.top_p,
     topK: normalized.top_k,
     temperature: normalized.temperature,
     candidateCount: 1,
-    maxOutputTokens: normalized.max_tokens || normalized.max_completion_tokens,
+    maxOutputTokens: maxOutputTokens,
     thinkingConfig: {
       includeThoughts: actualEnableThinking,
       thinkingBudget: thinkingBudget
