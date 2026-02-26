@@ -398,6 +398,76 @@ export function buildConfig(jsonConfig) {
 
 const config = buildConfig(jsonConfig);
 
+// Version check endpoint URL
+const VERSION_CHECK_URL = 'https://antigravity-auto-updater-974169037036.us-central1.run.app/releases';
+
+/**
+ * Compare two semantic versions
+ * @param {string} a - version a
+ * @param {string} b - version b
+ * @returns {number} returns 1 if a > b, -1 if a < b, 0 if equal
+ */
+function compareVersions(a, b) {
+  const pa = a.split('.').map(Number);
+  const pb = b.split('.').map(Number);
+  for (let i = 0; i < Math.max(pa.length, pb.length); i++) {
+    const na = pa[i] || 0;
+    const nb = pb[i] || 0;
+    if (na > nb) return 1;
+    if (na < nb) return -1;
+  }
+  return 0;
+}
+
+/**
+ * Check and update version number
+ * Fetches the latest version from the remote endpoint, updates config.json and in-memory config if newer
+ */
+export async function checkAndUpdateVersion() {
+  try {
+    const controller = new AbortController();
+    const timeout = setTimeout(() => controller.abort(), 5000);
+
+    const response = await fetch(VERSION_CHECK_URL, { signal: controller.signal });
+    clearTimeout(timeout);
+
+    if (!response.ok) {
+      log.warn(`Version check request failed: HTTP ${response.status}`);
+      return;
+    }
+
+    const releases = await response.json();
+    if (!Array.isArray(releases) || releases.length === 0 || !releases[0].version) {
+      log.warn('Version check returned malformed data');
+      return;
+    }
+
+    const latestVersion = releases[0].version;
+    const currentVersion = config.api.ideVersion;
+
+    if (compareVersions(latestVersion, currentVersion) > 0) {
+      log.info(`New version found: ${currentVersion} → ${latestVersion}, updating config...`);
+
+      // Update config.json
+      saveConfigJson({ api: { version: latestVersion } });
+
+      // Update in-memory configuration
+      config.api.ideVersion = latestVersion;
+      config.api.userAgent = `antigravity/${latestVersion} windows/amd64`;
+
+      log.info(`✓ Version updated to ${latestVersion}`);
+    } else {
+      log.info(`Current version ${currentVersion} is up to date`);
+    }
+  } catch (err) {
+    if (err.name === 'AbortError') {
+      log.warn('Version check timed out, skipping update');
+    } else {
+      log.warn(`Version check failed: ${err.message}`);
+    }
+  }
+}
+
 // Display generated credentials
 displayGeneratedCredentials();
 
