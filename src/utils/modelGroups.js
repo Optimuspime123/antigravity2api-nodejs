@@ -7,7 +7,7 @@
  * 支持的模型组列表
  * - claude: Claude 系列模型
  * - gemini: Gemini 系列模型
- * - banana: gemini-3-pro-image 图片生成模型
+ * - banana: gemini-3.1-flash-image 图片生成模型
  * - other: 其他模型
  */
 export const MODEL_GROUPS = ['claude', 'gemini', 'banana', 'other'];
