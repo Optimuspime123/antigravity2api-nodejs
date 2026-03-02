@@ -45,7 +45,7 @@ const EXCLUDED_KEYS = new Set([
   // Advanced JSON Schema fields unsupported by the Gemini API
   'propertyNames', 'patternProperties', 'dependencies',
   'if', 'then', 'else', 'not', 'contentMediaType', 'contentEncoding',
-  'definitions', '$defs', '$ref', '$id', '$comment'
+  'definitions', '$defs', '$ref', '$id', '$comment', 'undefined'
 ]);
 
 // Map of type values that must be uppercased
