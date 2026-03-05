@@ -163,7 +163,15 @@ function groupModels(models) {
     return grouped;
 }
 
-function summarizeGroup(items, requestCount = 0) {
+// 不同模型系列的每次请求消耗百分比（与后端 GROUP_COST_PERCENT 保持一致）
+const GROUP_COST_PERCENT = {
+    claude: 0.6667,
+    gemini: 0.6667,
+    banana: 5.0,    // 图片生成模型消耗更高，约 20 次/满额
+    other: 0.6667
+};
+
+function summarizeGroup(items, requestCount = 0, groupKey = null) {
     if (!items || items.length === 0) {
         return { percentage: 0, percentageText: '--', resetTime: '--', estimatedRequests: 0 };
     }
@@ -190,10 +198,11 @@ function summarizeGroup(items, requestCount = 0) {
         }
     });
 
-    // Estimate request count: each request consumes 0.6667% quota
-    // Use the current threshold to estimate total requests, then subtract recorded count
+    // Use different cost percentage based on model group
+    const costPercent = (groupKey && GROUP_COST_PERCENT[groupKey]) || 0.6667;
+    // Estimate total requests based on the current threshold, then subtract recorded count
     const percentageValue = toPercentage(minRemaining);
-    const totalFromThreshold = Math.floor(percentageValue / 0.6667);
+    const totalFromThreshold = Math.floor(percentageValue / costPercent);
     const estimatedRequests = Math.max(0, totalFromThreshold - requestCount);
 
     return {
@@ -253,7 +262,7 @@ function renderQuotaSummary(summaryEl, quotaData) {
 
     const rowsHtml = QUOTA_SUMMARY_KEYS.map((groupKey) => {
         const group = groupByKey[groupKey];
-        const summary = summarizeGroup(grouped[groupKey], requestCounts[groupKey] || 0);
+        const summary = summarizeGroup(grouped[groupKey], requestCounts[groupKey] || 0, groupKey);
         const barColor = summary.percentageText === '--' ? '#9ca3af' : getBarColor(summary.percentage);
         const safeResetTime = escapeHtml(summary.resetTime);
         const resetText = safeResetTime === '--' ? '--' : `Reset: ${safeResetTime}`;
@@ -632,7 +641,7 @@ function renderQuotaModal(quotaContent, quotaData) {
     let html = '';
 
     const renderGroup = (items, group, groupKey) => {
-        const summary = summarizeGroup(items, requestCounts[groupKey] || 0);
+        const summary = summarizeGroup(items, requestCounts[groupKey] || 0, groupKey);
         const safeLabel = escapeHtml(group.label);
         const safeResetTime = escapeHtml(summary.resetTime);
         const estimatedText = summary.estimatedRequests > 0 ? ` · ~${summary.estimatedRequests} requests` : '';
