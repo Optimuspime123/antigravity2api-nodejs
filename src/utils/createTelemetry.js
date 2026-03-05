@@ -10,7 +10,7 @@ import config from '../config/config.js';
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = dirname(__filename);
 
-function createTelemetryBatch(num, trajectoryId) {
+function createTelemetryBatch(num, trajectoryId, sub="free-tier") {
   const now = Date.now();
 
   const sessionId = trajectoryId;
@@ -55,7 +55,7 @@ function createTelemetryBatch(num, trajectoryId) {
           "version": config.api.ideVersion,
           "os": "windows",
           "arch": "amd64",
-          "tier": "free-tier",
+          "tier": sub,
           "region": "JP"
         },
         "eventType": 10
@@ -81,7 +81,7 @@ function createTelemetryBatch(num, trajectoryId) {
           "version": config.api.ideVersion,
           "os": "windows",
           "arch": "amd64",
-          "tier": "free-tier",
+          "tier": sub,
           "region": "JP"
         },
         "eventType": 12
@@ -168,7 +168,7 @@ function createTelemetryBatch(num, trajectoryId) {
           "version": config.api.ideVersion,
           "os": "windows",
           "arch": "amd64",
-          "tier": "free-tier",
+          "tier": sub,
           "region": "JP"
         },
         "eventType": 11
@@ -230,7 +230,7 @@ function createTelemetryBatch(num, trajectoryId) {
           "version": config.api.ideVersion,
           "os": "windows",
           "arch": "amd64",
-          "tier": "free-tier",
+          "tier": sub,
           "region": "JP"
         },
         "eventType": 11
@@ -288,7 +288,7 @@ function createTelemetryBatch(num, trajectoryId) {
           "version": config.api.ideVersion,
           "os": "windows",
           "arch": "amd64",
-          "tier": "free-tier",
+          "tier": sub,
           "region": "JP"
         },
         "eventType": 11
@@ -344,7 +344,7 @@ function createTelemetryBatch(num, trajectoryId) {
           "version": config.api.ideVersion,
           "os": "windows",
           "arch": "amd64",
-          "tier": "free-tier",
+          "tier": sub,
           "region": "JP"
         },
         "eventType": 11

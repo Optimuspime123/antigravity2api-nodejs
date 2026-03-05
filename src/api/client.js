@@ -531,7 +531,7 @@ export async function sendRecordTrajectoryAnalytics(token, num, trajectoryId, mo
   }
 }
 export async function sendLog(token, num, trajectoryId) {
-  const Logbody = createTelemetryBatch(num, trajectoryId);
+  const Logbody = createTelemetryBatch(num, trajectoryId, token.sub);
   const serializeData = serializeTelemetryBatch(Logbody);
   const serializeLogBody = serializeData.data;
   const headers = buildHeaders(token);

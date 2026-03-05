@@ -4,9 +4,8 @@ import path from 'path';
 import { fileURLToPath } from 'url';
 import log from '../utils/logger.js';
 import config from '../config/config.js';
-import { generateProjectId } from '../utils/idGenerator.js'; // TODO: removable; no longer used
+
 import tokenManager from './token_manager.js';
-import geminicliTokenManager from './geminicli_token_manager.js';
 import { OAUTH_CONFIG, OAUTH_SCOPES, GEMINICLI_OAUTH_CONFIG, GEMINICLI_OAUTH_SCOPES } from '../constants/oauth.js';
 import { buildAxiosRequestConfig } from '../utils/httpClient.js';
 import fingerprintRequester from '../requester.js';
@@ -159,18 +158,19 @@ class OAuthManager {
   async validateAndGetProjectId(accessToken) {
     try {
       log.info('Validating account eligibility...');
-      const projectId = await tokenManager.fetchProjectId({ access_token: accessToken });
+      const { projectId, sub } = await tokenManager.fetchProjectId({ access_token: accessToken }) || {};
 
       if (projectId === undefined || projectId === null) {
         log.warn('Unable to fetch projectId; account may be ineligible or needs a retry later');
-        return { projectId: null, hasQuota: false };
+        return { projectId: null, hasQuota: false, sub };
       }
 
       log.info('Account validated. projectId: ' + projectId);
-      return { projectId, hasQuota: true };
+      return { projectId, hasQuota: true, sub };
     } catch (err) {
       log.error('Account eligibility validation failed: ' + err.message);
-      return { projectId: null, hasQuota: false };
+      const sub = "free-tier";
+      return { projectId: null, hasQuota: false, sub };
     }
   }
 
@@ -204,9 +204,10 @@ class OAuthManager {
 
     // 3. Eligibility check (projectId only needed for antigravity mode)
     if (mode === 'antigravity') {
-      const { projectId, hasQuota } = await this.validateAndGetProjectId(account.access_token);
+      const { projectId, hasQuota, sub } = await this.validateAndGetProjectId(account.access_token);
       account.projectId = projectId;
       account.hasQuota = hasQuota;
+      account.sub = sub;
     }
 
     account.enable = true;

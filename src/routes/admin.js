@@ -150,11 +150,11 @@ router.get('/tokens', cookieAuthMiddleware, async (req, res) => {
 });
 
 router.post('/tokens', cookieAuthMiddleware, async (req, res) => {
-  const { access_token, refresh_token, expires_in, timestamp, enable, projectId, email } = req.body;
+  const { access_token, refresh_token, expires_in, timestamp, enable, projectId, email, sub } = req.body;
   if (!access_token || !refresh_token) {
     return res.status(400).json({ success: false, message: 'access_token和refresh_token必填' });
   }
-  const tokenData = { access_token, refresh_token, expires_in };
+  const tokenData = { access_token, refresh_token, expires_in, sub };
   if (timestamp) tokenData.timestamp = timestamp;
   if (enable !== undefined) tokenData.enable = enable;
   if (projectId) tokenData.projectId = projectId;
