@@ -10,12 +10,12 @@ import config from '../config/config.js';
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = dirname(__filename);
 
-function createTelemetryBatch(num, trajectoryId, sub="free-tier") {
+function createTelemetryBatch(num, trajectoryId,conversationId,messageId, sub="free-tier") {
   const now = Date.now();
 
   const sessionId = trajectoryId;
-  const conversationId = randomUUID();
-  const messageId = randomUUID();
+  //const conversationId = randomUUID();
+  //const messageId = randomUUID();
   const traceId = randomUUID();
 
   const t1 = now + Math.floor(Math.random() * 100);

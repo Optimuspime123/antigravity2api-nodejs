@@ -12,6 +12,7 @@ import TokenStore from './token_store.js';
 import { TokenError } from '../utils/errors.js';
 import quotaManager from './quota_manager.js';
 import tokenCooldownManager from './token_cooldown_manager.js';
+import { randomUUID } from 'crypto';
 
 // 轮询策略枚举
 const RotationStrategy = {
@@ -62,6 +63,7 @@ class TokenManager {
         ...token,
         sessionId: generateSessionId(),
         instanceId: generateInstanceId(),
+        deviceId: randomUUID(),
         sub: token?.sub ? token?.sub : "g1-pro-tier"
       }));
 
