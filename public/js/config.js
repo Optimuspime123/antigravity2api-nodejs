@@ -186,12 +186,12 @@ async function loadConfig() {
             if (typeof setActiveSettingSection === 'function') {
                 setActiveSettingSection(activeSettingSectionId, false);
             }
-            
-            // 加载IP封禁列表
+
+            // Load IP blocked list
             if (typeof loadBlockedIPs === 'function') {
                 loadBlockedIPs();
             }
-            // 加载白名单
+            // Load whitelist
             if (typeof loadWhitelistIPs === 'function') {
                 loadWhitelistIPs();
             }
@@ -384,22 +384,22 @@ async function saveConfig(e) {
             });
         }
 
-        // 保存安全配置
+        // Save security config
         const blockingEnabled = document.getElementById('blockingEnabled')?.checked;
         if (blockingEnabled !== undefined) {
             try {
                 await authFetch('/admin/security-config', {
                     method: 'PUT',
                     headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({ 
-                        config: { 
+                    body: JSON.stringify({
+                        config: {
                             blocking: { enabled: blockingEnabled },
                             whitelist: { ips: tempWhitelistIPs || [] }
-                        } 
+                        }
                     })
                 });
             } catch (error) {
-                console.error('保存安全配置失败:', error);
+                console.error('Failed to save security config:', error);
             }
         }
 

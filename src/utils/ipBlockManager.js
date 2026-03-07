@@ -65,9 +65,9 @@ class IpBlockManager {
       } catch {
         try {
           await fs.copyFile(examplePath, this.configPath);
-          logger.info('已从 security.json.example 创建 security.json');
+          logger.info('Created security.json from security.json.example');
         } catch (e) {
-          logger.warn('未找到 security.json.example，使用默认配置');
+          logger.warn('security.json.example not found, using default config');
         }
       }
       
@@ -79,12 +79,12 @@ class IpBlockManager {
         if (loaded.blocking) this.config.blocking = { ...DEFAULT_CONFIG.blocking, ...loaded.blocking };
       } catch (e) {
         if (e.code !== 'ENOENT') {
-          logger.error('加载安全配置失败:', e.message);
+          logger.error('Failed to load security config:', e.message);
         }
         this.config = DEFAULT_CONFIG;
       }
     } catch (e) {
-      logger.error('初始化安全配置失败:', e.message);
+      logger.error('Failed to initialize security config:', e.message);
       this.config = DEFAULT_CONFIG;
     }
   }
@@ -92,9 +92,9 @@ class IpBlockManager {
   async saveConfig() {
     try {
       await fs.writeFile(this.configPath, JSON.stringify(this.config, null, 2), 'utf8');
-      logger.info('安全配置已保存');
+      logger.info('Security config saved');
     } catch (e) {
-      logger.error('保存安全配置失败:', e.message);
+      logger.error('Failed to save security config:', e.message);
     }
   }
 
@@ -114,12 +114,12 @@ class IpBlockManager {
         this.data = JSON.parse(content);
       } catch (e) {
         if (e.code !== 'ENOENT') {
-          logger.error('加载封禁列表失败:', e.message);
+          logger.error('Failed to load blocked list:', e.message);
         }
         this.data = { blocked_ips: {} };
       }
     } catch (e) {
-      logger.error('初始化封禁管理器失败:', e.message);
+      logger.error('Failed to initialize block manager:', e.message);
     }
   }
 
@@ -128,7 +128,7 @@ class IpBlockManager {
       try {
         await fs.writeFile(this.filePath, JSON.stringify(this.data, null, 2), 'utf8');
       } catch (e) {
-        logger.error('保存封禁列表失败:', e.message);
+        logger.error('Failed to save blocked list:', e.message);
       }
     });
     return this.savePromise;
@@ -192,10 +192,10 @@ class IpBlockManager {
       if (info.tempBlockCount >= maxTempBlocksBeforePermanent) {
         info.permanent = true;
         info.expiresAt = 0;
-        logger.warn(`IP ${ip} 因频繁违规(${type})被永久封禁`);
+        logger.warn(`IP ${ip} due to frequent violations (${type}) permanently blocked`);
       } else {
         info.expiresAt = now + tempBlockDuration;
-        logger.warn(`IP ${ip} 因频繁违规(${type})被临时封禁 ${Math.round(tempBlockDuration/60000)} 分钟 (累计封禁 ${info.tempBlockCount} 次)`);
+        logger.warn(`IP ${ip} due to frequent violations (${type}) temporarily blocked for ${Math.round(tempBlockDuration/60000)} minutes (total blocks: ${info.tempBlockCount} times)`);
       }
       
       await this.save();
@@ -207,7 +207,7 @@ class IpBlockManager {
     if (this.data.blocked_ips[ip]) {
       delete this.data.blocked_ips[ip];
       await this.save();
-      logger.info(`IP ${ip} 已解除封禁`);
+      logger.info(`IP ${ip} has been unblocked`);
       return true;
     }
     return false;
@@ -242,7 +242,7 @@ class IpBlockManager {
     if (!this.config.whitelist.ips.includes(ip)) {
       this.config.whitelist.ips.push(ip);
       await this.saveConfig();
-      logger.info(`IP ${ip} 已添加到白名单`);
+      logger.info(`IP ${ip} has been added to whitelist`);
       return true;
     }
     return false;
@@ -253,7 +253,7 @@ class IpBlockManager {
     if (index > -1) {
       this.config.whitelist.ips.splice(index, 1);
       await this.saveConfig();
-      logger.info(`IP ${ip} 已从白名单移除`);
+      logger.info(`IP ${ip} has been removed from whitelist`);
       return true;
     }
     return false;

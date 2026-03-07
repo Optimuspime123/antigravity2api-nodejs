@@ -81,7 +81,7 @@ router.post('/login', async (req, res) => {
   const blockStatus = ipBlockManager.check(clientIP);
   if (blockStatus.blocked) {
     if (blockStatus.reason === 'permanent') {
-      return res.status(403).json({ success: false, message: '您的IP已被永久封禁' });
+      return res.status(403).json({ success: false, message: 'Your IP has been permanently blocked' });
     }
     const remainingMinutes = Math.ceil((blockStatus.expiresAt - Date.now()) / 60000);
     return res.status(429).json({
@@ -95,12 +95,12 @@ router.post('/login', async (req, res) => {
 
   // 验证输入
   if (!username || !password || typeof username !== 'string' || typeof password !== 'string') {
-    return res.status(400).json({ success: false, message: '用户名和密码必填' });
+    return res.status(400).json({ success: false, message: 'Username and password are required' });
   }
 
   // 限制输入长度防止 DoS
   if (username.length > 100 || password.length > 100) {
-    return res.status(400).json({ success: false, message: '输入过长' });
+    return res.status(400).json({ success: false, message: 'Input is too long' });
   }
 
   if (username === config.admin.username && password === config.admin.password) {
@@ -120,7 +120,7 @@ router.post('/login', async (req, res) => {
     // 使用统一的 IP 封禁管理器记录违规
     await ipBlockManager.recordViolation(clientIP, 'admin_login_fail');
     logger.warn(`管理员登录失败 IP: ${clientIP}`);
-    res.status(401).json({ success: false, message: '用户名或密码错误' });
+    res.status(401).json({ success: false, message: 'Invalid username or password' });
   }
 });
 
@@ -130,7 +130,7 @@ router.post('/logout', (req, res) => {
     ...COOKIE_OPTIONS,
     secure: req.secure || process.env.NODE_ENV === 'production'
   });
-  res.json({ success: true, message: '已登出' });
+  res.json({ success: true, message: 'Logged out successfully' });
 });
 
 // 验证密码（用于敏感操作）
@@ -152,7 +152,7 @@ router.get('/tokens', cookieAuthMiddleware, async (req, res) => {
 router.post('/tokens', cookieAuthMiddleware, async (req, res) => {
   const { access_token, refresh_token, expires_in, timestamp, enable, projectId, email, sub } = req.body;
   if (!access_token || !refresh_token) {
-    return res.status(400).json({ success: false, message: 'access_token和refresh_token必填' });
+    return res.status(400).json({ success: false, message: 'access_token and refresh_token are required' });
   }
   const tokenData = { access_token, refresh_token, expires_in, sub };
   if (timestamp) tokenData.timestamp = timestamp;
@@ -205,7 +205,7 @@ router.post('/tokens/reload', cookieAuthMiddleware, async (req, res) => {
   try {
     await tokenManager.reload();
     logger.info('手动触发Token热重载');
-    res.json({ success: true, message: 'Token已热重载' });
+    res.json({ success: true, message: 'Tokens hot-reloaded' });
   } catch (error) {
     logger.error('热重载失败:', error.message);
     res.status(500).json({ success: false, message: error.message });
@@ -218,7 +218,7 @@ router.post('/tokens/:tokenId/refresh', cookieAuthMiddleware, async (req, res) =
   try {
     const result = await tokenManager.refreshTokenById(tokenId);
     logger.info(`手动刷新Token: ${tokenId}`);
-    res.json({ success: true, message: 'Token刷新成功', data: result });
+    res.json({ success: true, message: 'Token refreshed successfully', data: result });
   } catch (error) {
     logger.error('刷新Token失败:', error.message);
     const status = error.statusCode || 500;
@@ -245,7 +245,7 @@ router.post('/tokens/export', cookieAuthMiddleware, async (req, res) => {
   const { password } = req.body;
 
   if (!password || !verifyPassword(password)) {
-    return res.status(403).json({ success: false, message: '密码验证失败' });
+    return res.status(403).json({ success: false, message: 'Password validation failed' });
   }
 
   try {
@@ -426,11 +426,11 @@ router.post('/tokens/import', cookieAuthMiddleware, async (req, res) => {
   const { password, data, mode = 'merge' } = req.body;
 
   if (!password || !verifyPassword(password)) {
-    return res.status(403).json({ success: false, message: '密码验证失败' });
+    return res.status(403).json({ success: false, message: 'Password validation failed' });
   }
 
   if (!data || !data.tokens || !Array.isArray(data.tokens)) {
-    return res.status(400).json({ success: false, message: '无效的导入数据格式' });
+    return res.status(400).json({ success: false, message: 'Invalid import data format' });
   }
 
   try {
@@ -494,7 +494,7 @@ router.post('/tokens/import', cookieAuthMiddleware, async (req, res) => {
 router.post('/oauth/exchange', cookieAuthMiddleware, async (req, res) => {
   const { code, port, mode = 'antigravity' } = req.body;
   if (!code || !port) {
-    return res.status(400).json({ success: false, message: 'code和port必填' });
+    return res.status(400).json({ success: false, message: 'code and port are required' });
   }
 
   try {
@@ -502,12 +502,12 @@ router.post('/oauth/exchange', cookieAuthMiddleware, async (req, res) => {
     
     if (mode === 'geminicli') {
       // Gemini CLI 模式
-      res.json({ success: true, data: account, message: 'Gemini CLI Token添加成功' });
+      res.json({ success: true, data: account, message: 'Gemini CLI Token added successfully' });
     } else {
       // Antigravity 模式
       const message = account.hasQuota
-        ? 'Token添加成功'
-        : 'Token添加成功（该账号无资格，已自动使用随机ProjectId）';
+        ? 'Token added successfully'
+        : 'Token added successfully（该账号无资格，已自动使用随机ProjectId）';
       res.json({ success: true, data: account, message, fallbackMode: !account.hasQuota });
     }
   } catch (error) {
@@ -545,10 +545,10 @@ router.put('/config', cookieAuthMiddleware, (req, res) => {
       // 只有当值真正改变时才检查
       if (newValue !== oldValue) {
         if (!password || !verifyPassword(password)) {
-          logger.warn(`尝试修改官方系统提示词但密码验证失败 IP: ${getClientIP(req)}`);
+          logger.warn(`尝试修改官方系统提示词但Password validation failed IP: ${getClientIP(req)}`);
           return res.status(403).json({
             success: false,
-            message: '修改官方系统提示词需要验证管理员密码'
+            message: 'Modifying official system prompt requires admin password'
           });
         }
       }
@@ -564,7 +564,7 @@ router.put('/config', cookieAuthMiddleware, (req, res) => {
     memoryManager.setCleanupInterval(config.server.memoryCleanupInterval);
 
     logger.info('系统配置已更新并热重载');
-    res.json({ success: true, message: '配置已保存并生效（端口/HOST修改需重启）' });
+    res.json({ success: true, message: 'Config saved (port/host changes require restart)' });
   } catch (error) {
     logger.error('更新配置失败:', error.message);
     res.status(500).json({ success: false, message: error.message });
@@ -609,8 +609,8 @@ router.put('/rotation', cookieAuthMiddleware, (req, res) => {
     // 重载配置到内存
     reloadConfig();
 
-    logger.info(`轮询策略已更新: ${strategy || '未变'}, 请求次数: ${requestCount || '未变'}`);
-    res.json({ success: true, message: '轮询策略已更新', data: tokenManager.getRotationConfig() });
+    logger.info(`Rotation strategy updated: ${strategy || '未变'}, 请求次数: ${requestCount || '未变'}`);
+    res.json({ success: true, message: 'Rotation strategy updated', data: tokenManager.getRotationConfig() });
   } catch (error) {
     logger.error('更新轮询配置失败:', error.message);
     res.status(500).json({ success: false, message: error.message });
@@ -653,8 +653,8 @@ router.get('/logs/stats', cookieAuthMiddleware, (req, res) => {
 router.delete('/logs', cookieAuthMiddleware, (req, res) => {
   try {
     logger.clearLogs();
-    logger.info('日志已清空');
-    res.json({ success: true, message: '日志已清空' });
+    logger.info('Logs cleared');
+    res.json({ success: true, message: 'Logs cleared' });
   } catch (error) {
     logger.error('清空日志失败:', error.message);
     res.status(500).json({ success: false, message: error.message });
@@ -680,7 +680,7 @@ router.get('/geminicli/tokens', cookieAuthMiddleware, async (req, res) => {
 router.post('/geminicli/tokens', cookieAuthMiddleware, async (req, res) => {
   const { access_token, refresh_token, expires_in, timestamp, enable, email } = req.body;
   if (!access_token || !refresh_token) {
-    return res.status(400).json({ success: false, message: 'access_token和refresh_token必填' });
+    return res.status(400).json({ success: false, message: 'access_token and refresh_token are required' });
   }
   const tokenData = { access_token, refresh_token, expires_in };
   if (timestamp) tokenData.timestamp = timestamp;
@@ -734,7 +734,7 @@ router.post('/geminicli/tokens/reload', cookieAuthMiddleware, async (req, res) =
   try {
     await geminicliTokenManager.reload();
     logger.info('[GeminiCLI] 手动触发Token热重载');
-    res.json({ success: true, message: 'Gemini CLI Token已热重载' });
+    res.json({ success: true, message: 'Gemini CLI Tokens hot-reloaded' });
   } catch (error) {
     logger.error('[GeminiCLI] 热重载失败:', error.message);
     res.status(500).json({ success: false, message: error.message });
@@ -747,7 +747,7 @@ router.post('/geminicli/tokens/:tokenId/refresh', cookieAuthMiddleware, async (r
   try {
     const result = await geminicliTokenManager.refreshTokenById(tokenId);
     logger.info(`[GeminiCLI] 手动刷新Token: ${tokenId}`);
-    res.json({ success: true, message: 'Token刷新成功', data: result });
+    res.json({ success: true, message: 'Token refreshed successfully', data: result });
   } catch (error) {
     logger.error('[GeminiCLI] 刷新Token失败:', error.message);
     const status = error.statusCode || 500;
@@ -774,7 +774,7 @@ router.post('/geminicli/tokens/export', cookieAuthMiddleware, async (req, res) =
   const { password } = req.body;
 
   if (!password || !verifyPassword(password)) {
-    return res.status(403).json({ success: false, message: '密码验证失败' });
+    return res.status(403).json({ success: false, message: 'Password validation failed' });
   }
 
   try {
@@ -807,13 +807,13 @@ router.post('/geminicli/tokens/import', cookieAuthMiddleware, async (req, res) =
   const { password, data, mode = 'merge' } = req.body;
 
   if (!password || !verifyPassword(password)) {
-    return res.status(403).json({ success: false, message: '密码验证失败' });
+    return res.status(403).json({ success: false, message: 'Password validation failed' });
   }
 
   const importList = extractGeminiCliImportList(data);
 
   if (!Array.isArray(importList)) {
-    return res.status(400).json({ success: false, message: '无效的导入数据格式' });
+    return res.status(400).json({ success: false, message: 'Invalid import data format' });
   }
 
   try {
@@ -884,13 +884,13 @@ router.post('/unblock-ip', cookieAuthMiddleware, async (req, res) => {
   try {
     const { ip } = req.body;
     if (!ip) {
-      return res.status(400).json({ success: false, message: 'IP地址必填' });
+      return res.status(400).json({ success: false, message: 'IP address is required' });
     }
     const success = await ipBlockManager.unblock(ip);
     if (success) {
       res.json({ success: true, message: `IP ${ip} 已解除封禁` });
     } else {
-      res.status(404).json({ success: false, message: 'IP不在封禁列表中' });
+      res.status(404).json({ success: false, message: 'IP not found in blocked list' });
     }
   } catch (error) {
     logger.error('解除封禁失败:', error.message);
@@ -916,7 +916,7 @@ router.put('/security-config', cookieAuthMiddleware, async (req, res) => {
     const currentConfig = ipBlockManager.getConfig();
     const mergedConfig = deepMerge(currentConfig, updates);
     await ipBlockManager.updateConfig(mergedConfig);
-    res.json({ success: true, message: '安全配置已更新' });
+    res.json({ success: true, message: 'Security config updated' });
   } catch (error) {
     logger.error('更新安全配置失败:', error.message);
     res.status(500).json({ success: false, message: error.message });
@@ -928,13 +928,13 @@ router.post('/whitelist-ip', cookieAuthMiddleware, async (req, res) => {
   try {
     const { ip } = req.body;
     if (!ip) {
-      return res.status(400).json({ success: false, message: 'IP地址必填' });
+      return res.status(400).json({ success: false, message: 'IP address is required' });
     }
     const success = await ipBlockManager.addWhitelistIP(ip);
     if (success) {
       res.json({ success: true, message: `IP ${ip} 已添加到白名单` });
     } else {
-      res.json({ success: false, message: 'IP已在白名单中' });
+      res.json({ success: false, message: 'IP is already in whitelist' });
     }
   } catch (error) {
     logger.error('添加白名单失败:', error.message);
@@ -947,13 +947,13 @@ router.delete('/whitelist-ip', cookieAuthMiddleware, async (req, res) => {
   try {
     const { ip } = req.body;
     if (!ip) {
-      return res.status(400).json({ success: false, message: 'IP地址必填' });
+      return res.status(400).json({ success: false, message: 'IP address is required' });
     }
     const success = await ipBlockManager.removeWhitelistIP(ip);
     if (success) {
       res.json({ success: true, message: `IP ${ip} 已从白名单移除` });
     } else {
-      res.status(404).json({ success: false, message: 'IP不在白名单中' });
+      res.status(404).json({ success: false, message: 'IP not found in whitelist' });
     }
   } catch (error) {
     logger.error('移除白名单失败:', error.message);
@@ -973,7 +973,7 @@ router.get('/tokens/:tokenId/quotas', cookieAuthMiddleware, async (req, res) => 
     let tokenData = await tokenManager.findTokenById(tokenId);
 
     if (!tokenData) {
-      return res.status(404).json({ success: false, message: 'Token不存在' });
+      return res.status(404).json({ success: false, message: 'Token not found' });
     }
 
     // 检查 token 是否禁用

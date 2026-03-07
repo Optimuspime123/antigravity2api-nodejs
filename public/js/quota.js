@@ -163,11 +163,11 @@ function groupModels(models) {
     return grouped;
 }
 
-// 不同模型系列的每次请求消耗百分比（与后端 GROUP_COST_PERCENT 保持一致）
+// Cost percentage for each request by model group (consistent with backend GROUP_COST_PERCENT)
 const GROUP_COST_PERCENT = {
     claude: 0.6667,
     gemini: 0.6667,
-    banana: 5.0,    // 图片生成模型消耗更高，约 20 次/满额
+    banana: 5.0,    // Image generation models consume more, approx 20 requests/full quota
     other: 0.6667
 };
 

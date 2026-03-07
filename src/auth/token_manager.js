@@ -201,9 +201,9 @@ class TokenManager {
     // 重置计数器
     this.tokenRequestCounts.clear();
     if (this.rotationStrategy === RotationStrategy.REQUEST_COUNT) {
-      log.info(`轮询策略已更新: ${this.rotationStrategy}, 每token请求 ${this.requestCountPerToken} 次后切换`);
+      log.info(`Rotation strategy updated: ${this.rotationStrategy}, 每token请求 ${this.requestCountPerToken} 次后切换`);
     } else {
-      log.info(`轮询策略已更新: ${this.rotationStrategy}`);
+      log.info(`Rotation strategy updated: ${this.rotationStrategy}`);
     }
   }
 
@@ -454,7 +454,7 @@ class TokenManager {
   async fetchProjectIdForToken(tokenId) {
     const tokenData = await this.findTokenById(tokenId);
     if (!tokenData) {
-      throw new TokenError('Token不存在', null, 404);
+      throw new TokenError('Token not found', null, 404);
     }
 
     // 确保 token 未过期
@@ -913,7 +913,7 @@ class TokenManager {
   async reload() {
     this._initPromise = this._initialize();
     await this._initPromise;
-    log.info('Token已热重载');
+    log.info('Tokens hot-reloaded');
   }
 
   async addToken(tokenData) {
@@ -945,7 +945,7 @@ class TokenManager {
       await this.store.writeAll(allTokens);
 
       await this.reload();
-      return { success: true, message: 'Token添加成功' };
+      return { success: true, message: 'Token added successfully' };
     } catch (error) {
       log.error('添加Token失败:', error.message);
       return { success: false, message: error.message };
@@ -958,14 +958,14 @@ class TokenManager {
 
       const index = allTokens.findIndex(t => t.refresh_token === refreshToken);
       if (index === -1) {
-        return { success: false, message: 'Token不存在' };
+        return { success: false, message: 'Token not found' };
       }
 
       allTokens[index] = { ...allTokens[index], ...updates };
       await this.store.writeAll(allTokens);
 
       await this.reload();
-      return { success: true, message: 'Token更新成功' };
+      return { success: true, message: 'Token updated successfully' };
     } catch (error) {
       log.error('更新Token失败:', error.message);
       return { success: false, message: error.message };
@@ -978,13 +978,13 @@ class TokenManager {
 
       const filteredTokens = allTokens.filter(t => t.refresh_token !== refreshToken);
       if (filteredTokens.length === allTokens.length) {
-        return { success: false, message: 'Token不存在' };
+        return { success: false, message: 'Token not found' };
       }
 
       await this.store.writeAll(filteredTokens);
 
       await this.reload();
-      return { success: true, message: 'Token删除成功' };
+      return { success: true, message: 'Token deleted successfully' };
     } catch (error) {
       log.error('删除Token失败:', error.message);
       return { success: false, message: error.message };
@@ -1047,14 +1047,14 @@ class TokenManager {
       );
 
       if (index === -1) {
-        return { success: false, message: 'Token不存在' };
+        return { success: false, message: 'Token not found' };
       }
 
       allTokens[index] = { ...allTokens[index], ...updates };
       await this.store.writeAll(allTokens);
 
       await this.reload();
-      return { success: true, message: 'Token更新成功' };
+      return { success: true, message: 'Token updated successfully' };
     } catch (error) {
       log.error('更新Token失败:', error.message);
       return { success: false, message: error.message };
@@ -1076,13 +1076,13 @@ class TokenManager {
       );
 
       if (filteredTokens.length === allTokens.length) {
-        return { success: false, message: 'Token不存在' };
+        return { success: false, message: 'Token not found' };
       }
 
       await this.store.writeAll(filteredTokens);
 
       await this.reload();
-      return { success: true, message: 'Token删除成功' };
+      return { success: true, message: 'Token deleted successfully' };
     } catch (error) {
       log.error('删除Token失败:', error.message);
       return { success: false, message: error.message };
@@ -1097,7 +1097,7 @@ class TokenManager {
   async refreshTokenById(tokenId) {
     const tokenData = await this.findTokenById(tokenId);
     if (!tokenData) {
-      throw new TokenError('Token不存在', null, 404);
+      throw new TokenError('Token not found', null, 404);
     }
 
     const refreshedToken = await this.refreshToken(tokenData);
