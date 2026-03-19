@@ -52,6 +52,11 @@ function generateTokenId(refreshToken, salt) {
   return createHash('sha256').update(refreshToken + salt).digest('hex').substring(0, 16);
 }
 
+function generateCheckpointId() {
+  const uuid = randomUUID();
+  return `checkpoint/${uuid}`;
+}
+
 export {
     generateProjectId,
     generateSessionId,
@@ -59,5 +64,6 @@ export {
     generateToolCallId,
     generateInstanceId,
     generateTokenId,
-    generateSalt
+    generateSalt,
+    generateCheckpointId
 }
