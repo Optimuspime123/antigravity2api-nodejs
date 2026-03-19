@@ -358,50 +358,49 @@ export async function with429Retry(fn, maxRetries, options = {}, legacyOnAttempt
             throw error;
           }
 
-          // 恢复时间超过阈值，触发模型系列禁用
+          // Use upstream reset time as base
           let finalResetTimestamp = upstreamResetTimestamp;
 
-          // 尝试从 quotas.json 获取更准确的恢复时间
-          const { resetTime: quotaResetTime, hasData } = quotaManager.getModelGroupResetTime(tokenId, modelId);
+          // If no upstream timestamp, calculate from explicit delay
+          if (!finalResetTimestamp && explicitDelayMs !== null) {
+            finalResetTimestamp = Date.now() + explicitDelayMs;
+          }
 
-          if (!hasData && typeof refreshQuota === 'function') {
-            // 没有额度数据，尝试刷新
-            logger.info(`${loggerPrefix}正在获取最新额度数据以确定准确恢复时间...`);
+          // If we still don't have a timestamp, try fetching from quota data
+          if (!finalResetTimestamp && typeof refreshQuota === 'function') {
+            logger.info(`${loggerPrefix}No reset timestamp available, fetching latest quota data to determine accurate recovery time...`);
             try {
               await refreshQuota();
-              const refreshed = quotaManager.getModelGroupResetTime(tokenId, modelId);
-              if (refreshed.resetTime) {
-                finalResetTimestamp = refreshed.resetTime;
+              const { resetTime: quotaResetTime } = quotaManager.getModelGroupResetTime(tokenId, modelId);
+              if (quotaResetTime) {
+                finalResetTimestamp = quotaResetTime;
               }
             } catch (e) {
-              logger.warn(`${loggerPrefix}获取额度数据失败: ${e.message}`);
+              logger.warn(`${loggerPrefix}Failed to fetch quota data: ${e.message}`);
             }
-          } else if (quotaResetTime) {
-            // 使用 quotas.json 中的恢复时间（通常更准确）
-            finalResetTimestamp = quotaResetTime;
           }
 
           if (finalResetTimestamp && finalResetTimestamp > Date.now()) {
             const groupKey = getGroupKey(modelId);
             const resetDate = new Date(finalResetTimestamp);
           logger.warn(
-            `${loggerPrefix}收到 ${errorType}，恢复时间 ${Math.round(explicitDelayMs / 1000 / 60)} 分钟后，` +
-              `超过阈值(${Math.round(cooldownThreshold / 1000 / 60)}分钟)，` +
-              `禁用 ${groupKey} 系列直到 ${resetDate.toLocaleString('zh-CN', { timeZone: 'Asia/Shanghai' })}`
+            `${loggerPrefix}Received ${errorType}; reset in ${Math.round((finalResetTimestamp - Date.now()) / 1000 / 60)} min — ` +
+              `exceeds threshold (${Math.round(cooldownThreshold / 1000 / 60)} min); ` +
+              `disabling ${groupKey} series until ${resetDate.toLocaleString('en-US', { timeZone: 'UTC' })} UTC`
             );
             tokenCooldownManager.setCooldown(tokenId, modelId, finalResetTimestamp);
-            // 不重试，直接抛出错误
+            // Do not retry; throw error immediately
             throw error;
           }
         }
 
-        // 短时间等待，正常重试
+        // Short wait, normal retry
         if (attempt < retries) {
           const nextAttempt = attempt + 1;
           const waitMs = computeBackoffMs(nextAttempt, explicitDelayMs);
           logger.warn(
-            `${loggerPrefix}收到 ${errorType}，等待 ${waitMs}ms 后进行第 ${nextAttempt} 次重试（共 ${retries} 次）` +
-            (explicitDelayMs !== null ? `（上游提示≈${explicitDelayMs}ms）` : '')
+            `${loggerPrefix}Received ${errorType}, waiting ${waitMs}ms before retry ${nextAttempt}/${retries}` +
+            (explicitDelayMs !== null ? ` (upstream hint ≈${explicitDelayMs}ms)` : '')
           );
           await sleep(waitMs);
           attempt = nextAttempt;
